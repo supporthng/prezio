@@ -245,6 +245,22 @@ npm run typecheck
 - Quien no es dueño solo usa y crea niveles con las casillas que él mismo puede dar. Nunca puede dar «Usuarios».
 - **Requiere** ejecutar `supabase/migrations/0012_niveles.sql` (después de 0011).
 
+## Actualizaciones automáticas (todos los programas instalados)
+
+Cada programa lee `public/apps.json` (lo escribe GitHub Actions al publicar) y solo acepta descargas de
+`github.com/supporthng/prezio/releases/download/`.
+
+- **Verificador Android** y **Verificador Windows**: al abrir y cada 6 horas; se instalan solos, sin preguntar.
+- **Prezio Administrador**:
+  - al abrir revisa y, si hay versión nueva, muestra «Actualizando…», la instala (Windows pide permiso una vez)
+    y la app se vuelve a abrir sola;
+  - la copia automática (tarea «Prezio Conector», como SYSTEM) revisa al arrancar y cada 6 horas, y se
+    actualiza en silencio;
+  - el instalador vuelve a arrancar la tarea y, si la actualización vino de la ventana, vuelve a abrir la app.
+- **PrezioConector.exe (consola)**: al abrir y cada 6 horas; se reemplaza a sí mismo y vuelve a arrancar con
+  las mismas opciones. `conector.yml` lo publica como 2.0.N en `apps.json › conector`.
+- **Verificador web** (`/equipo`): toma la versión nueva del sitio al recargar (la página siempre se pide a internet primero).
+
 ## Clave secreta de Supabase (crear usuarios)
 
 - `SUPABASE_SECRET_KEY` acepta la clave nueva (`sb_secret_…`) o la anterior «service_role» (`eyJ…`).

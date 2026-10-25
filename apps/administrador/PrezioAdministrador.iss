@@ -38,6 +38,24 @@ Name: "{group}\Prezio Administrador"; Filename: "{app}\{#MyAppExeName}"
 Name: "{autodesktop}\Prezio Administrador"; Filename: "{app}\{#MyAppExeName}"; Tasks: escritorio
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "Abrir Prezio Administrador"; Flags: postinstall nowait skipifsilent runasoriginaluser
+; Actualización automática (instalación silenciosa):
+;  · desde la ventana: volver a abrir la app para la persona que la estaba usando;
+;  · desde la copia automática (/SERVICIO, como SYSTEM): no abrir ventanas, solo volver a arrancar la tarea.
+Filename: "{app}\{#MyAppExeName}"; Flags: nowait runasoriginaluser; Check: WizardSilent and not DesdeServicio
+Filename: "schtasks.exe"; Parameters: "/Run /TN ""Prezio Conector"""; Flags: runhidden; Check: WizardSilent and TareaInstalada
 [UninstallRun]
 ; Al desinstalar, quitar el arranque automático del conector.
 Filename: "schtasks.exe"; Parameters: "/Delete /F /TN ""Prezio Conector"""; Flags: runhidden; RunOnceId: "QuitarTarea"
+
+[Code]
+function DesdeServicio(): Boolean;
+begin
+  Result := Pos('/SERVICIO', UpperCase(GetCmdTail)) > 0;
+end;
+
+function TareaInstalada(): Boolean;
+var
+  Codigo: Integer;
+begin
+  Result := Exec(ExpandConstant('{sys}\schtasks.exe'), '/Query /TN "Prezio Conector"', '', SW_HIDE, ewWaitUntilTerminated, Codigo) and (Codigo = 0);
+end;

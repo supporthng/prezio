@@ -41,6 +41,9 @@ ESTADO = CARPETA / "estado.json"
 PARTE = 2000
 CONTROLADORES = ("ODBC Driver 18 for SQL Server", "ODBC Driver 17 for SQL Server", "SQL Server")
 REENVIAR_HORAS = 12      # aunque nada cambie, se reenvía cada tantas horas
+# Actualización automática (solo PrezioConector.exe de consola; la app Prezio Administrador tiene la suya).
+ORIGEN_ACTUALIZACION = "https://github.com/supporthng/prezio/releases/download/"
+CADA_REVISION_S = 6 * 60 * 60
 
 log = logging.getLogger("prezio")
 
@@ -275,7 +278,12 @@ def sincronizar(cfg: dict, conectar=None) -> dict:
 def trabajar(cfg: dict) -> None:
     log.info("Prezio Conector %s · enviando a %s cada %s minutos", VERSION, cfg["sitio"], cfg.get("cada_min", 10))
     espera = 60
+    revisado = time.time()
     while True:
+        if es_conector_de_consola() and time.time() - revisado > CADA_REVISION_S:
+            revisado = time.time()
+            if auto_actualizar(cfg["sitio"]):
+                sys.exit(0)
         try:
             sincronizar(cfg)
             espera = max(1, int(cfg.get("cada_min", 10))) * 60
@@ -290,6 +298,67 @@ def trabajar(cfg: dict) -> None:
             log.exception("Error inesperado: %s", e)
             espera = 5 * 60
         time.sleep(espera)
+
+
+# ---------------------------------------------------------------- actualizarse solo
+def _version_mayor(a: str, b: str) -> bool:
+    def partes(v):
+        try:
+            return [int(x) for x in str(v).split(".")[:3]]
+        except ValueError:
+            return [0, 0, 0]
+    return partes(a) > partes(b)
+
+
+def es_conector_de_consola() -> bool:
+    """Solo PrezioConector.exe se reemplaza a sí mismo (dentro de Prezio Administrador lo actualiza el instalador)."""
+    return bool(getattr(sys, "frozen", False)) and Path(sys.executable).stem.lower() == "prezioconector"
+
+
+def limpiar_version_vieja() -> None:
+    if es_conector_de_consola():
+        try:
+            Path(sys.executable).with_name("PrezioConector.viejo.exe").unlink()
+        except OSError:
+            pass
+
+
+def auto_actualizar(sitio: str, abrir=urllib.request.urlopen) -> bool:
+    """Si en apps.json hay una versión más nueva, la descarga, se reemplaza y vuelve a arrancar. True = se reinició."""
+    if not es_conector_de_consola():
+        return False
+    try:
+        pedido = urllib.request.Request(f"{sitio.rstrip('/')}/apps.json?t={int(time.time())}",
+                                        headers={"Cache-Control": "no-cache", "User-Agent": f"PrezioConector/{VERSION}"})
+        with abrir(pedido, timeout=15) as r:
+            info = json.loads(r.read().decode("utf-8")).get("conector") or {}
+        nueva, url = str(info.get("version") or ""), str(info.get("url") or "")
+        if not (nueva and _version_mayor(nueva, VERSION) and url.startswith(ORIGEN_ACTUALIZACION) and url.endswith(".exe")):
+            return False
+        actual = Path(sys.executable)
+        nuevo, viejo = actual.with_name("PrezioConector.nuevo.exe"), actual.with_name("PrezioConector.viejo.exe")
+        log.info("Hay versión nueva %s (esta es %s): actualizando…", nueva, VERSION)
+        with abrir(urllib.request.Request(url, headers={"User-Agent": f"PrezioConector/{VERSION}"}), timeout=300) as r, open(nuevo, "wb") as f:
+            while True:
+                bloque = r.read(1 << 16)
+                if not bloque:
+                    break
+                f.write(bloque)
+        with open(nuevo, "rb") as f:
+            if f.read(2) != b"MZ" or nuevo.stat().st_size < 1_000_000:
+                raise RuntimeError("la descarga no es un programa válido")
+        try:
+            viejo.unlink()
+        except OSError:
+            pass
+        actual.rename(viejo)          # Windows deja renombrar el programa que está corriendo
+        nuevo.rename(actual)
+        subprocess.Popen([str(actual), *sys.argv[1:]], close_fds=True)
+        log.info("Actualizado a %s: arrancando la versión nueva.", nueva)
+        return True
+    except Exception as e:
+        log.warning("No se pudo revisar o instalar la actualización: %s", e)
+        return False
 
 
 # ---------------------------------------------------------------- configurar (preguntas en la consola)
@@ -431,6 +500,7 @@ def main() -> None:
     a = p.parse_args()
     interactivo = sys.stdin is not None and sys.stdin.isatty()
     preparar_registro(consola=interactivo)
+    limpiar_version_vieja()
     if a.desinstalar:
         return desinstalar()
     if a.instalar:
@@ -446,6 +516,9 @@ def main() -> None:
         if os.name == "nt" and preguntar("\n¿Arrancar solo al encender la PC? (s/n)", "s").lower().startswith("s"):
             instalar()
             return
+    # Al abrir: si hay versión nueva, se instala sola y vuelve a arrancar con las mismas opciones.
+    if auto_actualizar(cfg.get("sitio") or "https://prezio-jade.vercel.app"):
+        return
     if a.una_vez:
         print(sincronizar(cfg))
         return

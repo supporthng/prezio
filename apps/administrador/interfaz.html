@@ -13,6 +13,11 @@
   * { box-sizing: border-box; }
   body { margin: 0; min-height: 100vh; }
   [hidden] { display: none !important; }
+  .actualizando { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: rgba(16, 42, 67, .78); }
+  .act-caja { background: #fff; border-radius: 16px; padding: 28px 32px; width: min(460px, 90vw); text-align: center; box-shadow: 0 20px 50px rgba(0, 0, 0, .3); }
+  .act-caja h2 { font-size: 1.15rem; margin: 12px 0 6px; }
+  .act-caja p { margin: 0 0 14px; }
+  .girando.grande-g { width: 34px; height: 34px; border-width: 3px; color: var(--tinta); margin: 0; }
   h1, h2, h3 { margin: 0; }
   .quieto { color: var(--gris); }
   .pequeno { font-size: .87rem; }
@@ -144,6 +149,15 @@
 </style>
 </head>
 <body>
+<!-- ============================================================ actualizando (al abrir, si hay versión nueva) -->
+<div class="actualizando" id="actualizando" hidden role="status" aria-live="polite">
+  <div class="act-caja">
+    <span class="girando grande-g" id="act-girando"></span>
+    <h2 id="act-texto">Buscando actualizaciones…</h2>
+    <p class="quieto" id="act-detalle"></p>
+    <button class="boton" type="button" id="act-seguir" hidden>Seguir con esta versión</button>
+  </div>
+</div>
 
 <!-- ============================================================ entrar -->
 <section class="entrar" id="v-entrar" hidden>
@@ -688,9 +702,24 @@ $("#b-registro").onclick = async () => { const r = await api("registro"); $("#re
   await refrescar();
   const desdePanel = (location.hash || "").slice(1);
   if (["base", "copia", "inicio"].includes(desdePanel) && E && E.sesion && E.sesion.negocio) ir(desdePanel);
+  // Al abrir: si hay versión nueva publicada, se instala sola y la app se vuelve a abrir.
   const v = await api("version_nueva");
-  if (v.version) { $("#nueva").hidden = false; $("#nueva-texto").textContent = `Hay una versión nueva de Prezio Administrador (${v.version}).`; $("#nueva-boton").onclick = () => api("abrir_enlace", v.url); }
+  if (v.version) {
+    $("#actualizando").hidden = false;
+    $("#act-texto").textContent = `Actualizando Prezio Administrador a la versión ${v.version}…`;
+    const r = await api("actualizar");
+    if (r.error) {
+      $("#act-texto").textContent = r.error;
+      $("#act-detalle").textContent = "Puedes seguir trabajando; se intentará de nuevo la próxima vez que abras la app.";
+      $("#act-girando").hidden = true; $("#act-seguir").hidden = false;
+    } else if (r.version) {
+      $("#act-detalle").textContent = "Si Windows pregunta, toca «Sí». La app se cierra y se vuelve a abrir sola en unos segundos.";
+    } else {
+      $("#actualizando").hidden = true;
+    }
+  }
 })();
+$("#act-seguir").onclick = () => { $("#actualizando").hidden = true; };
 </script>
 </body>
 </html>

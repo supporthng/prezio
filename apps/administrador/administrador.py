@@ -44,6 +44,9 @@ DATOS = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / ".prezio")) / "Pre
 SESION = DATOS / "sesion.json"
 ACTIVACION = pc.CARPETA / "activacion.json"     # de la PC (todas las cuentas de Windows): la licencia del negocio
 USUARIO_VALIDO = r"^[a-z0-9][a-z0-9._-]{2,29}$"
+# Solo se instalan actualizaciones publicadas en las descargas de Prezio.
+ORIGEN_ACTUALIZACION = "https://github.com/supporthng/prezio/releases/download/"
+CADA_REVISION_S = 6 * 60 * 60
 
 
 class ErrorApp(Exception):
@@ -615,17 +618,39 @@ class Api:
 
     # ---- actualizaciones
     def version_nueva(self):
+        """Al abrir: ¿hay una versión más nueva publicada? (la ventana la instala sola)."""
+        info = version_publicada(self.prezio.sitio)
+        return {"ok": True, **info} if info else {"ok": True, "version": None}
+
+    def actualizar(self):
+        """Descarga la versión nueva y la instala; la app se cierra y el instalador la vuelve a abrir."""
+        info = version_publicada(self.prezio.sitio)
+        if not info:
+            return {"ok": True, "version": None}
         try:
-            pedido = urllib.request.Request(f"{self.prezio.sitio}/apps.json?t={int(time.time())}",
-                                            headers={"Cache-Control": "no-cache", "User-Agent": "PrezioAdministrador/" + VERSION})
-            with urllib.request.urlopen(pedido, timeout=10) as r:
-                info = json.loads(r.read().decode("utf-8")).get("administrador") or {}
-            nueva = str(info.get("version") or "")
-            if nueva and _version_mayor(nueva, VERSION) and str(info.get("url", "")).startswith("https://github.com/"):
-                return {"ok": True, "version": nueva, "url": info["url"]}
-        except Exception:
-            pass
-        return {"ok": True, "version": None}
+            ruta = descargar_instalador(info["url"])
+            if os.name != "nt":
+                return {"error": "Solo en Windows."}
+            import ctypes
+            # Pide permiso de administrador (la app está instalada para toda la PC).
+            r = ctypes.windll.shell32.ShellExecuteW(None, "runas", ruta,
+                                                    "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS", None, 0)
+            if r <= 32:
+                return {"error": "Windows no dio permiso para instalar la actualización. Se seguirá usando esta versión."}
+            anotar_actualizacion(f"instalando {info['version']} (desde la ventana)")
+
+            def cerrar():
+                time.sleep(1.5)
+                try:
+                    if self.ventana is not None:
+                        self.ventana.destroy()
+                finally:
+                    os._exit(0)
+            threading.Thread(target=cerrar, daemon=True).start()
+            return {"ok": True, "version": info["version"]}
+        except Exception as e:
+            anotar_actualizacion(f"error al actualizar: {e}")
+            return {"error": "No se pudo descargar la actualización: " + mensaje(e)}
 
     def abrir_enlace(self, url):
         if str(url).startswith("https://"):
@@ -650,10 +675,71 @@ def _solo(permitido):
 
 for _n in ("estado", "activar", "desactivar", "entrar", "elegir_negocio", "abrir_panel", "buscar_servidores", "autorizar", "tablas",
            "columnas", "muestra", "inventarios", "guardar_fuente", "fuentes", "quitar_fuente", "enviar_ahora", "guardar_frecuencia",
-           "arranque", "registro", "version_nueva", "abrir_enlace"):
+           "arranque", "registro", "version_nueva", "actualizar", "abrir_enlace"):
     setattr(Api, _n, _solo(Api._desde_la_app)(getattr(Api, _n)))
 for _n in ("salir", "ir_app", "mostrar_inicio"):
     setattr(Api, _n, _solo(Api._desde_prezio)(getattr(Api, _n)))
+
+
+# ---------------------------------------------------------------- actualizaciones
+def anotar_actualizacion(texto: str) -> None:
+    try:
+        pc.log.info("Actualización: %s", texto)
+    except Exception:
+        pass
+
+
+def version_publicada(sitio: str, abrir=urllib.request.urlopen) -> dict | None:
+    """{version, url} si en apps.json hay una versión más nueva que esta, publicada en las descargas de Prezio."""
+    try:
+        pedido = urllib.request.Request(f"{sitio}/apps.json?t={int(time.time())}",
+                                        headers={"Cache-Control": "no-cache", "User-Agent": "PrezioAdministrador/" + VERSION})
+        with abrir(pedido, timeout=15) as r:
+            info = json.loads(r.read().decode("utf-8")).get("administrador") or {}
+    except Exception as e:
+        anotar_actualizacion(f"no se pudo revisar apps.json ({e})")
+        return None
+    nueva, url = str(info.get("version") or ""), str(info.get("url") or "")
+    if nueva and _version_mayor(nueva, VERSION) and url.startswith(ORIGEN_ACTUALIZACION) and url.endswith(".exe"):
+        return {"version": nueva, "url": url}
+    return None
+
+
+def descargar_instalador(url: str, abrir=urllib.request.urlopen) -> str:
+    if not url.startswith(ORIGEN_ACTUALIZACION) or not url.endswith(".exe"):
+        raise ValueError("Dirección de actualización no permitida")
+    import tempfile
+    destino = os.path.join(tempfile.gettempdir(), f"Instalador_Prezio_Administrador_{int(time.time())}.exe")
+    pedido = urllib.request.Request(url, headers={"User-Agent": "PrezioAdministrador/" + VERSION})
+    with abrir(pedido, timeout=300) as respuesta, open(destino, "wb") as archivo:
+        while True:
+            bloque = respuesta.read(1 << 16)
+            if not bloque:
+                break
+            archivo.write(bloque)
+    with open(destino, "rb") as f:
+        es_exe = f.read(2) == b"MZ"
+    if os.path.getsize(destino) < 500_000 or not es_exe:
+        raise RuntimeError("la descarga no es un instalador válido")
+    return destino
+
+
+def servicio_actualizar(sitio: str) -> None:
+    """La copia automática (tarea de Windows como SYSTEM) se actualiza sola, en silencio: al arrancar y cada 6 horas."""
+    time.sleep(90)
+    while True:
+        info = version_publicada(sitio)
+        if info:
+            try:
+                ruta = descargar_instalador(info["url"])
+                anotar_actualizacion(f"instalando {info['version']} en silencio (copia automática)")
+                # /SERVICIO: el instalador vuelve a arrancar la tarea, no la ventana (no hay nadie en esta sesión).
+                subprocess.Popen([ruta, "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/CLOSEAPPLICATIONS", "/SERVICIO"],
+                                 close_fds=True, creationflags=0x00000008 | 0x00000200)
+                return
+            except Exception as e:
+                anotar_actualizacion(f"error al actualizar: {e}")
+        time.sleep(CADA_REVISION_S)
 
 
 def _version_mayor(a, b):
@@ -681,9 +767,11 @@ def main():
     if "--servicio" in args:
         pc.preparar_registro(consola=False)
         cfg = pc.leer_json(pc.CONFIG, None)
+        threading.Thread(target=servicio_actualizar, args=((cfg or {}).get("sitio") or SITIO,), daemon=True).start()
         if not cfg or not cfg.get("clave"):
             pc.log.error("Falta conectar la base: abre Prezio Administrador › Base de datos.")
-            sys.exit(2)
+            while True:            # sigue vivo para poder actualizarse
+                time.sleep(3600)
         pc.trabajar(cfg)
         return
     if "--instalar" in args:
