@@ -29,9 +29,9 @@ export default async function Entrar({ searchParams }: Props) {
         <form action={entrarConUsuario}>
           <input type="hidden" name="siguiente" value={siguiente ? sig : ""} />
           <div className="campo">
-            <label htmlFor="negocio">Código del negocio</label>
+            <label htmlFor="negocio">Licencia del negocio</label>
             <input id="negocio" name="negocio" defaultValue={negocio ?? recordado} autoComplete="organization" required
-              autoCapitalize="none" spellCheck={false} placeholder="ej.: abarrotao-market" />
+              autoCapitalize="characters" spellCheck={false} placeholder="PREZIO-XXXX-XXXX-XXXX" />
           </div>
           <div className="campo">
             <label htmlFor="usuario">Usuario</label>

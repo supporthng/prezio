@@ -50,7 +50,8 @@ export async function crearUsuario(datos: FormData) {
     await admin.auth.admin.deleteUser(creada.user!.id).catch(() => {});
     volver(slug, e2);
   }
-  volver(slug, null, `Usuario «${usuario}» creado. Entra en Prezio › Entrar › Con usuario, con el código «${slug}».`);
+  const { data: lic } = await supabase.from("negocios").select("licencia").eq("id", negocio).maybeSingle();
+  volver(slug, null, `Usuario «${usuario}» creado. Entra en Prezio › Entrar › Con usuario, con la licencia ${(lic as { licencia?: string } | null)?.licencia ?? slug}.`);
 }
 
 export async function guardarPermisos(datos: FormData) {

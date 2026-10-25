@@ -215,9 +215,27 @@ npm run typecheck
      El enlace de la invitación vuelve a `/auth/sesion`.
   5. Para invitar por correo, configurar el correo propio (SMTP).
 
+## Licencias (PREZIO-XXXX-XXXX-XXXX)
+
+- **Cada negocio tiene una licencia única**, por ejemplo `PREZIO-K7QM-2XRP-H9TD`. Es el código con el que sus usuarios
+  entran (Entrar › Con usuario, la app Prezio Administrador y «Vincular aquí» en los verificadores).
+  - Se escribe en mayúsculas o minúsculas; el código viejo de la dirección (`abarrotao-market`) también sirve.
+  - No usa caracteres que se confunden (0/O, 1/I/L).
+  - Se ve en el Resumen del negocio, con un botón para copiarla.
+- **Prueba de 30 días** desde el alta. Siete días antes de vencer, el panel avisa.
+- **Al vencer**, el negocio queda bloqueado hasta que se pague: el panel queda de solo lectura con el aviso para
+  pagar, los verificadores muestran «Servicio no disponible», y la consulta del celular y el conector se detienen.
+- **En la Plataforma** puedes:
+  - *Registrar pago*: plan Básico o Profesional por 1, 3, 6 o 12 meses, con una nota. Se suma desde hoy, o desde
+    la fecha pagada si todavía no vence, y queda el historial de pagos;
+  - dar días de prueba;
+  - suspender o quitar la suspensión.
+- **Requiere** ejecutar `supabase/migrations/0011_licencias.sql` (después de 0010). Los negocios que ya existían
+  reciben su licencia y, si estaban en prueba, 30 días desde ese momento.
+
 ## Prezio Administrador (Windows) · la app de cada negocio
 
-- **Entrar**: con el código del negocio + usuario + clave, o con correo. Son las mismas cuentas y casillas de
+- **Entrar**: con la licencia del negocio (PREZIO-…) + usuario + clave, o con correo. Son las mismas cuentas y casillas de
   permisos de la web. «Recordarme» guarda la sesión cifrada, solo para ese usuario de Windows.
 - **Panel del negocio**: cada sección se abre en su propia ventana, sin volver a entrar. La app pide a
   `/api/sesion-app` un enlace de un solo uso y el panel abre su propia sesión, así la de la app no se cierra.

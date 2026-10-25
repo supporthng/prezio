@@ -98,7 +98,7 @@ export function Pantalla({ apariencia: a, moneda, negocio, sucursal, estado, vis
         )}
         <section className="pz-centro">
           <h1 className={`pz-titulo${no ? " no" : ""}`}>
-            {estado.tipo === "suspendido" ? "Servicio suspendido"
+            {estado.tipo === "suspendido" ? "Servicio no disponible"
               : estado.tipo === "no" ? "No encontramos este producto"
               : estado.tipo === "sin_fuente" ? "Esta sucursal todavía no tiene precios"
               : a.titulo_espera}

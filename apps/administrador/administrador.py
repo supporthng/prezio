@@ -229,7 +229,7 @@ class Api:
                 codigo = str(d.get("negocio") or "").strip().lower()
                 usuario = str(d.get("usuario") or "").strip().lower()
                 if not codigo or not re.match(USUARIO_VALIDO, usuario):
-                    return {"error": "Escribe el código del negocio y tu usuario."}
+                    return {"error": "Escribe la licencia del negocio (PREZIO-…) y tu usuario."}
                 nid = self.prezio.rpc("negocio_de_slug", {"p_slug": codigo})
                 if not nid:
                     return {"error": "Negocio, usuario o clave incorrectos."}

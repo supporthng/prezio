@@ -69,11 +69,11 @@ export async function cambiarClave(datos: FormData) {
 /** Entrar con negocio + usuario + clave (usuarios sin correo que crea el dueño). */
 export async function entrarConUsuario(datos: FormData) {
   const siguiente = rutaSegura(texto(datos, "siguiente"), "");
-  const negocio = texto(datos, "negocio").toLowerCase();
+  const negocio = texto(datos, "negocio").toUpperCase();
   const usuario = texto(datos, "usuario").toLowerCase();
   const volver = (error: string) =>
     redirect(`/entrar?modo=usuario&negocio=${encodeURIComponent(negocio)}&error=${encodeURIComponent(error)}&siguiente=${encodeURIComponent(siguiente)}`);
-  if (!negocio || !USUARIO_VALIDO.test(usuario)) volver("Escribe el código del negocio y tu usuario.");
+  if (!negocio || !USUARIO_VALIDO.test(usuario)) volver("Escribe la licencia del negocio (PREZIO-…) y tu usuario.");
   const supabase = await supabaseServidor();
   const { data: id } = await supabase.rpc("negocio_de_slug", { p_slug: negocio });
   // Mismo mensaje si el negocio no existe o la clave está mal: no revela qué negocios o usuarios hay.

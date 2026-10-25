@@ -3,7 +3,7 @@ import { supabaseServidor } from "@/lib/supabase/server";
 import { PERMISOS, type Permiso } from "@/lib/permisos";
 
 export type Negocio = {
-  id: string; nombre: string; slug: string; plan: string; prueba_hasta: string; moneda: string;
+  id: string; nombre: string; slug: string; plan: string; prueba_hasta: string; pagado_hasta: string | null; licencia: string; moneda: string;
   apariencia: Record<string, unknown>;
 };
 export type Rol = "dueno" | "admin" | "encargado" | "verificador";
@@ -17,7 +17,7 @@ export async function cargarNegocio(slug: string, volverA: string) {
   if (!auth.user) redirect(`/entrar?siguiente=${encodeURIComponent(volverA)}`);
   const { data } = await supabase
     .from("negocios")
-    .select("id, nombre, slug, plan, prueba_hasta, moneda, apariencia")
+    .select("id, nombre, slug, plan, prueba_hasta, pagado_hasta, licencia, moneda, apariencia")
     .eq("slug", slug)
     .maybeSingle();
   const negocio = data as Negocio | null;

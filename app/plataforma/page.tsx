@@ -3,7 +3,8 @@ import { Barra } from "@/components/Barra";
 import { Aviso } from "@/components/Aviso";
 import { supabaseServidor } from "@/lib/supabase/server";
 import { hayClaveSecreta } from "@/lib/supabase/admin";
-import { agregarDueno, altaNegocio, cambiarPlan } from "./actions";
+import { agregarDueno, altaNegocio, extenderPrueba, registrarPago, suspender } from "./actions";
+import { estadoLicencia } from "@/lib/licencia";
 
 export const metadata = { title: "Plataforma" };
 export const dynamic = "force-dynamic";
@@ -11,11 +12,11 @@ export const dynamic = "force-dynamic";
 type Dueno = { usuario: string | null; correo: string | null; confirmado: boolean };
 type Negocio = {
   id: string; nombre: string; slug: string; plan: string; moneda: string; creado: string; duenos: Dueno[];
+  licencia: string; prueba_hasta: string | null; pagado_hasta: string | null; bloqueado: boolean;
   usuarios: number; sucursales: number; equipos: number; equipos_activos: number; productos: number; ultima_consulta: string | null;
 };
 type Props = { searchParams: Promise<{ bien?: string; error?: string; q?: string }> };
 
-const PLANES: Record<string, string> = { prueba: "Prueba", basico: "Básico", profesional: "Profesional", suspendido: "Suspendido" };
 const fecha = (t: string | null) => (t ? new Date(t).toLocaleDateString("es-DO", { day: "numeric", month: "short", year: "numeric" }) : "—");
 const nf = new Intl.NumberFormat("es-DO");
 
@@ -60,8 +61,9 @@ export default async function Plataforma({ searchParams }: Props) {
   const { data } = await supabase.rpc("plataforma_negocios");
   const todos = (data ?? []) as Negocio[];
   const filtro = (q ?? "").trim().toLowerCase();
-  const negocios = filtro ? todos.filter((n) => `${n.nombre} ${n.slug} ${n.duenos.map((d) => d.usuario ?? d.correo).join(" ")}`.toLowerCase().includes(filtro)) : todos;
-  const activos = todos.filter((n) => n.plan !== "suspendido").length;
+  const negocios = filtro ? todos.filter((n) => `${n.nombre} ${n.slug} ${n.licencia} ${n.duenos.map((d) => d.usuario ?? d.correo).join(" ")}`.toLowerCase().includes(filtro)) : todos;
+  const activos = todos.filter((n) => !n.bloqueado).length;
+  const porVencer = todos.filter((n) => { const e = estadoLicencia(n); return !e.bloqueado && e.dias !== null && e.dias <= 7; }).length;
   const equipos = todos.reduce((t, n) => t + n.equipos_activos, 0);
 
   return (
@@ -70,7 +72,7 @@ export default async function Plataforma({ searchParams }: Props) {
       <main className="contenido">
         <h1>Plataforma</h1>
         <p className="quieto">
-          {nf.format(todos.length)} negocios · {nf.format(activos)} activos · {nf.format(equipos)} verificadores conectados hoy
+          {nf.format(todos.length)} negocios · {nf.format(activos)} activos · {nf.format(porVencer)} por vencer esta semana · {nf.format(equipos)} verificadores conectados hoy
         </p>
         <Aviso error={error} bien={bien} />
         {!hayClaveSecreta() && (
@@ -79,7 +81,7 @@ export default async function Plataforma({ searchParams }: Props) {
 
         <section className="tarjeta" aria-labelledby="t-alta">
           <h2 id="t-alta">Dar de alta un negocio</h2>
-          <p className="quieto pequeno">Nace con su sucursal Principal y todas las funciones. El dueño entra en la web o en la app Prezio Administrador.</p>
+          <p className="quieto pequeno">Nace con su licencia PREZIO-XXXX-XXXX-XXXX, 30 días de prueba, su sucursal Principal y todas las funciones. Al vencer la prueba queda bloqueado hasta que registres el pago.</p>
           <form action={altaNegocio}>
             <div className="fila">
               <div className="campo" style={{ flex: "2 1 240px" }}>
@@ -87,19 +89,14 @@ export default async function Plataforma({ searchParams }: Props) {
                 <input id="nombre" name="nombre" required minLength={2} maxLength={80} placeholder="Ej.: Abarrotao Market" />
               </div>
               <div className="campo" style={{ flex: "1 1 200px" }}>
-                <label htmlFor="slug">Código <small className="quieto">(opcional)</small></label>
+                <label htmlFor="slug">Dirección <small className="quieto">(opcional)</small></label>
                 <input id="slug" name="slug" maxLength={40} pattern="[a-z0-9][a-z0-9\-]{1,38}[a-z0-9]" placeholder="abarrotao-market" autoComplete="off" />
               </div>
               <div className="campo" style={{ flex: "0 1 110px" }}>
                 <label htmlFor="moneda">Moneda</label>
                 <input id="moneda" name="moneda" defaultValue="RD$" maxLength={6} />
               </div>
-              <div className="campo" style={{ flex: "0 1 160px" }}>
-                <label htmlFor="plan">Plan</label>
-                <select id="plan" name="plan" defaultValue="prueba">
-                  <option value="prueba">Prueba</option><option value="basico">Básico</option><option value="profesional">Profesional</option>
-                </select>
-              </div>
+
             </div>
             <CamposDueno id="alta" />
             <button className="boton" type="submit">Dar de alta</button>
@@ -110,7 +107,7 @@ export default async function Plataforma({ searchParams }: Props) {
           <div className="fila" style={{ justifyContent: "space-between", alignItems: "flex-end" }}>
             <h2 id="t-negocios" style={{ margin: 0 }}>Negocios</h2>
             <form method="get" className="plat-buscar">
-              <input name="q" defaultValue={q ?? ""} placeholder="Buscar negocio, código o dueño" aria-label="Buscar" />
+              <input name="q" defaultValue={q ?? ""} placeholder="Buscar negocio, licencia o dueño" aria-label="Buscar" />
               <button className="boton secundario" type="submit">Buscar</button>
             </form>
           </div>
@@ -118,14 +115,15 @@ export default async function Plataforma({ searchParams }: Props) {
             <p className="quieto">{filtro ? "Ningún negocio coincide." : "Todavía no hay negocios: da de alta el primero arriba."}</p>
           ) : (
             <ul className="plat-lista">
-              {negocios.map((n) => (
-                <li key={n.id} className={`tarjeta plat-negocio${n.plan === "suspendido" ? " suspendido" : ""}`}>
+              {negocios.map((n) => { const lic = estadoLicencia(n); return (
+                <li key={n.id} className={`tarjeta plat-negocio${n.bloqueado ? " suspendido" : ""}`}>
                   <div className="plat-cabeza">
                     <div>
                       <h3>{n.nombre}</h3>
-                      <p className="quieto pequeno"><code>{n.slug}</code> · desde {fecha(n.creado)}</p>
+                      <p className="plat-licencia"><code>{n.licencia}</code></p>
+                      <p className="quieto pequeno">/n/{n.slug} · desde {fecha(n.creado)}</p>
                     </div>
-                    <span className={`chip plan-${n.plan}`}>{PLANES[n.plan] ?? n.plan}</span>
+                    <span className={`chip${n.bloqueado ? " plan-suspendido" : lic.estado === "activa" ? " plan-profesional" : ""}`}>{lic.texto}</span>
                   </div>
                   <dl className="plat-datos">
                     <div><dt>Dueño</dt><dd>{n.duenos.length ? n.duenos.map((d, i) => (
@@ -138,13 +136,34 @@ export default async function Plataforma({ searchParams }: Props) {
                     <div><dt>Última consulta</dt><dd>{fecha(n.ultima_consulta)}</dd></div>
                   </dl>
                   <div className="plat-acciones">
-                    <form action={cambiarPlan} className="plat-plan">
-                      <input type="hidden" name="negocio" value={n.id} />
-                      <select name="plan" defaultValue={n.plan} aria-label={`Plan de ${n.nombre}`}>
-                        {Object.entries(PLANES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                      </select>
-                      <button className="boton secundario" type="submit">Guardar plan</button>
-                    </form>
+                    <details className="plat-dueno">
+                      <summary>Registrar pago</summary>
+                      <form action={registrarPago} className="fila">
+                        <input type="hidden" name="negocio" value={n.id} />
+                        <div className="campo" style={{ flex: "0 1 160px" }}><label htmlFor={`pp-${n.id}`}>Plan</label>
+                          <select id={`pp-${n.id}`} name="plan" defaultValue={n.plan === "profesional" ? "profesional" : "basico"}>
+                            <option value="basico">Básico</option><option value="profesional">Profesional</option>
+                          </select></div>
+                        <div className="campo" style={{ flex: "0 1 140px" }}><label htmlFor={`pm-${n.id}`}>Tiempo</label>
+                          <select id={`pm-${n.id}`} name="meses" defaultValue="1">
+                            <option value="1">1 mes</option><option value="3">3 meses</option><option value="6">6 meses</option><option value="12">1 año</option>
+                          </select></div>
+                        <div className="campo"><label htmlFor={`pn-${n.id}`}>Nota <small className="quieto">(opcional)</small></label>
+                          <input id={`pn-${n.id}`} name="nota" maxLength={200} placeholder="Ej.: transferencia 0042" /></div>
+                        <button className="boton" type="submit" style={{ marginBottom: 12 }}>Registrar pago</button>
+                      </form>
+                      <p className="quieto pequeno" style={{ marginTop: 0 }}>Se suma desde hoy, o desde la fecha pagada si todavía no vence.</p>
+                    </details>
+                    <details className="plat-dueno">
+                      <summary>Días de prueba</summary>
+                      <form action={extenderPrueba} className="plat-plan">
+                        <input type="hidden" name="negocio" value={n.id} />
+                        <select name="dias" defaultValue="15" aria-label="Días de prueba extra">
+                          <option value="7">7 días</option><option value="15">15 días</option><option value="30">30 días</option>
+                        </select>
+                        <button className="boton secundario" type="submit">Dar días de prueba</button>
+                      </form>
+                    </details>
                     <details className="plat-dueno">
                       <summary>Agregar dueño</summary>
                       <form action={agregarDueno}>
@@ -154,9 +173,16 @@ export default async function Plataforma({ searchParams }: Props) {
                         <button className="boton" type="submit">Agregar dueño</button>
                       </form>
                     </details>
+                    <form action={suspender} style={{ marginLeft: "auto" }}>
+                      <input type="hidden" name="negocio" value={n.id} />
+                      <input type="hidden" name="accion" value={n.plan === "suspendido" ? "reactivar" : "suspender"} />
+                      <button className={`boton secundario${n.plan === "suspendido" ? "" : " peligro"}`} type="submit">
+                        {n.plan === "suspendido" ? "Quitar suspensión" : "Suspender"}
+                      </button>
+                    </form>
                   </div>
                 </li>
-              ))}
+              ); })}
             </ul>
           )}
         </section>

@@ -6,6 +6,7 @@ import { ROLES, sitio } from "@/lib/util";
 import { PERMISOS, resumenPermisos } from "@/lib/permisos";
 import { SubNav } from "@/components/SubNav";
 import { CodigoNegocio } from "@/components/CodigoNegocio";
+import { estadoLicencia } from "@/lib/licencia";
 import { Reporte, type Resumen } from "./Reporte";
 import { invitar, quitarMiembro } from "./actions";
 
@@ -14,7 +15,7 @@ type Props = {
   searchParams: Promise<{ bien?: string; error?: string; invitado?: string; dias?: string }>;
 };
 
-type Negocio = { id: string; nombre: string; slug: string; plan: string; prueba_hasta: string; moneda: string };
+type Negocio = { id: string; nombre: string; slug: string; plan: string; prueba_hasta: string; pagado_hasta: string | null; licencia: string; moneda: string };
 type Sucursal = { id: string; nombre: string; codigo: string; es_principal: boolean; activa: boolean; fuente: { tipo?: string; inventario_id?: string };
   geo_activa: boolean; latitud: number | null; longitud: number | null; radio_m: number };
 type Miembro = { user_id: string; rol: string; sucursal_id: string | null; permisos: string[] | null; sucursales: string[] | null; usuario: string | null };
@@ -37,7 +38,7 @@ export default async function PanelNegocio({ params, searchParams }: Props) {
   // La RLS solo devuelve el negocio si el usuario es miembro: si no, es como si no existiera.
   const { data: fila } = await supabase
     .from("negocios")
-    .select("id, nombre, slug, plan, prueba_hasta, moneda")
+    .select("id, nombre, slug, plan, prueba_hasta, pagado_hasta, licencia, moneda")
     .eq("slug", slug)
     .maybeSingle();
   const negocio = fila as Negocio | null;
@@ -70,7 +71,7 @@ export default async function PanelNegocio({ params, searchParams }: Props) {
   const { data: resumen } = puedeVerReporte
     ? await supabase.rpc("resumen_consultas", { p_negocio: negocio.id, p_dias: diasReporte })
     : { data: null };
-  const dias = Math.max(0, Math.ceil((Date.parse(negocio.prueba_hasta) - Date.now()) / 864e5));
+  const lic = estadoLicencia(negocio);
   const nombreSucursal = (id: string | null) => lasSucursales.find((s) => s.id === id)?.nombre ?? "";
 
   return (
@@ -80,14 +81,10 @@ export default async function PanelNegocio({ params, searchParams }: Props) {
         <Aviso error={error} bien={bien} />
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
           <h1>{negocio.nombre}</h1>
-          {negocio.plan === "prueba" ? (
-            <span className="chip etiqueta">Prueba gratis · {dias} {dias === 1 ? "día" : "días"}</span>
-          ) : (
-            <span className="chip">Plan {negocio.plan}</span>
-          )}
+          <span className={`chip${lic.bloqueado ? " plan-suspendido" : lic.estado === "prueba" ? " etiqueta" : ""}`}>{lic.texto}</span>
         </div>
         <p className="quieto">Tus permisos: {resumenPermisos(miRol, misPermisos, miAlcance, nombreSucursal)}</p>
-        <CodigoNegocio codigo={negocio.slug} />
+        <CodigoNegocio codigo={negocio.licencia || negocio.slug} />
         <SubNav slug={negocio.slug} activa="resumen" />
 
         {losInventarios.length === 0 && puede("inventarios") && (

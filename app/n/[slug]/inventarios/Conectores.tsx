@@ -45,7 +45,7 @@ export function Conectores({ negocioId, slug, conectores, sitio, descarga, nombr
       </p>
       <ol className="pequeno" style={{ margin: "0 0 16px", paddingLeft: "1.2em", lineHeight: 1.7 }}>
         <li>En una PC de la misma red que el servidor, instala <a href={descarga}>Prezio Administrador</a>.</li>
-        <li>Entra con tu usuario (código del negocio <strong>{slug}</strong>).</li>
+        <li>Entra con la licencia del negocio, tu usuario y tu clave.</li>
         <li>En «Base de datos», toca «Buscar servidores en mi red», elige el tuyo y autoriza con el usuario y la clave de la base.</li>
         <li>Elige la tabla de productos y sus columnas: la app crea el inventario y envía los precios sola, cada pocos minutos.</li>
       </ol>

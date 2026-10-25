@@ -99,15 +99,15 @@ export function Autorizar({ clave, onListo, onCancelar }: Props) {
       {paso === "entrar" ? (
         <form onSubmit={entrar}>
           <h2>Vincular aquí</h2>
-          <p className="quieto">Entra con el dueño o con un usuario que tenga la casilla «Equipos» (correo, o usuario y código del negocio). Es solo para autorizar: la sesión no se queda en este equipo.</p>
+          <p className="quieto">Entra con el dueño o con un usuario que tenga la casilla «Equipos» (correo, o usuario y licencia del negocio). Es solo para autorizar: la sesión no se queda en este equipo.</p>
           <label htmlFor="a-correo">Correo o usuario</label>
           <input id="a-correo" type="text" autoComplete="off" autoCapitalize="none" spellCheck={false} value={correo}
             onChange={(e) => setCorreo(e.target.value)} required autoFocus />
           {conUsuario && (
             <>
-              <label htmlFor="a-negocio-codigo">Código del negocio</label>
+              <label htmlFor="a-negocio-codigo">Licencia del negocio</label>
               <input id="a-negocio-codigo" autoComplete="off" autoCapitalize="none" spellCheck={false} value={codigoNegocio}
-                onChange={(e) => setCodigoNegocio(e.target.value)} required placeholder="ej.: abarrotao-market" />
+                onChange={(e) => setCodigoNegocio(e.target.value)} required placeholder="PREZIO-XXXX-XXXX-XXXX" />
             </>
           )}
           <label htmlFor="a-clave">Clave</label>

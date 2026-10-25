@@ -150,7 +150,7 @@
         <button type="button" role="tab" data-modo="correo" aria-selected="false">Con correo</button>
       </div>
       <div data-solo="usuario">
-        <div class="campo"><label for="e-negocio">Código del negocio</label><input id="e-negocio" autocomplete="organization" placeholder="abarrotao-market" spellcheck="false"></div>
+        <div class="campo"><label for="e-negocio">Licencia del negocio</label><input id="e-negocio" autocomplete="organization" placeholder="PREZIO-XXXX-XXXX-XXXX" spellcheck="false" autocapitalize="characters" style="text-transform: uppercase"></div>
         <div class="campo"><label for="e-usuario">Usuario</label><input id="e-usuario" autocomplete="username" spellcheck="false"></div>
       </div>
       <div data-solo="correo" hidden>
@@ -611,13 +611,14 @@ $("#b-guardar").onclick = async () => {
 // ============================================================ copia automática
 async function cargarCopia() {
   const r = await api("fuentes");
-  $("#k-cada").value = r.cada_min || 10;
+  if (document.activeElement !== $("#k-cada") && !$("#k-cada").dataset.tocado) $("#k-cada").value = r.cada_min || 10;
   $("#k-inicio").textContent = r.inicio ? "Arranca con Windows" : "No arranca con Windows";
   $("#k-inicio").className = "chip " + (r.inicio ? "bien" : "");
   $("#b-inicio").textContent = r.inicio ? "Quitar el arranque" : "Arrancar con Windows";
   $("#b-inicio").dataset.activar = r.inicio ? "" : "1";
 }
-$("#b-cada").onclick = async () => { const r = await api("guardar_frecuencia", $("#k-cada").value); aviso($("#k-aviso"), r, `Guardado: cada ${r.cada_min} minutos.`); };
+$("#k-cada").oninput = () => { $("#k-cada").dataset.tocado = "1"; };
+$("#b-cada").onclick = async () => { delete $("#k-cada").dataset.tocado; const r = await api("guardar_frecuencia", $("#k-cada").value); aviso($("#k-aviso"), r, `Guardado: cada ${r.cada_min} minutos.`); };
 $("#b-enviar").onclick = async () => {
   const b = $("#b-enviar"); ocupado(b, true, "Enviando…");
   const r = await api("enviar_ahora"); ocupado(b, false);

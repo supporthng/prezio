@@ -58,7 +58,8 @@ async function ponerDueno(supabase: SupabaseClient, negocio: { id: string; slug:
     await admin.auth.admin.deleteUser(creada.user.id).catch(() => {});
     return { error: mensajeError(e2) };
   }
-  return { bien: `Entrega al dueño: código del negocio «${negocio.slug}», usuario «${usuario}» y la clave que escribiste. Entra en Prezio › Entrar › Con usuario, o en la app Prezio Administrador.` };
+  const { data: lic } = await supabase.rpc("plataforma_licencia_de", { p_negocio: negocio.id });
+  return { bien: `Entrega al dueño: licencia ${lic ?? negocio.slug}, usuario «${usuario}» y la clave que escribiste. Entra en Prezio › Entrar › Con usuario, o en la app Prezio Administrador.` };
 }
 
 export async function altaNegocio(d: FormData) {
@@ -75,7 +76,7 @@ export async function altaNegocio(d: FormData) {
     await supabase.rpc("plataforma_borrar_negocio", { p_negocio: negocio.id });
     volver(r.error);
   }
-  volver(null, `Negocio «${campo(d, "nombre")}» creado. ${r.bien}`);
+  volver(null, `Negocio «${campo(d, "nombre")}» creado con 30 días de prueba. ${r.bien}`);
 }
 
 export async function agregarDueno(d: FormData) {
@@ -90,4 +91,37 @@ export async function cambiarPlan(d: FormData) {
   const { error } = await supabase.rpc("plataforma_cambiar_plan", { p_negocio: campo(d, "negocio"), p_plan: plan });
   volver(error, plan === "suspendido" ? "Negocio suspendido: sus verificadores dejan de mostrar precios en su próxima revisión."
     : "Plan guardado. Si estaba suspendido, ya volvió a funcionar.");
+}
+
+export async function registrarPago(d: FormData) {
+  const supabase = await supabaseServidor();
+  const meses = Number(campo(d, "meses"));
+  const { data, error } = await supabase.rpc("plataforma_registrar_pago", {
+    p_negocio: campo(d, "negocio"), p_plan: campo(d, "plan"), p_meses: meses, p_nota: campo(d, "nota") || null,
+  });
+  const hasta = (data as { pagado_hasta?: string } | null)?.pagado_hasta;
+  volver(error, `Pago registrado: licencia activa hasta el ${hasta ? new Date(hasta).toLocaleDateString("es-DO", { day: "numeric", month: "long", year: "numeric" }) : "—"}. Sus verificadores vuelven a dar precios en su próxima revisión.`);
+}
+
+export async function extenderPrueba(d: FormData) {
+  const supabase = await supabaseServidor();
+  const { error } = await supabase.rpc("plataforma_extender_prueba", { p_negocio: campo(d, "negocio"), p_dias: Number(campo(d, "dias")) });
+  volver(error, `Listo: ${campo(d, "dias")} días más de prueba.`);
+}
+
+export async function suspender(d: FormData) {
+  const supabase = await supabaseServidor();
+  const negocio = campo(d, "negocio");
+  if (campo(d, "accion") === "suspender") {
+    const { error } = await supabase.rpc("plataforma_cambiar_plan", { p_negocio: negocio, p_plan: "suspendido" });
+    volver(error, "Negocio suspendido: sus verificadores dejan de mostrar precios en su próxima revisión.");
+  }
+  // Quitar la suspensión: vuelve al último plan pagado (si sigue vigente) o a la prueba.
+  const { data: pagos } = await supabase.rpc("plataforma_pagos", { p_negocio: negocio });
+  const ultimo = ((pagos ?? []) as { plan: string; hasta: string }[])[0];
+  const plan = ultimo && Date.parse(ultimo.hasta) > Date.now() ? ultimo.plan : "prueba";
+  const { error } = await supabase.rpc("plataforma_cambiar_plan", { p_negocio: negocio, p_plan: plan });
+  volver(error, plan === "prueba"
+    ? "Suspensión quitada. Volvió a su prueba: si ya venció, sigue bloqueado hasta que registres un pago o le des días de prueba."
+    : "Suspensión quitada: vuelve a funcionar con su plan pagado.");
 }

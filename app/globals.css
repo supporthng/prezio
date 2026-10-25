@@ -491,3 +491,5 @@ input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible
 .codigo-negocio-etq { font-size: .8rem; color: var(--gris); font-weight: 600; }
 .codigo-negocio code { font-size: 1.35rem; font-weight: 700; letter-spacing: .02em; overflow-wrap: anywhere; color: var(--tinta); background: none; padding: 0; }
 .codigo-negocio p { flex-basis: 100%; margin: 0; }
+.plat-licencia { margin: 2px 0; }
+.plat-licencia code { font-size: 1.02rem; font-weight: 700; letter-spacing: .03em; background: none; padding: 0; color: var(--tinta); }
