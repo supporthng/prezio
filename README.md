@@ -32,7 +32,7 @@ y pone verificadores en sus sucursales, que funcionan aun sin internet.
 1. En [vercel.com](https://vercel.com) › **Add New › Project** › importa el repositorio `prezio` de GitHub.
 2. En **Environment Variables** agrega:
    - `NEXT_PUBLIC_SUPABASE_URL` = la Project URL
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` = la clave pública
+   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` = la clave pública (`sb_publishable_…`)
    - `NEXT_PUBLIC_SITE_URL` = la dirección final de Vercel (sin `/` al final)
 3. **Deploy**. Cada cambio que se suba a GitHub se publica solo.
 

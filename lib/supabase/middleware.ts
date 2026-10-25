@@ -1,16 +1,28 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { NextResponse, type NextRequest } from "next/server";
+import { SUPABASE_KEY, SUPABASE_URL, variablesFaltantes } from "./config";
 
 type CookieNueva = { name: string; value: string; options: CookieOptions };
-import { NextResponse, type NextRequest } from "next/server";
 
 const PRIVADAS = ["/negocios", "/n/"];
 
 /** Renueva la sesión en cada pedido y manda a /entrar a quien entra sin sesión a una página privada. */
 export async function actualizarSesion(request: NextRequest) {
-  let respuesta = NextResponse.next({ request });
+  const respuesta = NextResponse.next({ request });
+  // Sin configurar Supabase, no se corta el sitio: la página de inicio dice qué falta.
+  if (variablesFaltantes().length) return respuesta;
+  try {
+    return await revisar(request, respuesta);
+  } catch {
+    return NextResponse.next({ request });   // Supabase no respondió: la página lo maneja
+  }
+}
+
+async function revisar(request: NextRequest, inicial: NextResponse) {
+  let respuesta = inicial;
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    SUPABASE_URL,
+    SUPABASE_KEY,
     {
       cookies: {
         getAll() {
