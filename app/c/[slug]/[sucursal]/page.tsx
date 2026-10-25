@@ -1,11 +1,16 @@
 import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
 import { infoMovil } from "../../datos";
+import { fuentePrecio } from "../../fuente";
 import { ConsultaMovil } from "../../ConsultaMovil";
 
 type Props = { params: Promise<{ slug: string; sucursal: string }> };
 export const dynamic = "force-dynamic";
-export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#102a43" };
+export async function generateViewport({ params }: Props): Promise<Viewport> {
+  const { slug, sucursal } = await params;
+  const info = await infoMovil(slug, sucursal);
+  return { width: "device-width", initialScale: 1, themeColor: info?.negocio.apariencia?.color_marca ?? "#102a43" };
+}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug, sucursal } = await params;
@@ -28,7 +33,7 @@ export default async function PaginaConsultaMovil({ params }: Props) {
       </main>
     );
   }
-  return <ConsultaMovil negocio={info.negocio.nombre} moneda={info.negocio.moneda ?? "RD$"} sucursal={s}
+  return <ConsultaMovil clase={fuentePrecio.variable} negocio={info.negocio.nombre} moneda={info.negocio.moneda ?? "RD$"} sucursal={s}
     color={info.negocio.apariencia?.color_marca ?? "#0757d4"}
     logo={info.negocio.apariencia?.mostrar_logo === false ? null : (info.negocio.apariencia?.logo ?? null)} />;
 }

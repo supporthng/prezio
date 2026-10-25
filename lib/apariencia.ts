@@ -82,7 +82,7 @@ export function contraste(a: string, b: string) {
   const x = luminancia(a), y = luminancia(b);
   return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
 }
-function mezclar(a: string, b: string, t: number) {
+export function mezclar(a: string, b: string, t: number) {
   const x = rgb(a), y = rgb(b);
   return hex(x.map((v, i) => v + (y[i] - v) * t));
 }
@@ -95,7 +95,7 @@ export function legible(color: string, fondo: string, minimo: number) {
   }
   return hacia;
 }
-const sobre = (fondo: string) => (contraste(BLANCO, fondo) >= contraste(TINTA, fondo) ? BLANCO : TINTA);
+export const sobre = (fondo: string) => (contraste(BLANCO, fondo) >= contraste(TINTA, fondo) ? BLANCO : TINTA);
 
 /** Variables CSS de la pantalla para un estilo y color. */
 export function variables(a: Apariencia): Record<string, string> {
