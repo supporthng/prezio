@@ -1,4 +1,13 @@
 {
-  "android": { "version": "", "codigo": 0, "url": "", "fecha": "" },
-  "windows": { "version": "", "url": "", "fecha": "" }
+  "android": {
+    "version": "",
+    "codigo": 0,
+    "url": "",
+    "fecha": ""
+  },
+  "windows": {
+    "version": "1.0.1",
+    "url": "https://github.com/supporthng/prezio/releases/download/windows/Instalador_Prezio.exe",
+    "fecha": "2026-10-25T15:08:09+00:00"
+  }
 }
