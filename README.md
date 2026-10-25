@@ -255,7 +255,14 @@ npm run typecheck
 
 ## Prezio Administrador (Windows) · la app de cada negocio
 
-- **Entrar**: con la licencia del negocio (PREZIO-…) + usuario + clave, o con correo. Son las mismas cuentas y casillas de
+- **Activar (una vez por PC)**: la primera vez la app pide la licencia del negocio (PREZIO-XXXX-XXXX-XXXX) y queda
+  amarrada a ese negocio. Ejecutar `supabase/migrations/0013_activar_app.sql`. «Usar otra licencia en esta PC»
+  solo funciona con la sesión cerrada.
+- **Entrar**: solo usuario + clave (o correo) de ese negocio. No hay «Cambiar de negocio»: cada app es de un cliente.
+- **Una sola ventana**: las pestañas del panel (Resumen, Sucursales, Inventarios…) se abren en la misma ventana. Dentro
+  del panel aparecen «Base de datos» y «Copia automática» para volver a la app, y «Salir» cierra las dos sesiones.
+  Lo que toca la PC (bases de datos, claves, archivos) solo responde a la pantalla propia de la app, no a páginas
+  de internet abiertas en la ventana. Son las mismas cuentas y casillas de
   permisos de la web. «Recordarme» guarda la sesión cifrada, solo para ese usuario de Windows.
 - **Panel del negocio**: cada sección se abre en su propia ventana, sin volver a entrar. La app pide a
   `/api/sesion-app` un enlace de un solo uso y el panel abre su propia sesión, así la de la app no se cierra.

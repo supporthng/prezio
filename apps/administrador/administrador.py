@@ -42,6 +42,7 @@ VERSION = "2.0.0"
 TAREA = pc.TAREA
 DATOS = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / ".prezio")) / "Prezio" / "Administrador"
 SESION = DATOS / "sesion.json"
+ACTIVACION = pc.CARPETA / "activacion.json"     # de la PC (todas las cuentas de Windows): la licencia del negocio
 USUARIO_VALIDO = r"^[a-z0-9][a-z0-9._-]{2,29}$"
 
 
@@ -125,12 +126,16 @@ class Api:
     """Lo que la ventana (interfaz.html) llama con window.pywebview.api.*. Todo devuelve {ok…} o {error}."""
 
     def __init__(self, prezio: Prezio | None = None, ruta_config: Path = pc.CONFIG, ruta_sesion: Path = SESION,
-                 buscar=red.buscar, abrir_ventana=None):
+                 buscar=red.buscar, abrir_ventana=None, ruta_activacion: Path = ACTIVACION):
         self.prezio = prezio or Prezio(self._sitio_guardado(ruta_config))
         self.ruta_config = ruta_config
         self.ruta_sesion = ruta_sesion
+        self.ruta_activacion = ruta_activacion
         self._buscar = buscar
-        self._abrir_ventana = abrir_ventana
+        self._abrir_ventana = abrir_ventana     # pruebas: recibe cada dirección a la que navega la ventana
+        self.ventana = None                     # la ventana de pywebview (una sola: la app y el panel)
+        self._inicio = ""                       # dirección de la pantalla propia de la app (interfaz.html)
+        self._panel_listo = False               # el panel ya tiene su sesión en esta ventana
         self._ses: dict | None = None
         self._cx: dict | None = None          # servidor autorizado en el asistente (clave ya cifrada)
         self._ocupado = threading.Lock()
@@ -205,6 +210,76 @@ class Api:
         n = self._negocio()
         return n.get("rol") == "dueno" or permiso in (n.get("permisos") or [])
 
+    # ---- activación con la licencia del negocio
+    def _activacion(self) -> dict | None:
+        a = pc.leer_json(self.ruta_activacion, None)
+        return a if a and a.get("negocio_id") and a.get("licencia") else None
+
+    def activar(self, licencia):
+        """La primera vez: la licencia PREZIO-XXXX-XXXX-XXXX del negocio. La PC queda amarrada a ese negocio."""
+        try:
+            import re
+            lic = re.sub(r"\s+", "", str(licencia or "")).upper()
+            if not re.fullmatch(r"PREZIO-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}", lic):
+                return {"error": "Escribe la licencia completa: PREZIO-XXXX-XXXX-XXXX."}
+            info = self.prezio.rpc("licencia_info", {"p_licencia": lic})
+            if not info:
+                return {"error": "Esa licencia no existe. Revísala o pídela a tu proveedor de Prezio."}
+            actual = self._activacion()
+            if actual and actual["negocio_id"] != info["id"]:
+                self.salir()
+            pc.guardar_json(self.ruta_activacion, {"licencia": info["licencia"], "negocio_id": info["id"], "nombre": info["nombre"],
+                                                   "fecha": time.strftime("%Y-%m-%d %H:%M")})
+            return {**self.estado(), "aviso": {"vencida": "La licencia está vencida: el negocio funciona en solo lectura hasta que se pague.",
+                                                "suspendida": "La licencia está suspendida: comunícate con tu proveedor de Prezio."}.get(info.get("estado"))}
+        except Exception as e:
+            return {"error": mensaje(e)}
+
+    def desactivar(self):
+        """Usar otra licencia en esta PC (solo con la sesión cerrada)."""
+        if self._ses:
+            return {"error": "Primero sal de tu usuario."}
+        try:
+            self.ruta_activacion.unlink()
+        except OSError:
+            pass
+        return self.estado()
+
+    # ---- una sola ventana: la pantalla de la app y el panel del negocio
+    def _navegar(self, url: str) -> None:
+        if self._abrir_ventana:
+            self._abrir_ventana(url)
+        elif self.ventana is not None:
+            self.ventana.load_url(url)
+
+    def _url_actual(self) -> str:
+        try:
+            return (self.ventana.get_current_url() or "") if self.ventana is not None else ""
+        except Exception:
+            return ""
+
+    def _desde_la_app(self) -> bool:
+        """¿La llamada viene de la pantalla propia de la app? (no de una página de internet abierta en la ventana)."""
+        if self.ventana is None:
+            return True
+        url = self._url_actual().split("#")[0]
+        if self._inicio:
+            return url == self._inicio
+        return bool(url) and not url.startswith(("http://", "https://")) or url.startswith(("http://127.0.0.1", "http://localhost"))
+
+    def _desde_prezio(self) -> bool:
+        """La pantalla de la app o una página de Prezio (el panel) — para volver a la app o salir."""
+        return self._desde_la_app() or self._url_actual().startswith(self.prezio.sitio + "/")
+
+    def ir_app(self, seccion="inicio"):
+        """Desde el panel: volver a la pantalla de la app (Inicio, Base de datos o Copia automática)."""
+        seccion = seccion if seccion in ("inicio", "base", "copia") else "inicio"
+        self._navegar((self._inicio or "interfaz.html") + "#" + seccion)
+        return {"ok": True}
+
+    def mostrar_inicio(self):
+        return self.ir_app("inicio")
+
     def estado(self):
         cfg = self._cfg()
         ses = None
@@ -212,6 +287,7 @@ class Api:
             ses = {"nombre": self._ses.get("nombre"), "cuenta": self._ses.get("cuenta"), "negocio": self._ses.get("negocio"),
                    "negocios": self._ses.get("negocios", []), "recordar": bool(self._ses.get("recordar"))}
         return {"ok": True, "version": VERSION, "sitio": self.prezio.sitio, "sesion": ses, "equipo": platform.node(),
+                "activacion": self._activacion(),
                 "conector": {"fuentes": len(cfg.get("inventarios") or {}), "cada_min": cfg.get("cada_min", 10),
                              "inicio": self._tarea_instalada(), "negocio": (cfg.get("conector") or {}).get("negocio_id")}}
 
@@ -220,37 +296,35 @@ class Api:
         try:
             clave = str(d.get("clave") or "")
             import re
+            act = self._activacion()
+            if not act:
+                return {"error": "Primero activa la app con la licencia del negocio."}
+            solo = act["negocio_id"]
             if d.get("modo") == "correo":
                 correo = str(d.get("correo") or "").strip().lower()
                 if "@" not in correo:
                     return {"error": "Escribe tu correo."}
-                solo = None
             else:
-                codigo = str(d.get("negocio") or "").strip().lower()
                 usuario = str(d.get("usuario") or "").strip().lower()
-                if not codigo or not re.match(USUARIO_VALIDO, usuario):
-                    return {"error": "Escribe la licencia del negocio (PREZIO-…) y tu usuario."}
-                nid = self.prezio.rpc("negocio_de_slug", {"p_slug": codigo})
-                if not nid:
-                    return {"error": "Negocio, usuario o clave incorrectos."}
-                correo, solo = correo_de_usuario(str(nid), usuario), str(nid)
+                if not re.match(USUARIO_VALIDO, usuario):
+                    return {"error": "Escribe tu usuario."}
+                correo = correo_de_usuario(solo, usuario)
             if not clave:
                 return {"error": "Escribe tu clave."}
             try:
                 r = self.prezio.auth("password", {"email": correo, "password": clave})
             except ErrorApp as e:
-                return {"error": "Negocio, usuario o clave incorrectos." if d.get("modo") != "correo" and "incorrect" in str(e) else str(e)}
+                return {"error": "Usuario o clave incorrectos." if "incorrect" in str(e) else str(e)}
             uid = r["user"]["id"]
             negocios = self._negocios(r["access_token"], uid)
-            if solo:
-                negocios = [n for n in negocios if n["id"] == solo]
+            negocios = [n for n in negocios if n["id"] == solo]
             if not negocios:
-                return {"error": "Tu cuenta no tiene acceso a ningún negocio."}
+                return {"error": f"Esa cuenta no tiene acceso a «{act['nombre']}»."}
             meta = r["user"].get("user_metadata") or {}
             cuenta = correo if d.get("modo") == "correo" else str(d.get("usuario") or "").strip().lower()
             self._ses = {"cuenta": cuenta,
                          "nombre": meta.get("nombre") or "", "uid": uid, "negocios": negocios,
-                         "negocio": negocios[0] if len(negocios) == 1 else None, "recordar": bool(d.get("recordar"))}
+                         "negocio": negocios[0], "recordar": bool(d.get("recordar"))}
             self._tomar_tokens(r)
             return self.estado()
         except Exception as e:
@@ -281,22 +355,26 @@ class Api:
         self._ses = None
         self._cx = None
         self._guardar_sesion()
+        if self._panel_listo:
+            self._panel_listo = False
+            # El panel cierra su sesión y vuelve solo a la pantalla de entrar de la app.
+            self._navegar(f"{self.prezio.sitio}/auth/salir-app")
         return {"ok": True}
 
-    # ---- panel del negocio (en su ventana, con su propia sesión)
+    # ---- panel del negocio (en esta misma ventana, con su propia sesión)
     def abrir_panel(self, seccion=""):
         try:
             n = self._negocio()
             seccion = seccion if seccion in ("", "sucursales", "inventarios", "apariencia", "equipos", "usuarios") else ""
             siguiente = f"/n/{n['slug']}" + (f"/{seccion}" if seccion else "")
-            hash_ = self.prezio.enlace_panel(self._token())
-            url = f"{self.prezio.sitio}/auth/confirm?" + urllib.parse.urlencode(
-                {"token_hash": hash_, "type": "magiclink", "siguiente": siguiente})
-            if self._abrir_ventana:
-                self._abrir_ventana(url)
+            if self._panel_listo:
+                url = self.prezio.sitio + siguiente     # el panel ya tiene su sesión en esta ventana
             else:
-                import webview
-                webview.create_window(f"Prezio · {n['nombre']}", url, width=1280, height=860, min_size=(900, 600))
+                hash_ = self.prezio.enlace_panel(self._token())
+                url = f"{self.prezio.sitio}/auth/confirm?" + urllib.parse.urlencode(
+                    {"token_hash": hash_, "type": "magiclink", "siguiente": siguiente})
+            self._panel_listo = True
+            self._navegar(url)
             return {"ok": True}
         except Exception as e:
             return {"error": mensaje(e)}
@@ -472,9 +550,12 @@ class Api:
 
     # ---- copia automática
     def _enviar_fondo(self):
-        self.enviar_ahora()
+        self._enviar()
 
     def enviar_ahora(self):
+        return self._enviar()
+
+    def _enviar(self):
         if not self._ocupado.acquire(blocking=False):
             return {"error": "Ya se está enviando. Espera un momento."}
         try:
@@ -552,6 +633,29 @@ class Api:
         return {"ok": True}
 
 
+# Lo que hace cosas en la PC (bases de datos, claves, archivos) solo responde a la pantalla propia de la app:
+# si en la ventana se abre otra página, no puede usarlo. Desde el panel de Prezio solo se vuelve a la app o se sale.
+def _solo(permitido):
+    import functools
+
+    def envolver(f):
+        @functools.wraps(f)
+        def w(self, *a, **k):
+            if not permitido(self):
+                return {"error": "No permitido desde esta página."}
+            return f(self, *a, **k)
+        return w
+    return envolver
+
+
+for _n in ("estado", "activar", "desactivar", "entrar", "elegir_negocio", "abrir_panel", "buscar_servidores", "autorizar", "tablas",
+           "columnas", "muestra", "inventarios", "guardar_fuente", "fuentes", "quitar_fuente", "enviar_ahora", "guardar_frecuencia",
+           "arranque", "registro", "version_nueva", "abrir_enlace"):
+    setattr(Api, _n, _solo(Api._desde_la_app)(getattr(Api, _n)))
+for _n in ("salir", "ir_app", "mostrar_inicio"):
+    setattr(Api, _n, _solo(Api._desde_prezio)(getattr(Api, _n)))
+
+
 def _version_mayor(a, b):
     def partes(v):
         try:
@@ -588,9 +692,19 @@ def main():
         sys.exit(subprocess.run(["schtasks", "/Delete", "/F", "/TN", TAREA], capture_output=True).returncode)
     pc.preparar_registro(consola=False)
     import webview
+    webview.settings["OPEN_EXTERNAL_LINKS_IN_BROWSER"] = True   # enlaces a otros sitios: en el navegador
     api = Api()
-    webview.create_window("Prezio Administrador", str(AQUI / "interfaz.html"), js_api=api,
-                          width=1200, height=840, min_size=(900, 620), background_color="#F3F5F7")
+    ventana = webview.create_window("Prezio Administrador", str(AQUI / "interfaz.html"), js_api=api,
+                                    width=1240, height=860, min_size=(900, 620), background_color="#F3F5F7")
+    api.ventana = ventana
+
+    def al_cargar():
+        if not api._inicio:   # la primera dirección es la pantalla propia de la app
+            try:
+                api._inicio = (ventana.get_current_url() or "").split("#")[0]
+            except Exception:
+                pass
+    ventana.events.loaded += al_cargar
     DATOS.mkdir(parents=True, exist_ok=True)
     webview.start(gui="edgechromium", private_mode=False, storage_path=str(DATOS / "web"))
 
