@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { Barra } from "@/components/Barra";
 import { Aviso } from "@/components/Aviso";
 import { supabaseServidor } from "@/lib/supabase/server";
-import { hayClaveSecreta } from "@/lib/supabase/admin";
+import { problemaClaveSecreta } from "@/lib/supabase/admin";
 import { agregarDueno, altaNegocio, extenderPrueba, registrarPago, suspender } from "./actions";
 import { estadoLicencia } from "@/lib/licencia";
 
@@ -75,8 +75,8 @@ export default async function Plataforma({ searchParams }: Props) {
           {nf.format(todos.length)} negocios · {nf.format(activos)} activos · {nf.format(porVencer)} por vencer esta semana · {nf.format(equipos)} verificadores conectados hoy
         </p>
         <Aviso error={error} bien={bien} />
-        {!hayClaveSecreta() && (
-          <p className="aviso error">Falta <code>SUPABASE_SECRET_KEY</code> en Vercel: sin ella no se pueden crear las cuentas de los dueños.</p>
+        {problemaClaveSecreta() && (
+          <p className="aviso error">{problemaClaveSecreta()} Sin ella no se pueden crear las cuentas de los dueños.</p>
         )}
 
         <section className="tarjeta" aria-labelledby="t-alta">

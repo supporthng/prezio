@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { SUPABASE_KEY, SUPABASE_URL } from "@/lib/supabase/config";
-import { supabaseAdmin, hayClaveSecreta } from "@/lib/supabase/admin";
+import { supabaseAdmin, problemaClaveSecreta } from "@/lib/supabase/admin";
 
 /** La app Prezio Administrador abre el panel con una sesión PROPIA (no comparte la de la app):
  *  manda su token de acceso (que ya prueba quién es) y recibe un enlace de un solo uso que abre en su ventana.
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   const token = (request.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
   if (!token || token.length > 4000) return NextResponse.json({ error: "Falta la sesión" }, { status: 401 });
-  if (!hayClaveSecreta()) return NextResponse.json({ error: "Falta SUPABASE_SECRET_KEY en Vercel" }, { status: 503 });
+  { const p = problemaClaveSecreta(); if (p) return NextResponse.json({ error: p }, { status: 503 }); }
   const publico = createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
   const { data: quien, error } = await publico.auth.getUser(token);
   if (error || !quien.user?.email) return NextResponse.json({ error: "La sesión venció: vuelve a entrar en la app" }, { status: 401 });

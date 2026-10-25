@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseServidor } from "@/lib/supabase/server";
-import { supabaseAdmin, hayClaveSecreta, correoDeUsuario, USUARIO_VALIDO } from "@/lib/supabase/admin";
+import { supabaseAdmin, problemaClaveSecreta, errorDeCuentas, correoDeUsuario, USUARIO_VALIDO } from "@/lib/supabase/admin";
 import { mensajeError, sitio } from "@/lib/util";
 
 const campo = (d: FormData, n: string) => String(d.get(n) ?? "").trim();
@@ -18,7 +18,7 @@ async function soloPlataforma() {
   const supabase = await supabaseServidor();
   const { data } = await supabase.rpc("es_plataforma");
   if (!data) volver("Solo la plataforma puede hacer esto.");
-  if (!hayClaveSecreta()) volver("Falta la clave secreta de Supabase en Vercel (SUPABASE_SECRET_KEY): sin ella no se crean cuentas.");
+  { const p = problemaClaveSecreta(); if (p) volver(p); }
   return supabase;
 }
 
@@ -39,7 +39,7 @@ async function ponerDueno(supabase: SupabaseClient, negocio: { id: string; slug:
         redirectTo: `${sitio()}/auth/sesion?siguiente=${encodeURIComponent(`/n/${negocio.slug}`)}`,
         data: { nombre },
       });
-      if (error || !data.user) return { error: "No se pudo enviar la invitación: " + mensajeError(error) + ". Revisa el correo propio (SMTP) en Supabase." };
+      if (error || !data.user) return { error: errorDeCuentas(error) ?? "No se pudo enviar la invitación: " + mensajeError(error) + ". Revisa el correo propio (SMTP) en Supabase." };
       cuenta = data.user.id;
       aviso = `Invitación enviada a ${correo}: abre el enlace, elige su clave y entra a su negocio.`;
     }
@@ -52,7 +52,7 @@ async function ponerDueno(supabase: SupabaseClient, negocio: { id: string; slug:
   const { data: creada, error: e1 } = await admin.auth.admin.createUser({
     email: correoDeUsuario(negocio.id, usuario), password: clave, email_confirm: true, user_metadata: { nombre, usuario },
   });
-  if (e1 || !creada.user) return { error: /already|registered|exists/i.test(e1?.message ?? "") ? `Ya existe el usuario «${usuario}» en este negocio.` : mensajeError(e1) };
+  if (e1 || !creada.user) return { error: /already|registered|exists/i.test(e1?.message ?? "") ? `Ya existe el usuario «${usuario}» en este negocio.` : errorDeCuentas(e1) ?? mensajeError(e1) };
   const { error: e2 } = await supabase.rpc("plataforma_poner_dueno", { p_negocio: negocio.id, p_cuenta: creada.user.id, p_usuario: usuario, p_nombre: nombre || null });
   if (e2) {
     await admin.auth.admin.deleteUser(creada.user.id).catch(() => {});

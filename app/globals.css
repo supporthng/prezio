@@ -493,3 +493,18 @@ input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible
 .codigo-negocio p { flex-basis: 100%; margin: 0; }
 .plat-licencia { margin: 2px 0; }
 .plat-licencia code { font-size: 1.02rem; font-weight: 700; letter-spacing: .03em; background: none; padding: 0; color: var(--tinta); }
+
+/* ---------- niveles de acceso */
+.nivel-campo { max-width: 460px; }
+.niveles { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.nivel { border: 1px solid var(--linea); border-radius: 12px; padding: 14px 16px; background: var(--papel); }
+.nivel-cabeza > span { white-space: nowrap; }
+.nivel-cabeza { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+.nivel h3 { margin: 0; font-size: 1rem; }
+.nivel-cabeza p { margin: 2px 0 0; }
+.nivel-casillas { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; }
+.chip.nivel-suc { background: #eef4ff; color: #2b4c8c; }
+.chip.nivel-chip { background: #f1f4f8; color: var(--tinta); }
+.nivel-editar summary { cursor: pointer; font-weight: 600; margin-top: 10px; }
+.nivel-editar[open] { grid-column: 1 / -1; }
+.nivel-form { margin: 12px 0; }

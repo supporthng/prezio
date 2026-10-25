@@ -233,6 +233,26 @@ npm run typecheck
 - **Requiere** ejecutar `supabase/migrations/0011_licencias.sql` (después de 0010). Los negocios que ya existían
   reciben su licencia y, si estaban en prueba, 30 días desde ese momento.
 
+## Niveles de acceso
+
+- **Plantillas de permisos** por negocio. Todos nacen con: Administrador, Gerente de sucursal, Encargado de precios,
+  Técnico de equipos, Supervisor y Cajero. Cada negocio puede crear los suyos y cambiarlos o borrarlos en
+  Usuarios › Niveles de acceso.
+- Al crear o cambiar a una persona se elige su **nivel**: las casillas salen solas y, si el nivel es «por
+  sucursal», se eligen las sucursales. «Personalizado» deja marcar las casillas a mano.
+- **Cambiar un nivel cambia a todas las personas que lo tienen.** Al borrarlo, esas personas conservan sus
+  casillas y quedan como «Personalizado».
+- Quien no es dueño solo usa y crea niveles con las casillas que él mismo puede dar. Nunca puede dar «Usuarios».
+- **Requiere** ejecutar `supabase/migrations/0012_niveles.sql` (después de 0011).
+
+## Clave secreta de Supabase (crear usuarios)
+
+- `SUPABASE_SECRET_KEY` acepta la clave nueva (`sb_secret_…`) o la anterior «service_role» (`eyJ…`).
+- Si hay un problema, las páginas Usuarios y Plataforma dicen cuál es: falta, es la publicable o la anon, o se
+  copió incompleta.
+- Si Supabase la rechaza («This endpoint requires a valid Bearer token»), usa la «service_role»: Supabase ›
+  Project Settings › API Keys › Legacy API keys. Después, en Vercel, Redeploy.
+
 ## Prezio Administrador (Windows) · la app de cada negocio
 
 - **Entrar**: con la licencia del negocio (PREZIO-…) + usuario + clave, o con correo. Son las mismas cuentas y casillas de

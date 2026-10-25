@@ -3,7 +3,7 @@ export const PERMISOS = ["reportes", "inventarios", "sucursales", "equipos", "ap
 export type Permiso = (typeof PERMISOS)[number];
 export const NOMBRE_PERMISO: Record<Permiso, { nombre: string; detalle: string }> = {
   reportes: { nombre: "Reportes", detalle: "Ver las consultas y lo buscado sin precio" },
-  inventarios: { nombre: "Inventarios", detalle: "Cargar precios, Google y conector de SQL Server" },
+  inventarios: { nombre: "Inventarios", detalle: "Cargar precios, Google y la base de datos del sistema" },
   sucursales: { nombre: "Sucursales", detalle: "Crear, renombrar y elegir de dónde toman los precios" },
   equipos: { nombre: "Equipos", detalle: "Vincular, mover y quitar verificadores; clave de salida" },
   apariencia: { nombre: "Apariencia", detalle: "Estilo, colores, logo y QR de la pantalla" },
