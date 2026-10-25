@@ -165,13 +165,21 @@ export function Equipo({ sitio }: { sitio: string }) {
 
   // ¿Corre dentro de la app Prezio de Android o Windows? (Windows avisa cuando su puente está listo.)
   useEffect(() => {
+    let hecho = false;
     const detectar = async () => {
       const app = appNativa();
-      if (!app) return;
+      if (!app || hecho) return;
+      hecho = true;
       const version = await app.version();
       textoApp.current = `${app.plataforma} ${version} · ${APP_EQUIPO}`;
       setNativa({ app, version });
     };
+    // La app de Windows avisa «lista» una sola vez y a veces antes de que esta pantalla escuche:
+    // además del aviso, se pregunta cada medio segundo durante 30 segundos.
+    let intentos = 0;
+    const sondeo = setInterval(() => {
+      if (appNativa() || ++intentos > 60) { clearInterval(sondeo); void detectar(); }
+    }, 500);
     void detectar();
     window.addEventListener("pywebviewready", detectar);
     let ocultar: ReturnType<typeof setTimeout> | undefined;
@@ -180,18 +188,18 @@ export function Equipo({ sitio }: { sitio: string }) {
       if (ocultar) clearTimeout(ocultar);
       ocultar = setTimeout(() => setAvisoApp(""), e === "instalando" || e === "descargando" ? 120000 : 8000);
     };
-    return () => window.removeEventListener("pywebviewready", detectar);
+    return () => { clearInterval(sondeo); window.removeEventListener("pywebviewready", detectar); };
   }, []);
 
-  async function salirDeLaApp(e: React.FormEvent) {
+  // Dentro de la app, el menú (configuración y salida) se abre solo con la clave de salida del negocio.
+  async function desbloquear(e: React.FormEvent) {
     e.preventDefault();
     const s = info?.salida;
-    if (!s || !nativa) return;
+    if (!s) return;
     setErrorSalida("");
     if (await claveCorrecta(claveSalida, s).catch(() => false)) {
       setClaveSalida(""); setPidiendoSalida(false);
-      dialogo.current?.close();
-      nativa.app.salir();
+      await mostrarMenu();
     } else {
       setErrorSalida("Clave incorrecta.");
       setClaveSalida("");
@@ -235,18 +243,26 @@ export function Equipo({ sitio }: { sitio: string }) {
   }
 
   async function abrirMenu() {
+    if (nativa && info?.salida) {
+      setMenu(null); setPidiendoSalida(true); setErrorSalida(""); setClaveSalida("");
+      dialogo.current?.showModal();
+      return;
+    }
+    await mostrarMenu();
+  }
+  async function mostrarMenu() {
     const [pendientes, sincronizado] = await Promise.all([
       contarPendientes().catch(() => 0), leer<string>("sincronizado").catch(() => undefined),
     ]);
     setMenu({ productos: productos.current.size, pendientes, sincronizado: sincronizado ?? null });
-    dialogo.current?.showModal();
+    if (!dialogo.current?.open) dialogo.current?.showModal();
   }
   // El menú se cierra solo para que la pantalla no quede tapada.
   useEffect(() => {
-    if (!menu) return;
+    if (!menu && !pidiendoSalida) return;
     const t = setTimeout(() => dialogo.current?.close(), 60000);
     return () => clearTimeout(t);
-  }, [menu]);
+  }, [menu, pidiendoSalida]);
 
   const apariencia = normalizar(info?.negocio.apariencia ?? {});
   const formatoFecha = (iso: string | null) => (iso ? new Date(iso).toLocaleString("es-DO", { dateStyle: "medium", timeStyle: "short" }) : "—");
@@ -310,6 +326,20 @@ export function Equipo({ sitio }: { sitio: string }) {
       {avisoApp && <p className="equipo-aviso-app" role="status">{avisoApp}</p>}
       <dialog ref={dialogo} className="equipo-menu" onClose={() => { setMenu(null); setPidiendoSalida(false); setClaveSalida(""); entrada.current?.focus({ preventScroll: true }); }}
         onClick={(e) => e.stopPropagation()}>
+        {pidiendoSalida && info?.salida && (
+          <form className="equipo-candado" onSubmit={desbloquear}>
+            <h2>Configuración del equipo</h2>
+            <label htmlFor="clave-salida">Clave de salida</label>
+            <input id="clave-salida" type="password" inputMode="numeric" autoComplete="off" autoFocus
+              value={claveSalida} onChange={(e) => setClaveSalida(e.target.value)} />
+            {errorSalida && <p className="error-campo" role="alert">{errorSalida}</p>}
+            <div className="fila" style={{ marginTop: 14 }}>
+              <button className="boton" type="submit" disabled={!claveSalida}>Entrar</button>
+              <button className="boton secundario" type="button" onClick={() => dialogo.current?.close()}>Cancelar</button>
+            </div>
+            <p className="quieto pequeno" style={{ marginBottom: 0 }}>La clave se pone en Prezio › Equipos. Funciona sin internet.</p>
+          </form>
+        )}
         {menu && info && (
           <>
             <h2>{info.equipo.nombre}</h2>
@@ -323,7 +353,7 @@ export function Equipo({ sitio }: { sitio: string }) {
               {nativa && <><dt>App</dt><dd>Prezio para {nativa.app.plataforma === "android" ? "Android" : "Windows"} {nativa.version}</dd></>}
             </dl>
             <div className="fila">
-              <button className="boton" type="button" onClick={async () => { await sincronizar(); await abrirMenu(); }}>Buscar precios nuevos</button>
+              <button className="boton" type="button" onClick={async () => { await sincronizar(); await mostrarMenu(); }}>Buscar precios nuevos</button>
               <button className="boton secundario" type="button"
                 onClick={() => { void document.documentElement.requestFullscreen?.().catch(() => {}); }}>Pantalla completa</button>
               {nativa && (
@@ -331,27 +361,14 @@ export function Equipo({ sitio }: { sitio: string }) {
               )}
               <button className="boton secundario" type="button" onClick={() => dialogo.current?.close()}>Cerrar</button>
             </div>
+            {nativa && !info.salida && (
+              <p className="aviso error" style={{ marginBottom: 12 }}>
+                Sin clave de salida: cualquiera puede abrir este menú y salir. Ponla en Prezio › Equipos y toca «Buscar precios nuevos».
+              </p>
+            )}
             {nativa && (
-              pidiendoSalida ? (
-                info.salida ? (
-                  <form className="fila equipo-salida" onSubmit={salirDeLaApp}>
-                    <div className="campo" style={{ marginBottom: 0 }}>
-                      <label htmlFor="clave-salida">Clave de salida</label>
-                      <input id="clave-salida" type="password" inputMode="numeric" autoComplete="off" autoFocus
-                        value={claveSalida} onChange={(e) => setClaveSalida(e.target.value)} />
-                    </div>
-                    <button className="boton" type="submit" disabled={!claveSalida}>Salir</button>
-                    {errorSalida && <p className="error-campo" role="alert" style={{ flexBasis: "100%" }}>{errorSalida}</p>}
-                  </form>
-                ) : (
-                  <p className="aviso error" style={{ marginBottom: 12 }}>
-                    Este negocio no tiene clave de salida. Ponla en Prezio › Equipos y toca «Buscar precios nuevos».
-                  </p>
-                )
-              ) : (
-                <button className="boton secundario peligro" type="button" style={{ marginBottom: 12 }}
-                  onClick={() => { setPidiendoSalida(true); setErrorSalida(""); }}>Salir de la app</button>
-              )
+              <button className="boton secundario peligro" type="button" style={{ marginBottom: 12 }}
+                onClick={() => { dialogo.current?.close(); nativa.app.salir(); }}>Salir de la app</button>
             )}
             <p className="quieto pequeno" style={{ marginBottom: 0 }}>
               Para cambiar la sucursal o desvincular este equipo, entra a Prezio › Equipos.
