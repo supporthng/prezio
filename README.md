@@ -68,7 +68,7 @@ En **Inventarios**, además de cargar Excel, un inventario puede llenarse solo:
 ### 1. Supabase (proyecto nuevo, solo para Prezio)
 
 1. En [supabase.com](https://supabase.com) crea un proyecto **nuevo** (no uses el del sistema actual).
-2. **SQL Editor** › ejecuta, en orden, `supabase/migrations/0001_base.sql`, `0002_precios_y_apariencia.sql`, `0003_equipos.sql`, `0004_fuentes_automaticas.sql` y `0005_vincular_en_el_equipo.sql`.
+2. **SQL Editor** › ejecuta, en orden, `supabase/migrations/0001_base.sql`, `0002_precios_y_apariencia.sql`, `0003_equipos.sql`, `0004_fuentes_automaticas.sql`, `0005_vincular_en_el_equipo.sql` y `0006_clave_de_salida.sql`.
 3. **Authentication › URL Configuration**:
    - *Site URL*: la dirección de Vercel (por ejemplo `https://prezio.vercel.app`).
    - *Redirect URLs*: agrega `https://prezio.vercel.app/**` (y `http://localhost:3000/**` si trabajas en tu PC).
@@ -107,3 +107,17 @@ cp .env.example .env.local   # y completa los valores
 npm run dev                   # http://localhost:3000
 npm run typecheck
 ```
+
+## Etapa 3 · parte 3: apps Prezio para Android y Windows
+
+- **`apps/android`** (Java, sin librerías) y **`apps/windows`** (Python + WebView2, instalador Inno Setup):
+  abren `/equipo` a pantalla completa, arrancan al encender, no dejan salir sin la **clave de salida** del negocio
+  (Prezio › Equipos; se comprueba sin internet, en la base solo queda su huella PBKDF2) y se **actualizan solas**:
+  al abrir y cada 6 horas leen `/apps.json` y solo instalan archivos publicados en las Releases de este repositorio.
+- **`.github/workflows/app-android.yml`** y **`app-windows.yml`** compilan, publican en Releases («android»,
+  «windows») y anotan la versión en `public/apps.json` (Vercel la publica sola). Versión: `1.0.<n.º de compilación>`.
+- Android necesita la llave de firma en GitHub › Settings › Secrets and variables › Actions:
+  `ANDROID_KEYSTORE_B64` y `ANDROID_KEYSTORE_PASSWORD`. La misma llave siempre; nunca se sube al repositorio.
+- Bloqueo total en Android (opcional): `adb shell dpm set-device-owner com.prezio.verificador/.AdminReceiver`.
+- Requiere ejecutar **`supabase/migrations/0006_clave_de_salida.sql`**.
+- Las descargas de Releases solo funcionan sin iniciar sesión si el repositorio es **público**.
