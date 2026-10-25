@@ -5,6 +5,7 @@ import { supabaseServidor } from "@/lib/supabase/server";
 import { ROLES, sitio } from "@/lib/util";
 import { SubNav } from "@/components/SubNav";
 import { Reporte, type Resumen } from "./Reporte";
+import { Ubicacion } from "./Ubicacion";
 import { cambiarFuente, crearSucursal, invitar, quitarMiembro, renombrarSucursal } from "./actions";
 
 type Props = {
@@ -13,7 +14,8 @@ type Props = {
 };
 
 type Negocio = { id: string; nombre: string; slug: string; plan: string; prueba_hasta: string; moneda: string };
-type Sucursal = { id: string; nombre: string; codigo: string; es_principal: boolean; activa: boolean; fuente: { tipo?: string; inventario_id?: string } };
+type Sucursal = { id: string; nombre: string; codigo: string; es_principal: boolean; activa: boolean; fuente: { tipo?: string; inventario_id?: string };
+  geo_activa: boolean; latitud: number | null; longitud: number | null; radio_m: number };
 type Miembro = { user_id: string; rol: string; sucursal_id: string | null };
 type Perfil = { id: string; nombre: string; correo: string };
 type Invitacion = { id: string; correo: string; rol: string; token: string; expira: string; aceptada: string | null };
@@ -41,7 +43,7 @@ export default async function PanelNegocio({ params, searchParams }: Props) {
   if (!negocio) notFound();
 
   const [{ data: sucursales }, { data: miembros }, { data: perfiles }, { data: invitaciones }, { data: inventarios }] = await Promise.all([
-    supabase.from("sucursales").select("id, nombre, codigo, es_principal, activa, fuente").eq("negocio_id", negocio.id)
+    supabase.from("sucursales").select("id, nombre, codigo, es_principal, activa, fuente, geo_activa, latitud, longitud, radio_m").eq("negocio_id", negocio.id)
       .order("es_principal", { ascending: false }).order("nombre"),
     supabase.from("miembros").select("user_id, rol, sucursal_id").eq("negocio_id", negocio.id),
     supabase.from("perfiles").select("id, nombre, correo"),
@@ -120,6 +122,11 @@ export default async function PanelNegocio({ params, searchParams }: Props) {
                       </select>
                     </div>
                     <button className="boton secundario" type="submit">Usar</button>
+                    <p className="quieto pequeno" style={{ flexBasis: "100%", margin: 0 }}>
+                      ¿Desde Google Drive o SQL Server? Créalo en Inventarios ›{" "}
+                      <a href={`/n/${negocio.slug}/inventarios#t-google`}>Inventario desde Google</a> o{" "}
+                      <a href={`/n/${negocio.slug}/inventarios#t-conector`}>Conector de SQL Server</a>, y elígelo aquí.
+                    </p>
                   </form>
                 ) : (
                   <span className="pequeno quieto">
@@ -127,6 +134,10 @@ export default async function PanelNegocio({ params, searchParams }: Props) {
                       ? `Precios: ${losInventarios.find((i) => i.id === s.fuente.inventario_id)?.nombre ?? "—"}`
                       : s.es_principal ? "Sin inventario" : "Igual que la Principal"}
                   </span>
+                )}
+                {(administra || (miRol === "encargado" && losMiembros.find((m) => m.user_id === auth.user!.id)?.sucursal_id === s.id)) && (
+                  <Ubicacion slug={negocio.slug} sucursal={s.id} nombre={s.nombre}
+                    geo={{ activa: s.geo_activa, latitud: s.latitud, longitud: s.longitud, radio_m: s.radio_m }} />
                 )}
               </li>
             ))}

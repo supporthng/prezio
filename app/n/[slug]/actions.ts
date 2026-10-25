@@ -80,3 +80,23 @@ export async function cambiarFuente(datos: FormData) {
   revalidatePath(`/n/${slug}`);
   redirect(`/n/${slug}?bien=${encodeURIComponent("Fuente de precios guardada.")}#sucursales`);
 }
+
+export async function guardarUbicacion(datos: FormData) {
+  const slug = campo(datos, "slug");
+  const lat = campo(datos, "latitud"), lon = campo(datos, "longitud");
+  const latitud = lat === "" ? null : Number(lat), longitud = lon === "" ? null : Number(lon);
+  const radio = Math.min(10000, Math.max(10, Math.round(Number(campo(datos, "radio_m")) || 100)));
+  const activa = datos.get("geo_activa") === "on";
+  const malas = (latitud === null) !== (longitud === null) || (latitud !== null && (!Number.isFinite(latitud) || Math.abs(latitud) > 90))
+    || (longitud !== null && (!Number.isFinite(longitud) || Math.abs(longitud) > 180));
+  if (malas || (activa && latitud === null)) {
+    redirect(`/n/${slug}?error=${encodeURIComponent("Ubicación incompleta o no válida.")}#sucursales`);
+  }
+  const supabase = await supabaseServidor();
+  const { error } = await supabase.from("sucursales")
+    .update({ latitud, longitud, radio_m: radio, geo_activa: activa && latitud !== null })
+    .eq("id", campo(datos, "sucursal"));
+  if (error) redirect(`/n/${slug}?error=${encodeURIComponent(mensajeError(error))}#sucursales`);
+  revalidatePath(`/n/${slug}`);
+  redirect(`/n/${slug}?bien=${encodeURIComponent("Ubicación guardada.")}#sucursales`);
+}

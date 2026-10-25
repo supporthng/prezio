@@ -302,3 +302,13 @@ input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible
 .muestra-color { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; border: 1px solid rgba(0, 0, 0, .15); }
 .equipo-candado label { margin-top: 4px; }
 .equipo-candado input { width: 100%; font-size: 1.3rem; letter-spacing: .2em; }
+
+/* ---------- ubicación de la sucursal */
+.ubicacion { flex: 1 1 100%; border-top: 1px dashed var(--linea); padding-top: 8px; }
+.ubicacion > summary { cursor: pointer; font-weight: 600; font-size: .92rem; color: var(--tinta-2); }
+.ubicacion-cuerpo { padding-top: 10px; }
+.opcion-linea { display: flex; gap: 8px; align-items: center; font-weight: 500; margin: 12px 0 0; }
+.opcion-linea input[type="checkbox"] { width: 18px; height: 18px; min-height: 0; min-width: 0; box-shadow: none; flex: none; margin: 0; padding: 0; accent-color: var(--tinta); }
+.ubicacion-mapa { margin: 12px 0 0; }
+.ubicacion-mapa iframe { width: 100%; height: 260px; border: 1px solid var(--linea); border-radius: 10px; display: block; }
+.ubicacion-mapa figcaption { margin-top: 6px; }
