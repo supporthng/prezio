@@ -177,6 +177,20 @@ npm run typecheck
   secreta de Supabase (Project Settings › API Keys › *Secret key*, `sb_secret_…`). Solo la usa el servidor para crear
   cuentas y cambiar claves, siempre después de que la base confirmó el permiso de quien lo pide.
 
+## Consulta desde el celular (enlace y QR por sucursal)
+
+- **Pestaña Sucursales** (arriba, junto a Inventarios): nombre, de dónde toma los precios, ubicación y, por
+  cada sucursal, su **enlace y QR** para los clientes: copiar, descargar PNG/SVG, imprimir un cartel o
+  mostrarlo en la pantalla de los verificadores.
+- **Activar**: Sucursales › Consulta desde el celular › Activar (casilla «Apariencia»). Apagada, el enlace
+  dice que no está disponible.
+- **El cliente** abre `/c/<negocio>/<sucursal>`, toca «Escanear con la cámara» y ve el precio. Sin cuenta ni
+  app. El lector confirma el código tres veces y valida el dígito de control antes de buscar.
+- **Ubicación**: si la sucursal tiene la ubicación activa, la base de datos exige que el celular esté dentro
+  de la distancia (no se puede consultar desde la casa). La ubicación de la tienda nunca se envía al celular.
+- **Reporte**: cada consulta queda con canal «movil». Límite de 300 consultas por minuto por sucursal.
+- **Requiere**: ejecutar `supabase/migrations/0009_consulta_movil.sql` (después de 0008).
+
 ## Prezio Administrador (Windows)
 
 - **`apps/administrador`**: un programa con dos partes: **Panel de Prezio** (en su propia ventana, recuerda la sesión)

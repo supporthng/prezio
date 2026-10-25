@@ -124,7 +124,7 @@ export async function leerRespaldo(datos: Uint8Array): Promise<Plan> {
     if (activo) {
       fuentePrincipal = { tipo: "inventario", nombre: nombrePorId.get(texto(activo.id))! };
       productosPrincipal = inventarios.find((i) => i.nombre === nombrePorId.get(texto(activo.id)))?.productos ?? [];
-    } else if (invs.length) avisos.push("La Principal no tenía un inventario activo: elígelo en Resumen › Sucursales.");
+    } else if (invs.length) avisos.push("La Principal no tenía un inventario activo: elígelo en la pestaña Sucursales.");
   } else if (tipoP === "google") {
     const o = origenGoogle(googleP[0]);
     if (o) {

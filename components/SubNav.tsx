@@ -2,6 +2,7 @@ import Link from "next/link";
 
 const SECCIONES = [
   { clave: "resumen", texto: "Resumen", ruta: "" },
+  { clave: "sucursales", texto: "Sucursales", ruta: "/sucursales" },
   { clave: "inventarios", texto: "Inventarios", ruta: "/inventarios" },
   { clave: "apariencia", texto: "Apariencia", ruta: "/apariencia" },
   { clave: "equipos", texto: "Equipos", ruta: "/equipos" },

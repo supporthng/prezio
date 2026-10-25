@@ -6,8 +6,7 @@ import { ROLES, sitio } from "@/lib/util";
 import { PERMISOS, resumenPermisos } from "@/lib/permisos";
 import { SubNav } from "@/components/SubNav";
 import { Reporte, type Resumen } from "./Reporte";
-import { Ubicacion } from "./Ubicacion";
-import { cambiarFuente, crearSucursal, invitar, quitarMiembro, renombrarSucursal } from "./actions";
+import { invitar, quitarMiembro } from "./actions";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -91,79 +90,13 @@ export default async function PanelNegocio({ params, searchParams }: Props) {
 
         {losInventarios.length === 0 && puede("inventarios") && (
           <p className="aviso bien">
-            Siguiente paso: carga tus precios en <a href={`/n/${negocio.slug}/inventarios`}>Inventarios</a> y elige aquí de
-            qué inventario toma los precios cada sucursal. ¿Vienes del sistema anterior? <a href={`/n/${negocio.slug}/importar`}>Importa
+            Siguiente paso: carga tus precios en <a href={`/n/${negocio.slug}/inventarios`}>Inventarios</a> y elige en{" "}
+            <a href={`/n/${negocio.slug}/sucursales`}>Sucursales</a> de qué inventario toma los precios cada una. ¿Vienes del sistema anterior? <a href={`/n/${negocio.slug}/importar`}>Importa
             su respaldo</a> y se crea todo de una vez.
           </p>
         )}
         {resumen && <Reporte r={resumen as Resumen} slug={negocio.slug} dias={diasReporte} />}
-        <section id="sucursales" className="tarjeta">
-          <h2>Sucursales</h2>
-          <ul className="lista">
-            {lasSucursales.map((s) => (
-              <li key={s.id}>
-                {puede("sucursales", s.id) ? (
-                  <form action={renombrarSucursal} className="fila" style={{ flex: 1 }}>
-                    <input type="hidden" name="slug" value={negocio.slug} />
-                    <input type="hidden" name="sucursal" value={s.id} />
-                    <div className="campo" style={{ marginBottom: 0 }}>
-                      <label className="pequeno quieto" htmlFor={`n-${s.id}`}>
-                        {s.es_principal ? "Principal" : "Sucursal"}
-                      </label>
-                      <input id={`n-${s.id}`} name="nombre" defaultValue={s.nombre} maxLength={80} required />
-                    </div>
-                    <button className="boton secundario" type="submit">Guardar</button>
-                  </form>
-                ) : (
-                  <span>{s.nombre}</span>
-                )}
-                {puede("sucursales", s.id) ? (
-                  <form action={cambiarFuente} className="fila" style={{ flex: "1 1 260px" }}>
-                    <input type="hidden" name="slug" value={negocio.slug} />
-                    <input type="hidden" name="sucursal" value={s.id} />
-                    <div className="campo" style={{ marginBottom: 0 }}>
-                      <label className="pequeno quieto" htmlFor={`f-${s.id}`}>Precios desde</label>
-                      <select id={`f-${s.id}`} name="fuente"
-                        defaultValue={s.fuente?.tipo === "inventario" ? s.fuente.inventario_id : ""}>
-                        <option value="">{s.es_principal ? "— elige un inventario —" : "Igual que la Principal"}</option>
-                        {losInventarios.map((i) => <option key={i.id} value={i.id}>Inventario: {i.nombre}</option>)}
-                      </select>
-                    </div>
-                    <button className="boton secundario" type="submit">Usar</button>
-                    <p className="quieto pequeno" style={{ flexBasis: "100%", margin: 0 }}>
-                      ¿Desde Google Drive o SQL Server? Créalo en Inventarios ›{" "}
-                      <a href={`/n/${negocio.slug}/inventarios#t-google`}>Inventario desde Google</a> o{" "}
-                      <a href={`/n/${negocio.slug}/inventarios#t-conector`}>Conector de SQL Server</a>, y elígelo aquí.
-                    </p>
-                  </form>
-                ) : (
-                  <span className="pequeno quieto">
-                    {s.fuente?.tipo === "inventario"
-                      ? `Precios: ${losInventarios.find((i) => i.id === s.fuente.inventario_id)?.nombre ?? "—"}`
-                      : s.es_principal ? "Sin inventario" : "Igual que la Principal"}
-                  </span>
-                )}
-                {puede("sucursales", s.id) && (
-                  <Ubicacion slug={negocio.slug} sucursal={s.id} nombre={s.nombre}
-                    geo={{ activa: s.geo_activa, latitud: s.latitud, longitud: s.longitud, radio_m: s.radio_m }} />
-                )}
-              </li>
-            ))}
-          </ul>
-          {administra && (
-            <form action={crearSucursal} className="fila" style={{ marginTop: 16 }}>
-              <input type="hidden" name="slug" value={negocio.slug} />
-              <input type="hidden" name="negocio" value={negocio.id} />
-              <div className="campo" style={{ marginBottom: 0 }}>
-                <label htmlFor="nueva-suc">Nueva sucursal</label>
-                <input id="nueva-suc" name="nombre" maxLength={80} placeholder="Ej.: Sucursal Centro" required />
-              </div>
-              <button className="boton" type="submit">Agregar</button>
-            </form>
-          )}
-        </section>
-
-        <section id="equipo" className="tarjeta" style={{ marginTop: 24 }}>
+        <section id="equipo" className="tarjeta">
           <h2>Equipo</h2>
           <ul className="lista">
             {losMiembros.map((m) => {

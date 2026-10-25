@@ -44,9 +44,9 @@ export async function renombrarSucursal(datos: FormData) {
     .from("sucursales")
     .update({ nombre: campo(datos, "nombre") })
     .eq("id", campo(datos, "sucursal"));
-  if (error) redirect(`/n/${slug}?error=${encodeURIComponent(mensajeError(error))}#sucursales`);
-  revalidatePath(`/n/${slug}`);
-  redirect(`/n/${slug}?bien=${encodeURIComponent("Nombre guardado.")}#sucursales`);
+  if (error) redirect(`/n/${slug}/sucursales?error=${encodeURIComponent(mensajeError(error))}`);
+  revalidatePath(`/n/${slug}/sucursales`);
+  redirect(`/n/${slug}/sucursales?bien=${encodeURIComponent("Nombre guardado.")}`);
 }
 
 export async function crearSucursal(datos: FormData) {
@@ -63,9 +63,9 @@ export async function crearSucursal(datos: FormData) {
   const { error } = await supabase
     .from("sucursales")
     .insert({ negocio_id: campo(datos, "negocio"), nombre, codigo: codigo.length < 2 ? codigo + "-1" : codigo });
-  if (error) redirect(`/n/${slug}?error=${encodeURIComponent(mensajeError(error))}#sucursales`);
-  revalidatePath(`/n/${slug}`);
-  redirect(`/n/${slug}?bien=${encodeURIComponent(`Sucursal «${nombre}» creada.`)}#sucursales`);
+  if (error) redirect(`/n/${slug}/sucursales?error=${encodeURIComponent(mensajeError(error))}`);
+  revalidatePath(`/n/${slug}/sucursales`);
+  redirect(`/n/${slug}/sucursales?bien=${encodeURIComponent(`Sucursal «${nombre}» creada.`)}`);
 }
 
 export async function cambiarFuente(datos: FormData) {
@@ -76,9 +76,9 @@ export async function cambiarFuente(datos: FormData) {
     .from("sucursales")
     .update({ fuente: inventario ? { tipo: "inventario", inventario_id: inventario } : {} })
     .eq("id", campo(datos, "sucursal"));
-  if (error) redirect(`/n/${slug}?error=${encodeURIComponent(mensajeError(error))}#sucursales`);
-  revalidatePath(`/n/${slug}`);
-  redirect(`/n/${slug}?bien=${encodeURIComponent("Fuente de precios guardada.")}#sucursales`);
+  if (error) redirect(`/n/${slug}/sucursales?error=${encodeURIComponent(mensajeError(error))}`);
+  revalidatePath(`/n/${slug}/sucursales`);
+  redirect(`/n/${slug}/sucursales?bien=${encodeURIComponent("Fuente de precios guardada.")}`);
 }
 
 export async function guardarUbicacion(datos: FormData) {
@@ -90,13 +90,24 @@ export async function guardarUbicacion(datos: FormData) {
   const malas = (latitud === null) !== (longitud === null) || (latitud !== null && (!Number.isFinite(latitud) || Math.abs(latitud) > 90))
     || (longitud !== null && (!Number.isFinite(longitud) || Math.abs(longitud) > 180));
   if (malas || (activa && latitud === null)) {
-    redirect(`/n/${slug}?error=${encodeURIComponent("Ubicación incompleta o no válida.")}#sucursales`);
+    redirect(`/n/${slug}/sucursales?error=${encodeURIComponent("Ubicación incompleta o no válida.")}`);
   }
   const supabase = await supabaseServidor();
   const { error } = await supabase.from("sucursales")
     .update({ latitud, longitud, radio_m: radio, geo_activa: activa && latitud !== null })
     .eq("id", campo(datos, "sucursal"));
-  if (error) redirect(`/n/${slug}?error=${encodeURIComponent(mensajeError(error))}#sucursales`);
-  revalidatePath(`/n/${slug}`);
-  redirect(`/n/${slug}?bien=${encodeURIComponent("Ubicación guardada.")}#sucursales`);
+  if (error) redirect(`/n/${slug}/sucursales?error=${encodeURIComponent(mensajeError(error))}`);
+  revalidatePath(`/n/${slug}/sucursales`);
+  redirect(`/n/${slug}/sucursales?bien=${encodeURIComponent("Ubicación guardada.")}`);
+}
+
+/** Activar o apagar la consulta desde el celular de los clientes (casilla «Apariencia»; la base lo decide). */
+export async function cambiarConsultaMovil(datos: FormData) {
+  const slug = campo(datos, "slug");
+  const activa = campo(datos, "activa") === "si";
+  const supabase = await supabaseServidor();
+  const { data, error } = await supabase.from("negocios").update({ consulta_movil: activa }).eq("id", campo(datos, "negocio")).select("id");
+  if (error || !data?.length) redirect(`/n/${slug}/sucursales?error=${encodeURIComponent(error ? mensajeError(error) : "Activarla requiere la casilla «Apariencia».")}`);
+  revalidatePath(`/n/${slug}/sucursales`);
+  redirect(`/n/${slug}/sucursales?bien=${encodeURIComponent(activa ? "Consulta desde el celular activada: comparte el enlace o el QR de cada sucursal." : "Consulta desde el celular apagada.")}`)
 }

@@ -87,7 +87,7 @@ function mezclar(a: string, b: string, t: number) {
   return hex(x.map((v, i) => v + (y[i] - v) * t));
 }
 /** Acerca un poco el color hacia oscuro o claro hasta que se lea; si no alcanza, usa el texto normal. */
-function legible(color: string, fondo: string, minimo: number) {
+export function legible(color: string, fondo: string, minimo: number) {
   const hacia = luminancia(fondo) > 0.4 ? TINTA : BLANCO;
   for (let t = 0; t <= 0.1501; t += 0.05) {
     const c = mezclar(color, hacia, t);
