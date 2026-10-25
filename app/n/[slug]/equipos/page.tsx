@@ -167,6 +167,8 @@ export default async function Equipos({ params, searchParams }: Props) {
               <ul className="lista">
                 {descargas.map((d) => (
                   <li key={d.clave}>
+                    <img src={d.clave === "administrador" ? "/iconos/prezio-administrador.svg" : "/iconos/prezio-192.png"} alt="" width={44} height={44}
+                      style={{ borderRadius: 10, flex: "none" }} />
                     <div style={{ flex: "1 1 240px" }}>
                       <p style={{ margin: "0 0 2px", fontWeight: 650 }}>{d.nombre}{d.app.version && <span className="quieto"> · versión {d.app.version}</span>}</p>
                       <p className="quieto pequeno" style={{ margin: 0 }}>{d.detalle}{d.app.fecha && ` Publicada ${new Date(d.app.fecha).toLocaleDateString("es-DO")}.`}</p>
