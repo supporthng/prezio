@@ -14,9 +14,8 @@ export async function GET(_: Request, { params }: { params: Promise<{ slug: stri
   const { data: neg } = await supabase.from("negocios").select("id, nombre, slug, moneda, apariencia").eq("slug", slug).maybeSingle();
   const negocio = neg as { id: string; nombre: string; slug: string; moneda: string; apariencia: unknown } | null;
   if (!negocio) return new Response("No encontrado.", { status: 404 });
-  const { data: yo } = await supabase.from("miembros").select("rol").eq("negocio_id", negocio.id).eq("user_id", auth.user.id).maybeSingle();
-  const rol = (yo as { rol: string } | null)?.rol;
-  if (rol !== "dueno" && rol !== "admin") return new Response("Solo el dueño o un administrador descargan el respaldo.", { status: 403 });
+  const { data: completo } = await supabase.rpc("administra", { p_negocio: negocio.id });
+  if (!completo) return new Response("El respaldo completo lo descarga el dueño o quien tenga todas las casillas.", { status: 403 });
 
   const [{ data: sucursales }, { data: inventarios }, { data: equipos }] = await Promise.all([
     supabase.from("sucursales").select("id, codigo, nombre, es_principal, activa, fuente").eq("negocio_id", negocio.id).order("nombre"),

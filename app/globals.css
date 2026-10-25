@@ -312,3 +312,26 @@ input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible
 .ubicacion-mapa { margin: 12px 0 0; }
 .ubicacion-mapa iframe { width: 100%; height: 260px; border: 1px solid var(--linea); border-radius: 10px; display: block; }
 .ubicacion-mapa figcaption { margin-top: 6px; }
+
+/* ---------- pestañas (entrar con usuario / con correo) */
+.pestanas { display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: var(--superficie); margin: 0 0 18px; }
+.pestanas a { flex: 1; text-align: center; padding: 8px 12px; border-radius: 999px; font-weight: 650; font-size: .92rem; color: var(--gris); text-decoration: none; }
+.pestanas a[aria-current] { background: var(--papel); color: var(--tinta); box-shadow: 0 1px 3px rgba(16, 42, 67, .15); }
+
+/* ---------- usuarios y permisos */
+.personas li { align-items: flex-start; }
+.persona-datos { flex: 1 1 260px; min-width: 0; }
+.persona-nombre { margin: 0 0 2px; font-weight: 650; }
+.persona-cambiar { flex: 0 1 auto; }
+.persona-cambiar > summary { list-style: none; display: inline-flex; }
+.persona-cambiar > summary::-webkit-details-marker { display: none; }
+.persona-cambiar[open] { flex: 1 1 100%; }
+.persona-cambiar[open] > summary { margin-bottom: 12px; }
+.casillas { border: 1px solid var(--linea); border-radius: var(--radio); padding: 12px 14px 14px; margin: 0 0 16px; }
+.casillas legend { font-weight: 650; font-size: .9rem; padding: 0 6px; }
+.casilla { display: flex; gap: 10px; align-items: flex-start; padding: 6px 0; font-weight: 500; margin: 0; }
+.casilla > span { display: flex; flex-direction: column; }
+.casilla.bloqueada { opacity: .55; }
+.casilla input[type="checkbox"], .casilla-linea input { width: 18px; height: 18px; min-height: 0; min-width: 0; flex: none; margin: 2px 0 0; padding: 0; box-shadow: none; accent-color: var(--tinta); }
+.casilla-linea { display: flex; gap: 8px; align-items: center; font-weight: 500; margin: 6px 0; }
+.casillas-sucursales { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0 16px; padding-left: 26px; }

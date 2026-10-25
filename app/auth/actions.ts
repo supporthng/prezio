@@ -1,6 +1,8 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
+import { USUARIO_VALIDO, correoDeUsuario } from "@/lib/supabase/admin";
 import { supabaseServidor } from "@/lib/supabase/server";
 import { mensajeError, rutaSegura, sitio } from "@/lib/util";
 
@@ -59,4 +61,25 @@ export async function cambiarClave(datos: FormData) {
   const { error } = await supabase.auth.updateUser({ password: clave });
   if (error) redirect(`/cuenta/clave?error=${encodeURIComponent(mensajeError(error))}`);
   redirect(`/negocios?bien=${encodeURIComponent("Clave cambiada.")}`);
+}
+
+/** Entrar con negocio + usuario + clave (usuarios sin correo que crea el dueño). */
+export async function entrarConUsuario(datos: FormData) {
+  const siguiente = rutaSegura(texto(datos, "siguiente"), "");
+  const negocio = texto(datos, "negocio").toLowerCase();
+  const usuario = texto(datos, "usuario").toLowerCase();
+  const volver = (error: string) =>
+    redirect(`/entrar?modo=usuario&negocio=${encodeURIComponent(negocio)}&error=${encodeURIComponent(error)}&siguiente=${encodeURIComponent(siguiente)}`);
+  if (!negocio || !USUARIO_VALIDO.test(usuario)) volver("Escribe el código del negocio y tu usuario.");
+  const supabase = await supabaseServidor();
+  const { data: id } = await supabase.rpc("negocio_de_slug", { p_slug: negocio });
+  // Mismo mensaje si el negocio no existe o la clave está mal: no revela qué negocios o usuarios hay.
+  if (!id) volver("Negocio, usuario o clave incorrectos.");
+  const { error } = await supabase.auth.signInWithPassword({
+    email: correoDeUsuario(String(id), usuario), password: String(datos.get("clave") ?? ""),
+  });
+  if (error) volver(/rate limit/i.test(error.message) ? mensajeError(error) : "Negocio, usuario o clave incorrectos.");
+  // El navegador recuerda el negocio para la próxima vez.
+  (await cookies()).set("prezio_negocio", negocio, { maxAge: 60 * 60 * 24 * 365, sameSite: "lax", path: "/" });
+  redirect(siguiente || `/n/${negocio}`);
 }

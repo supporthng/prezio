@@ -10,7 +10,8 @@ type Props = { params: Promise<{ slug: string }> };
 
 export default async function AparienciaPagina({ params }: Props) {
   const { slug } = await params;
-  const { supabase, negocio, administra } = await cargarNegocio(slug, `/n/${slug}/apariencia`);
+  const { supabase, negocio, puede } = await cargarNegocio(slug, `/n/${slug}/apariencia`);
+  const administra = puede("apariencia");
   const { data } = await supabase.from("sucursales").select("nombre").eq("negocio_id", negocio.id)
     .order("es_principal", { ascending: false }).limit(1);
   const sucursal = ((data ?? []) as { nombre: string }[])[0]?.nombre ?? "Principal";
@@ -20,7 +21,7 @@ export default async function AparienciaPagina({ params }: Props) {
       <main className="contenido ancho">
         <h1>{negocio.nombre}</h1>
         <SubNav slug={slug} activa="apariencia" />
-        {!administra && <p className="aviso bien">Solo el dueño o un administrador pueden cambiar la apariencia.</p>}
+        {!administra && <p className="aviso bien">Cambiar la apariencia requiere la casilla «Apariencia» (Usuarios).</p>}
         <Editor negocioId={negocio.id} slug={slug} negocio={negocio.nombre} sucursal={sucursal}
           inicial={normalizar(negocio.apariencia)} moneda={negocio.moneda} puedeEditar={administra} />
       </main>

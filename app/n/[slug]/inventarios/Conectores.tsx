@@ -56,9 +56,10 @@ export function Conectores({ negocioId, slug, conectores, sitio, descarga, nombr
             </button>
           </div>
           <ol className="pequeno" style={{ margin: "12px 0 0", paddingLeft: "1.2em", lineHeight: 1.6 }}>
-            <li>En la PC del sistema, descarga <a href={descarga}>PrezioConector.exe</a> y ábrelo.</li>
-            <li>Escribe la dirección <strong>{sitio}</strong> y pega esta clave.</li>
-            <li>Elige el servidor SQL, la base de datos y, para cada inventario, la tabla y sus columnas.</li>
+            <li>En la PC del sistema, descarga e instala <a href={descarga}>Prezio Administrador</a>.</li>
+            <li>En «Conector de SQL Server», escribe la dirección <strong>{sitio}</strong>, pega esta clave y toca «Probar».</li>
+            <li>Conecta con SQL Server, elige la base y, para cada inventario, la tabla y sus columnas (con muestra).</li>
+            <li>Toca «Enviar ahora» y «Arrancar solo al encender la PC».</li>
           </ol>
           <button className="boton secundario" type="button" style={{ marginTop: 12 }} onClick={() => setClave(null)}>Ya la guardé</button>
         </div>

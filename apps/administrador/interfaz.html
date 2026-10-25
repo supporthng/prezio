@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prezio Administrador</title>
+<style>
+  :root {
+    --tinta: #102a43; --tinta-2: #243b53; --gris: #5b6b7c; --linea: #dde3ea; --fondo: #f4f6f8; --papel: #fff;
+    --etiqueta: #ffd23f; --error: #b42318; --error-fondo: #fef3f2; --bien: #1f7a4d; --bien-fondo: #ecfdf3;
+    font-family: "Segoe UI", system-ui, sans-serif; color: var(--tinta); background: var(--fondo);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  header { display: flex; align-items: center; gap: 14px; padding: 14px 24px; background: var(--tinta); color: #fff; }
+  .marca { background: var(--etiqueta); color: var(--tinta); font-weight: 800; padding: 3px 10px; border-radius: 7px; }
+  header h1 { font-size: 1.05rem; margin: 0; font-weight: 600; }
+  header .version { margin-left: auto; font-size: .85rem; opacity: .75; }
+  nav { display: flex; gap: 4px; padding: 0 24px; background: var(--tinta-2); }
+  nav button { background: none; border: 0; color: #c9d6e3; padding: 12px 16px; font: inherit; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; }
+  nav button[aria-selected="true"] { color: #fff; border-bottom-color: var(--etiqueta); }
+  main { max-width: 980px; margin: 0 auto; padding: 22px 24px 60px; }
+  .tarjeta { background: var(--papel); border: 1px solid var(--linea); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
+  .tarjeta h2 { margin: 0 0 4px; font-size: 1.1rem; display: flex; align-items: center; gap: 10px; }
+  .paso { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--tinta); color: #fff; font-size: .85rem; flex: none; }
+  .paso.hecho { background: var(--bien); }
+  .quieto { color: var(--gris); }
+  .pequeno { font-size: .875rem; }
+  .fila { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+  .campo { display: flex; flex-direction: column; gap: 5px; flex: 1 1 200px; min-width: 0; }
+  label { font-weight: 600; font-size: .88rem; }
+  input, select, textarea { font: inherit; padding: 9px 11px; border: 1px solid #c7d0da; border-radius: 9px; background: #fff; color: var(--tinta); width: 100%; }
+  textarea { min-height: 80px; font-family: Consolas, monospace; font-size: .9rem; }
+  input:focus, select:focus, textarea:focus, button:focus-visible { outline: 3px solid rgba(16, 42, 67, .25); outline-offset: 1px; }
+  .opciones { display: flex; gap: 18px; flex-wrap: wrap; margin: 4px 0; }
+  .opciones label { font-weight: 500; display: flex; gap: 6px; align-items: center; }
+  .opciones input { width: auto; }
+  .boton { font: inherit; font-weight: 600; padding: 9px 16px; border-radius: 9px; border: 1px solid var(--tinta); background: var(--tinta); color: #fff; cursor: pointer; white-space: nowrap; }
+  .boton.secundario { background: #fff; color: var(--tinta); border-color: #c7d0da; }
+  .boton.grande { padding: 14px 22px; font-size: 1.05rem; }
+  .boton:disabled { opacity: .5; cursor: default; }
+  .aviso { padding: 10px 12px; border-radius: 9px; margin: 12px 0 0; font-size: .92rem; }
+  .aviso.error { background: var(--error-fondo); color: var(--error); }
+  .aviso.bien { background: var(--bien-fondo); color: var(--bien); }
+  .aviso.nueva { background: #fffbea; color: #7a5b00; display: flex; gap: 12px; align-items: center; justify-content: space-between; }
+  .inventario { border: 1px solid var(--linea); border-radius: 12px; padding: 14px; margin-top: 12px; }
+  .inventario h3 { margin: 0 0 8px; font-size: 1rem; display: flex; gap: 8px; align-items: center; }
+  .chip { font-size: .78rem; font-weight: 650; padding: 2px 8px; border-radius: 999px; background: var(--fondo); color: var(--tinta-2); }
+  .chip.bien { background: var(--bien-fondo); color: var(--bien); }
+  table { width: 100%; border-collapse: collapse; font-size: .88rem; margin-top: 10px; }
+  th { text-align: left; color: var(--gris); font-weight: 600; padding: 6px 8px; border-bottom: 1px solid var(--linea); }
+  td { padding: 6px 8px; border-bottom: 1px solid var(--linea); }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  pre { background: #0f2236; color: #d8e3ee; padding: 12px; border-radius: 10px; font-size: .78rem; max-height: 220px; overflow: auto; white-space: pre-wrap; margin: 10px 0 0; }
+  [hidden] { display: none !important; }
+  details summary { cursor: pointer; color: var(--tinta-2); font-weight: 600; font-size: .9rem; }
+</style>
+</head>
+<body>
+<header>
+  <span class="marca">Prezio</span>
+  <h1>Administrador</h1>
+  <span class="version" id="version"></span>
+</header>
+<nav role="tablist">
+  <button role="tab" id="tab-conector" aria-selected="true" data-vista="conector">Conector de SQL Server</button>
+  <button role="tab" id="tab-panel" aria-selected="false" data-vista="panel">Panel de Prezio</button>
+</nav>
+<main>
+  <div id="nueva" class="aviso nueva" hidden></div>
+
+  <!-- ---------------------------------------------------------------- panel -->
+  <section id="vista-panel" hidden>
+    <div class="tarjeta">
+      <h2>Panel de Prezio</h2>
+      <p class="quieto">Inventarios, sucursales, apariencia, equipos, reportes y usuarios. Se abre en su propia ventana y recuerda la sesión.</p>
+      <button class="boton grande" id="abrir-panel">Abrir el panel</button>
+      <p class="quieto pequeno" style="margin-bottom:0">Entra con tu correo, o con el código del negocio + tu usuario y clave.</p>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------------------- conector -->
+  <section id="vista-conector">
+    <div class="tarjeta">
+      <h2><span class="paso" id="p1">1</span> Prezio</h2>
+      <p class="quieto pequeno">En Prezio › Inventarios › Conector de SQL Server, crea un conector y copia su clave.</p>
+      <div class="fila">
+        <div class="campo"><label for="sitio">Dirección de Prezio</label><input id="sitio" autocomplete="off"></div>
+        <div class="campo" style="flex:2 1 300px"><label for="clave">Clave del conector</label><input id="clave" type="password" autocomplete="off"></div>
+        <button class="boton" id="probar">Probar</button>
+      </div>
+      <div id="r1"></div>
+    </div>
+
+    <div class="tarjeta">
+      <h2><span class="paso" id="p2">2</span> SQL Server</h2>
+      <div class="fila">
+        <div class="campo" style="flex:2 1 280px"><label for="servidor">Servidor</label>
+          <input id="servidor" placeholder="localhost\SQLEXPRESS  ·  192.168.1.10,1433" autocomplete="off"></div>
+      </div>
+      <div class="opciones" role="radiogroup" aria-label="Inicio de sesión">
+        <label><input type="radio" name="modo" value="windows" checked> Usuario de Windows de esta PC</label>
+        <label><input type="radio" name="modo" value="sql"> Usuario y clave de SQL Server</label>
+      </div>
+      <div class="fila" id="credenciales" hidden>
+        <div class="campo"><label for="usuario-sql">Usuario SQL</label><input id="usuario-sql" autocomplete="off"></div>
+        <div class="campo"><label for="clave-sql">Clave SQL</label><input id="clave-sql" type="password" autocomplete="off"></div>
+      </div>
+      <div class="fila" style="margin-top:12px">
+        <button class="boton" id="conectar">Conectar</button>
+        <div class="campo" id="caja-base" hidden><label for="base">Base de datos</label><select id="base"></select></div>
+      </div>
+      <div id="r2"></div>
+    </div>
+
+    <div class="tarjeta">
+      <h2><span class="paso" id="p3">3</span> De dónde salen los precios</h2>
+      <p class="quieto pequeno" id="sin-inventarios">Primero prueba la clave (paso 1) y elige la base (paso 2). Los inventarios se crean en Prezio › Inventarios › «Inventario que llena el conector».</p>
+      <div id="inventarios"></div>
+    </div>
+
+    <div class="tarjeta">
+      <h2><span class="paso" id="p4">4</span> Enviar a Prezio</h2>
+      <div class="fila">
+        <div class="campo" style="flex:0 1 200px"><label for="cada">Revisar cambios cada</label>
+          <select id="cada"><option value="5">5 minutos</option><option value="10">10 minutos</option><option value="15">15 minutos</option>
+            <option value="30">30 minutos</option><option value="60">1 hora</option></select></div>
+        <button class="boton" id="enviar">Enviar ahora</button>
+        <button class="boton secundario" id="arranque">Arrancar solo al encender la PC</button>
+      </div>
+      <div id="r4"></div>
+      <details style="margin-top:14px"><summary>Registro del conector</summary><pre id="registro">—</pre></details>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const api = () => window.pywebview.api;
+  const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const n = (x) => Number(x).toLocaleString("es-DO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const aviso = (donde, tipo, texto) => { $(donde).innerHTML = texto ? `<p class="aviso ${tipo}" role="${tipo === "error" ? "alert" : "status"}">${esc(texto)}</p>` : ""; };
+  const ocupado = async (boton, trabajo) => { boton.disabled = true; const t = boton.textContent; boton.textContent = "Un momento…"; try { return await trabajo(); } finally { boton.disabled = false; boton.textContent = t; } };
+  const estado = { inventarios: [], tablas: [], mapas: {}, inicio: false };
+
+  // ---- pestañas
+  document.querySelectorAll("nav button").forEach((b) => b.addEventListener("click", () => {
+    document.querySelectorAll("nav button").forEach((x) => x.setAttribute("aria-selected", String(x === b)));
+    $("vista-panel").hidden = b.dataset.vista !== "panel";
+    $("vista-conector").hidden = b.dataset.vista !== "conector";
+  }));
+  $("abrir-panel").addEventListener("click", () => api().abrir_panel());
+
+  // ---- paso 1
+  $("probar").addEventListener("click", (e) => ocupado(e.target, async () => {
+    const r = await api().probar_prezio($("sitio").value, $("clave").value);
+    if (r.error) { aviso("r1", "error", r.error); return; }
+    $("clave").value = ""; $("clave").placeholder = "Guardada · escribe otra solo para cambiarla";
+    $("p1").classList.add("hecho");
+    estado.inventarios = r.inventarios;
+    aviso("r1", "bien", `Conectado a «${r.negocio}» como «${r.conector}». ${r.inventarios.length ? `Inventarios que llena: ${r.inventarios.map((i) => i.nombre).join(", ")}.` : "Todavía no hay inventarios para este conector: créalos en Prezio › Inventarios."}`);
+    pintarInventarios();
+  }));
+
+  // ---- paso 2
+  document.querySelectorAll("input[name=modo]").forEach((r) => r.addEventListener("change", () => {
+    $("credenciales").hidden = document.querySelector("input[name=modo]:checked").value !== "sql";
+  }));
+  $("conectar").addEventListener("click", (e) => ocupado(e.target, async () => {
+    const r = await api().conectar_sql({ servidor: $("servidor").value, modo: document.querySelector("input[name=modo]:checked").value,
+      usuario: $("usuario-sql").value, clave: $("clave-sql").value });
+    if (r.error) { aviso("r2", "error", r.error); return; }
+    $("clave-sql").value = "";
+    $("base").innerHTML = r.bases.map((b) => `<option ${b === r.base ? "selected" : ""}>${esc(b)}</option>`).join("");
+    $("caja-base").hidden = false;
+    aviso("r2", "bien", `Conectado. ${r.bases.length} bases de datos.`);
+    await elegirBase();
+  }));
+  $("base").addEventListener("change", () => elegirBase());
+  async function elegirBase() {
+    const r = await api().elegir_base($("base").value);
+    if (r.error) { aviso("r2", "error", r.error); return; }
+    estado.tablas = r.tablas;
+    $("p2").classList.add("hecho");
+    aviso("r2", "bien", `Base «${$("base").value}»: ${r.tablas.length} tablas y vistas.`);
+    pintarInventarios();
+  }
+
+  // ---- paso 3
+  function pintarInventarios() {
+    const caja = $("inventarios");
+    $("sin-inventarios").hidden = estado.inventarios.length > 0 && estado.tablas.length > 0;
+    if (!estado.inventarios.length || !estado.tablas.length) { caja.innerHTML = ""; return; }
+    caja.innerHTML = estado.inventarios.map((inv) => {
+      const m = estado.mapas[inv.id] || {};
+      return `<div class="inventario" data-id="${esc(inv.id)}">
+        <h3>${esc(inv.nombre)} <span class="chip ${m.tabla || m.consulta ? "bien" : ""}">${m.tabla ? "Tabla " + esc(m.tabla) : m.consulta ? "Consulta propia" : "Sin configurar"}</span></h3>
+        <div class="opciones"><label><input type="radio" name="tipo-${esc(inv.id)}" value="tabla" ${m.consulta ? "" : "checked"}> Una tabla o vista</label>
+          <label><input type="radio" name="tipo-${esc(inv.id)}" value="consulta" ${m.consulta ? "checked" : ""}> Consulta propia (SELECT)</label></div>
+        <div class="por-tabla" ${m.consulta ? "hidden" : ""}>
+          <div class="fila">
+            <div class="campo" style="flex:2 1 260px"><label>Tabla</label><select class="tabla"><option value="">— elige —</option>
+              ${estado.tablas.map((t) => `<option value="${esc(t.nombre)}" ${t.nombre === m.tabla ? "selected" : ""}>${esc(t.nombre)}${t.vista ? " (vista)" : ""}</option>`).join("")}</select></div>
+          </div>
+          <div class="fila columnas" style="margin-top:10px" hidden>
+            ${["codigo", "nombre", "precio"].map((c) => `<div class="campo"><label>${{ codigo: "Código de barras", nombre: "Nombre", precio: "Precio" }[c]}</label><select class="col" data-campo="${c}"></select></div>`).join("")}
+          </div>
+        </div>
+        <div class="por-consulta" ${m.consulta ? "" : "hidden"}>
+          <div class="campo" style="margin-top:6px"><label>Consulta (debe devolver código, nombre y precio, en ese orden)</label>
+            <textarea class="consulta" placeholder="SELECT CodBarra, Descripcion, PrecioVenta FROM dbo.Productos WHERE Activo = 1">${esc(m.consulta || "")}</textarea></div>
+        </div>
+        <div class="fila" style="margin-top:12px"><button class="boton secundario ver">Ver muestra</button><button class="boton guardar">Guardar</button></div>
+        <div class="resultado"></div>
+      </div>`;
+    }).join("");
+    caja.querySelectorAll(".inventario").forEach(prepararInventario);
+  }
+
+  function prepararInventario(div) {
+    const id = div.dataset.id, m = estado.mapas[id] || {};
+    const res = (tipo, html) => { div.querySelector(".resultado").innerHTML = html ? `<div class="aviso ${tipo}">${html}</div>` : ""; };
+    div.querySelectorAll(`input[name="tipo-${CSS.escape(id)}"]`).forEach((r) => r.addEventListener("change", () => {
+      const consulta = div.querySelector(`input[name="tipo-${CSS.escape(id)}"]:checked`).value === "consulta";
+      div.querySelector(".por-tabla").hidden = consulta; div.querySelector(".por-consulta").hidden = !consulta;
+    }));
+    const elegirTabla = async (preferidas) => {
+      const tabla = div.querySelector(".tabla").value;
+      const fila = div.querySelector(".columnas");
+      if (!tabla) { fila.hidden = true; return; }
+      const r = await api().columnas(tabla);
+      if (r.error) { res("error", esc(r.error)); return; }
+      div.querySelectorAll(".col").forEach((s) => {
+        const elegida = (preferidas && preferidas[s.dataset.campo]) || r.sugeridas[s.dataset.campo];
+        s.innerHTML = `<option value="">— elige —</option>` + r.columnas.map((c) => `<option ${c.nombre === elegida ? "selected" : ""} value="${esc(c.nombre)}">${esc(c.nombre)} · ${esc(c.tipo)}</option>`).join("");
+      });
+      fila.hidden = false;
+    };
+    div.querySelector(".tabla").addEventListener("change", () => elegirTabla(null));
+    if (m.tabla) elegirTabla(m);
+    const mapeo = () => {
+      if (div.querySelector(`input[name="tipo-${CSS.escape(id)}"]:checked`).value === "consulta") return { consulta: div.querySelector(".consulta").value };
+      const x = { tabla: div.querySelector(".tabla").value };
+      div.querySelectorAll(".col").forEach((s) => { x[s.dataset.campo] = s.value; });
+      return x;
+    };
+    const completo = (x) => x.consulta ? x.consulta.trim() !== "" : (x.tabla && x.codigo && x.nombre && x.precio);
+    div.querySelector(".ver").addEventListener("click", (e) => ocupado(e.target, async () => {
+      const x = mapeo();
+      if (!completo(x)) { res("error", "Elige la tabla y las tres columnas (o escribe la consulta)."); return; }
+      const r = await api().muestra(x);
+      if (r.error) { res("error", esc(r.error)); return; }
+      res(r.validos_muestra ? "bien" : "error", `${r.total.toLocaleString("es-DO")} filas en total. ${r.validos_muestra ? "Así se verán:" : "Ninguna de estas filas tiene código, nombre y precio válidos: revisa las columnas."}
+        ${r.muestra.length ? `<table><thead><tr><th>Código</th><th>Nombre</th><th style="text-align:right">Precio</th></tr></thead><tbody>
+        ${r.muestra.map((p) => `<tr><td>${esc(p.codigo)}</td><td>${esc(p.nombre)}</td><td class="num">${n(p.precio)}</td></tr>`).join("")}</tbody></table>` : ""}`);
+    }));
+    div.querySelector(".guardar").addEventListener("click", (e) => ocupado(e.target, async () => {
+      const x = mapeo();
+      if (!completo(x)) { res("error", "Elige la tabla y las tres columnas (o escribe la consulta)."); return; }
+      const r = await api().guardar_inventario(id, x);
+      if (r.error) { res("error", esc(r.error)); return; }
+      estado.mapas[id] = x;
+      const chip = div.querySelector("h3 .chip"); chip.className = "chip bien"; chip.textContent = x.tabla ? "Tabla " + x.tabla : "Consulta propia";
+      res("bien", "Guardado. Usa «Enviar ahora» (paso 4) para mandar los precios.");
+      if (Object.keys(estado.mapas).length >= estado.inventarios.length) $("p3").classList.add("hecho");
+    }));
+  }
+
+  // ---- paso 4
+  $("cada").addEventListener("change", () => api().guardar_frecuencia(Number($("cada").value)));
+  $("enviar").addEventListener("click", (e) => ocupado(e.target, async () => {
+    const r = await api().enviar_ahora();
+    if (r.error) aviso("r4", "error", r.error);
+    else {
+      aviso("r4", r.errores ? "error" : "bien", `Enviados: ${r.enviados} · sin cambios: ${r.sin_cambios} · con error: ${r.errores}.${r.errores ? " Mira el registro abajo." : ""}`);
+      if (!r.errores) $("p4").classList.add("hecho");
+    }
+    $("registro").textContent = (await api().registro()).lineas.join("\n") || "—";
+  }));
+  const pintarArranque = () => { $("arranque").textContent = estado.inicio ? "✓ Arranca solo al encender (quitar)" : "Arrancar solo al encender la PC"; };
+  $("arranque").addEventListener("click", async (e) => {
+    await ocupado(e.target, async () => {
+      const r = await api().arranque(!estado.inicio);
+      if (r.error) aviso("r4", "error", r.error);
+      else { estado.inicio = r.inicio; aviso("r4", "bien", r.inicio ? "Listo: envía los precios solo, aunque nadie abra este programa." : "Ya no arranca solo."); }
+    });
+    pintarArranque();   // después de «ocupado», que devuelve el texto anterior al botón
+  });
+
+  // ---- al abrir
+  async function iniciar() {
+    const e = await api().estado();
+    $("version").textContent = `Versión ${e.version} · ${e.equipo}`;
+    $("sitio").value = e.sitio;
+    if (e.hayClave) $("clave").placeholder = "Guardada · escribe otra solo para cambiarla";
+    $("servidor").value = e.sql.servidor; $("usuario-sql").value = e.sql.usuario;
+    if (e.sql.hayClave) $("clave-sql").placeholder = "Guardada";
+    document.querySelector(`input[name=modo][value=${e.sql.modo === "sql" ? "sql" : "windows"}]`).checked = true;
+    $("credenciales").hidden = e.sql.modo !== "sql";
+    $("cada").value = String([5, 10, 15, 30, 60].includes(e.cada_min) ? e.cada_min : 10);
+    estado.mapas = e.inventarios; estado.inicio = e.inicio; pintarArranque();
+    $("registro").textContent = e.registro.join("\n") || "—";
+    // Si ya estaba configurado, reconecta solo para mostrar todo.
+    if (e.hayClave) $("probar").click();
+    if (e.sql.servidor && (e.sql.modo === "windows" || e.sql.hayClave)) $("conectar").click();
+    const v = await api().version_nueva();
+    if (v.version) {
+      $("nueva").hidden = false;
+      $("nueva").innerHTML = `<span>Hay una versión nueva de Prezio Administrador (${esc(v.version)}).</span><button class="boton" id="bajar">Descargar</button>`;
+      $("bajar").addEventListener("click", () => api().abrir_enlace(v.url));
+    }
+  }
+  if (window.pywebview && window.pywebview.api && window.pywebview.api.estado) iniciar();
+  else window.addEventListener("pywebviewready", iniciar, { once: true });
+})();
+</script>
+</body>
+</html>

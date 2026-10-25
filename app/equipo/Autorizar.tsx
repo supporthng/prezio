@@ -5,6 +5,9 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { SUPABASE_KEY, SUPABASE_URL } from "@/lib/supabase/config";
 import { mensajeError } from "@/lib/util";
 
+// Mismo correo interno que la base (public.correo_de_usuario) para usuarios sin correo.
+const correoDeUsuario = (negocio: string, usuario: string) => `${usuario.trim().toLowerCase()}@n${negocio.replace(/-/g, "")}.prezio.invalid`;
+
 type Props = { clave: string; onListo: () => void; onCancelar: () => void };
 type Opcion = { negocioId: string; negocio: string; sucursales: { id: string; nombre: string }[] };
 
@@ -14,6 +17,8 @@ export function Autorizar({ clave, onListo, onCancelar }: Props) {
   const cliente = useRef<SupabaseClient | null>(null);
   const [paso, setPaso] = useState<"entrar" | "elegir">("entrar");
   const [correo, setCorreo] = useState("");
+  const [codigoNegocio, setCodigoNegocio] = useState(() => { try { return localStorage.getItem("prezio_negocio") ?? ""; } catch { return ""; } });
+  const conUsuario = correo.trim() !== "" && !correo.includes("@");
   const [contrasena, setContrasena] = useState("");
   const [opciones, setOpciones] = useState<Opcion[]>([]);
   const [negocioId, setNegocioId] = useState("");
@@ -37,14 +42,24 @@ export function Autorizar({ clave, onListo, onCancelar }: Props) {
     setError(""); setTrabajando(true);
     try {
       const s = sb();
-      const { data, error: e1 } = await s.auth.signInWithPassword({ email: correo.trim(), password: contrasena });
+      let email = correo.trim();
+      if (conUsuario) {
+        // Usuario sin correo: negocio + usuario.
+        const { data: id } = await s.rpc("negocio_de_slug", { p_slug: codigoNegocio.trim().toLowerCase() });
+        if (!id) throw new Error("Negocio, usuario o clave incorrectos.");
+        email = correoDeUsuario(String(id), email);
+        try { localStorage.setItem("prezio_negocio", codigoNegocio.trim().toLowerCase()); } catch { /* sin almacenamiento */ }
+      }
+      const { data, error: e1 } = await s.auth.signInWithPassword({ email, password: contrasena });
       if (e1 || !data.user) throw e1 ?? new Error("No se pudo entrar.");
       setContrasena("");
       // Dónde puede poner equipos: negocios donde es dueño o admin (todas sus sucursales) o encargado (la suya).
-      const { data: mios } = await s.from("miembros").select("negocio_id, rol, sucursal_id").eq("user_id", data.user.id);
-      const permitidos = ((mios ?? []) as { negocio_id: string; rol: string; sucursal_id: string | null }[])
-        .filter((m) => m.rol === "dueno" || m.rol === "admin" || (m.rol === "encargado" && m.sucursal_id));
-      if (!permitidos.length) throw new Error("Este usuario no puede vincular equipos. Entra con el dueño, un administrador o el encargado de la sucursal.");
+      // Dónde puede poner equipos: la casilla «Equipos» (en todas o en algunas sucursales); el dueño, siempre.
+      const { data: mios } = await s.from("miembros").select("negocio_id, rol, permisos, sucursales").eq("user_id", data.user.id);
+      type M = { negocio_id: string; rol: string; permisos: string[] | null; sucursales: string[] | null };
+      const permitidos = ((mios ?? []) as M[])
+        .filter((m) => m.rol === "dueno" || ((m.permisos ?? []).includes("equipos") && (m.sucursales === null || m.sucursales.length > 0)));
+      if (!permitidos.length) throw new Error("Este usuario no puede vincular equipos: necesita la casilla «Equipos» (Prezio › Usuarios).");
       const ids = permitidos.map((m) => m.negocio_id);
       const [{ data: negs }, { data: sucs }] = await Promise.all([
         s.from("negocios").select("id, nombre").in("id", ids).order("nombre"),
@@ -54,7 +69,7 @@ export function Autorizar({ clave, onListo, onCancelar }: Props) {
       const lista: Opcion[] = ((negs ?? []) as { id: string; nombre: string }[]).map((n) => {
         const m = permitidos.find((x) => x.negocio_id === n.id)!;
         const todas = ((sucs ?? []) as { id: string; nombre: string; negocio_id: string }[]).filter((x) => x.negocio_id === n.id);
-        return { negocioId: n.id, negocio: n.nombre, sucursales: m.rol === "encargado" ? todas.filter((x) => x.id === m.sucursal_id) : todas };
+        return { negocioId: n.id, negocio: n.nombre, sucursales: m.rol === "dueno" || m.sucursales === null ? todas : todas.filter((x) => m.sucursales!.includes(x.id)) };
       }).filter((o) => o.sucursales.length);
       if (!lista.length) throw new Error("No hay sucursales disponibles para este usuario.");
       setOpciones(lista);
@@ -84,9 +99,17 @@ export function Autorizar({ clave, onListo, onCancelar }: Props) {
       {paso === "entrar" ? (
         <form onSubmit={entrar}>
           <h2>Vincular aquí</h2>
-          <p className="quieto">Entra con el dueño, un administrador o el encargado de la sucursal. Es solo para autorizar: la sesión no se queda en este equipo.</p>
-          <label htmlFor="a-correo">Correo</label>
-          <input id="a-correo" type="email" autoComplete="off" value={correo} onChange={(e) => setCorreo(e.target.value)} required autoFocus />
+          <p className="quieto">Entra con el dueño o con un usuario que tenga la casilla «Equipos» (correo, o usuario y código del negocio). Es solo para autorizar: la sesión no se queda en este equipo.</p>
+          <label htmlFor="a-correo">Correo o usuario</label>
+          <input id="a-correo" type="text" autoComplete="off" autoCapitalize="none" spellCheck={false} value={correo}
+            onChange={(e) => setCorreo(e.target.value)} required autoFocus />
+          {conUsuario && (
+            <>
+              <label htmlFor="a-negocio-codigo">Código del negocio</label>
+              <input id="a-negocio-codigo" autoComplete="off" autoCapitalize="none" spellCheck={false} value={codigoNegocio}
+                onChange={(e) => setCodigoNegocio(e.target.value)} required placeholder="ej.: abarrotao-market" />
+            </>
+          )}
           <label htmlFor="a-clave">Clave</label>
           <input id="a-clave" type="password" autoComplete="off" value={contrasena} onChange={(e) => setContrasena(e.target.value)} required />
           {error && <p className="equipo-error" role="alert">{error}</p>}

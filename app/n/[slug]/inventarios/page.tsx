@@ -10,8 +10,12 @@ import { Conectores, type ConectorFila } from "./Conectores";
 import { FRECUENCIAS, type OrigenGoogle } from "@/lib/fuentes";
 import { sitio } from "@/lib/util";
 
-// El conector se publica como archivo descargable en GitHub (Releases › «conector»).
-const DESCARGA_CONECTOR = "https://github.com/supporthng/prezio/releases/download/conector/PrezioConector.exe";
+import apps from "@/public/apps.json";
+
+// El conector viene dentro de Prezio Administrador (Releases › «administrador»); si todavía no se ha publicado,
+// queda el conector de consola (Releases › «conector»).
+const DESCARGA_CONECTOR = (apps as { administrador?: { url?: string } }).administrador?.url
+  || "https://github.com/supporthng/prezio/releases/download/conector/PrezioConector.exe";
 
 export const metadata = { title: "Inventarios" };
 
@@ -33,7 +37,8 @@ type Sucursal = { id: string; nombre: string; es_principal: boolean; fuente: { t
 export default async function Inventarios({ params, searchParams }: Props) {
   const { slug } = await params;
   const { bien, error } = await searchParams;
-  const { supabase, negocio, administra } = await cargarNegocio(slug, `/n/${slug}/inventarios`);
+  const { supabase, negocio, puede, administra: adminCompleto } = await cargarNegocio(slug, `/n/${slug}/inventarios`);
+  const administra = puede("inventarios");
   const [{ data: inv }, { data: suc }, { data: con }] = await Promise.all([
     supabase.from("inventarios").select("id, nombre, actualizado, origen, estado").eq("negocio_id", negocio.id).order("nombre"),
     supabase.from("sucursales").select("id, nombre, es_principal, fuente").eq("negocio_id", negocio.id),
@@ -147,7 +152,7 @@ export default async function Inventarios({ params, searchParams }: Props) {
           )}
           <p className="quieto pequeno" style={{ marginTop: 12, marginBottom: 0 }}>
             Cada sucursal elige de qué inventario toma sus precios en la pestaña Resumen.
-            {administra && <> Respaldo: <a href={`/n/${slug}/respaldo`} download>descargar todo el negocio</a> (configuración,
+            {adminCompleto && <> Respaldo: <a href={`/n/${slug}/respaldo`} download>descargar todo el negocio</a> (configuración,
             sucursales e inventarios). Un inventario se restaura cargando su CSV con «Reemplazar».
             ¿Vienes del sistema anterior? <a href={`/n/${slug}/importar`}>Importar su respaldo</a>.</>}
           </p>
@@ -162,7 +167,7 @@ export default async function Inventarios({ params, searchParams }: Props) {
               descarga={DESCARGA_CONECTOR} nombresUsados={inventarios.map((i) => i.nombre)} />
           </>
         ) : (
-          <p className="quieto" style={{ marginTop: 24 }}>Solo el dueño o un administrador cargan inventarios.</p>
+          <p className="quieto" style={{ marginTop: 24 }}>Cargar inventarios requiere la casilla «Inventarios» (Usuarios).</p>
         )}
       </main>
     </>

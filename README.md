@@ -159,3 +159,32 @@ npm run typecheck
   inventario con los precios de la Principal más los de la sucursal.
 - Se puede repetir sin duplicar (empareja por nombre de inventario y código de sucursal). No trae usuarios ni equipos.
 - No requiere migración: usa los permisos de dueño o admin.
+
+## Usuarios sin correo y permisos por casillas
+
+- **Pestaña Usuarios**: el dueño (o quien tenga la casilla «Usuarios») crea empleados con **usuario y clave**, sin
+  correo. Entran en *Entrar › Con usuario* con el **código del negocio** (el de la dirección, ej. `abarrotao-market`),
+  su usuario y su clave. Si olvidan la clave, se cambia en Usuarios (no hay recuperación por correo).
+- **Casillas**: Reportes, Inventarios (incluye Google y conector), Sucursales, Equipos (incluye clave de salida),
+  Apariencia y Usuarios; y **en qué sucursales** (todas o algunas). El dueño tiene todo siempre. Quien gestiona
+  usuarios solo da casillas y sucursales que él tiene, y nunca la casilla «Usuarios».
+- Las personas que ya existían conservan su acceso (admin → todas; encargado → reportes, sucursales y equipos de su
+  sucursal). Las invitaciones por correo siguen funcionando.
+- Por dentro cada empleado es una cuenta de Supabase con un correo interno inexistente
+  (`usuario@n<negocio>.prezio.invalid`): nunca recibe correos y no puede crear negocios.
+- **Requiere**: ejecutar `supabase/migrations/0008_usuarios_y_permisos.sql` y poner en Vercel › Settings ›
+  Environment Variables la variable **`SUPABASE_SECRET_KEY`** (tipo *Secret*, sin `NEXT_PUBLIC_`) con la clave
+  secreta de Supabase (Project Settings › API Keys › *Secret key*, `sb_secret_…`). Solo la usa el servidor para crear
+  cuentas y cambiar claves, siempre después de que la base confirmó el permiso de quien lo pide.
+
+## Prezio Administrador (Windows)
+
+- **`apps/administrador`**: un programa con dos partes: **Panel de Prezio** (en su propia ventana, recuerda la sesión)
+  y **Conector de SQL Server** por pasos: (1) dirección de Prezio y clave del conector, (2) servidor, inicio de sesión
+  y base de datos, (3) para cada inventario la tabla o vista y sus columnas (las sugiere solo y muestra una muestra
+  con el total), o una consulta propia, (4) frecuencia, «Enviar ahora» y «Arrancar solo al encender la PC».
+- El envío automático lo hace el mismo programa (`PrezioAdministrador.exe --servicio`) con la tarea de Windows
+  «Prezio Conector» como SYSTEM. Las claves se guardan cifradas con la protección de Windows (DPAPI).
+- **`.github/workflows/app-administrador.yml`** lo compila, lo publica en Releases › «administrador» y lo anota en
+  `public/apps.json`; el panel lo ofrece en Inventarios (conector) y en Equipos.
+- `conector/prezio_conector.py` (de consola) sigue funcionando; el Administrador lo usa por dentro.

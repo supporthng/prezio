@@ -9,7 +9,8 @@ type Props = { params: Promise<{ slug: string }> };
 
 export default async function PaginaImportar({ params }: Props) {
   const { slug } = await params;
-  const { negocio, administra } = await cargarNegocio(slug, `/n/${slug}/importar`);
+  const { negocio, puede } = await cargarNegocio(slug, `/n/${slug}/importar`);
+  const administra = puede("inventarios") && puede("sucursales") && puede("apariencia");
   return (
     <>
       <Barra negocio={{ nombre: negocio.nombre, slug: negocio.slug }} />
@@ -18,7 +19,7 @@ export default async function PaginaImportar({ params }: Props) {
         <SubNav slug={slug} activa="inventarios" />
         <h2 style={{ marginTop: 0 }}>Importar del sistema anterior</h2>
         {administra ? <Importar negocioId={negocio.id} slug={slug} />
-          : <p className="aviso error">Solo el dueño o un administrador importan datos.</p>}
+          : <p className="aviso error">Importar requiere las casillas «Inventarios», «Sucursales» y «Apariencia» en todas las sucursales.</p>}
       </main>
     </>
   );
