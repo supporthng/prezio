@@ -68,7 +68,7 @@ En **Inventarios**, además de cargar Excel, un inventario puede llenarse solo:
 ### 1. Supabase (proyecto nuevo, solo para Prezio)
 
 1. En [supabase.com](https://supabase.com) crea un proyecto **nuevo** (no uses el del sistema actual).
-2. **SQL Editor** › ejecuta, en orden, `supabase/migrations/0001_base.sql`, `0002_precios_y_apariencia.sql`, `0003_equipos.sql`, `0004_fuentes_automaticas.sql`, `0005_vincular_en_el_equipo.sql` y `0006_clave_de_salida.sql`.
+2. **SQL Editor** › ejecuta, en orden, `supabase/migrations/0001_base.sql`, `0002_precios_y_apariencia.sql`, `0003_equipos.sql`, `0004_fuentes_automaticas.sql`, `0005_vincular_en_el_equipo.sql`, `0006_clave_de_salida.sql` y `0007_seguridad_reporte_mantenimiento.sql`.
 3. **Authentication › URL Configuration**:
    - *Site URL*: la dirección de Vercel (por ejemplo `https://prezio.vercel.app`).
    - *Redirect URLs*: agrega `https://prezio.vercel.app/**` (y `http://localhost:3000/**` si trabajas en tu PC).
@@ -121,3 +121,29 @@ npm run typecheck
 - Bloqueo total en Android (opcional): `adb shell dpm set-device-owner com.prezio.verificador/.AdminReceiver`.
 - Requiere ejecutar **`supabase/migrations/0006_clave_de_salida.sql`**.
 - Las descargas de Releases solo funcionan sin iniciar sesión si el repositorio es **público**.
+
+## Antes de la prueba piloto (mejoras ya incluidas)
+
+- **Pruebas automáticas** (`.github/workflows/pruebas.yml`): en cada cambio, GitHub prueba la base en un PostgreSQL
+  limpio (las migraciones dos veces y las 200 pruebas) y compila la web como Vercel. Si algo falla, aparece en rojo en
+  Actions antes de que lo vean los clientes.
+- **Seguridad**: máximo 10 códigos de equipo equivocados por usuario cada 15 minutos; cabeceras que impiden meter
+  Prezio dentro de otra página (`next.config.ts`).
+- **Reporte de consultas** (Resumen): consultas de 7, 30 o 90 días, por día y sucursal, lo más consultado y los
+  **códigos buscados que no tenían precio**. El encargado ve solo su sucursal.
+- **Respaldo**: cada inventario se descarga en CSV (Excel lo abre; se restaura cargándolo con «Reemplazar») y el
+  dueño o admin descarga el respaldo completo del negocio en JSON (Inventarios › «descargar todo el negocio»).
+- **Limpieza diaria** (pg_cron): consultas de más de 13 meses, cargas a medias y códigos vencidos.
+- Requiere ejecutar **`supabase/migrations/0007_seguridad_reporte_mantenimiento.sql`**.
+
+## Antes de vender (pasos que se hacen a mano)
+
+1. **Correo propio (imprescindible)**: el correo que trae Supabase solo envía a los miembros de tu equipo de
+   Supabase y 2 mensajes por hora; un cliente nuevo no recibiría la confirmación ni la recuperación de clave.
+   Supabase › Authentication › Emails › **SMTP Settings** › con un servicio como Brevo o Resend.
+2. **Confirmar correo**: Supabase › Authentication › Sign In / Providers › Email › activar «Confirm email».
+3. **Repositorio público o descargas en otro lugar**: las apps y el conector se descargan de GitHub Releases.
+4. **Dominio propio** (por ejemplo prezio.do) en Vercel › Settings › Domains; luego actualizar
+   `NEXT_PUBLIC_SITE_URL`, la Site URL de Supabase, `ajustes_privados.sitio` y la variable `PREZIO_SITIO` de GitHub.
+5. **Plan de Supabase**: el gratuito pausa el proyecto tras 7 días sin uso y no guarda copias diarias; para clientes
+  reales conviene el plan Pro (copias diarias automáticas).

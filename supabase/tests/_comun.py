@@ -1,4 +1,4 @@
-import subprocess, json
+import subprocess, json, os, shlex
 U = {"ana": "00000000-0000-0000-0000-00000000000a", "beto": "00000000-0000-0000-0000-00000000000b",
      "carla": "00000000-0000-0000-0000-00000000000c", "dani": "00000000-0000-0000-0000-00000000000d",
      "eva": "00000000-0000-0000-0000-00000000000e"}
@@ -11,8 +11,10 @@ def sql(quien, consulta):
                f"set_config('request.jwt.claims', '{json.dumps({'sub': U[quien], 'email': MAIL[quien]})}', false) \\g /dev/null\n")
     elif quien is None:
         pre = "set role anon;\n"
-    p = subprocess.run(["su", "postgres", "-c", "psql -h /var/lib/postgresql -p 5499 -d prezio -At -q -v ON_ERROR_STOP=1"],
-                       input=pre + consulta, capture_output=True, text=True)
+    # En GitHub Actions: PREZIO_PSQL="psql postgresql://…/prezio"; en local, el PostgreSQL de pruebas.
+    orden = (shlex.split(os.environ["PREZIO_PSQL"]) + ["-At", "-q", "-v", "ON_ERROR_STOP=1"]) if os.environ.get("PREZIO_PSQL") \
+        else ["su", "postgres", "-c", "psql -h /var/lib/postgresql -p 5499 -d prezio -At -q -v ON_ERROR_STOP=1"]
+    p = subprocess.run(orden, input=pre + consulta, capture_output=True, text=True)
     if p.returncode == 0:
         return True, p.stdout.strip()
     lineas = p.stderr.strip().splitlines()

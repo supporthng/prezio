@@ -129,6 +129,8 @@ export default async function Inventarios({ params, searchParams }: Props) {
                       <td className="quieto pequeno">{new Date(i.actualizado).toLocaleDateString("es-DO")}</td>
                       {administra && (
                         <td>
+                          <a className="boton secundario" href={`/n/${slug}/inventarios/${i.id}/csv`} download
+                            title="Descargar como CSV (se abre en Excel y se puede volver a cargar)" style={{ marginBottom: 6 }}>CSV</a>
                           <form action={eliminarInventario}>
                             <input type="hidden" name="slug" value={slug} />
                             <input type="hidden" name="inventario" value={i.id} />
@@ -145,6 +147,8 @@ export default async function Inventarios({ params, searchParams }: Props) {
           )}
           <p className="quieto pequeno" style={{ marginTop: 12, marginBottom: 0 }}>
             Cada sucursal elige de qué inventario toma sus precios en la pestaña Resumen.
+            {administra && <> Respaldo: <a href={`/n/${slug}/respaldo`} download>descargar todo el negocio</a> (configuración,
+            sucursales e inventarios). Un inventario se restaura cargando su CSV con «Reemplazar».</>}
           </p>
         </section>
         {administra ? (

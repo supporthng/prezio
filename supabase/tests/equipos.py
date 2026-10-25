@@ -37,10 +37,10 @@ ok(valor(False, "select count(*) from vinculos where huella::text like '%aaaa%'"
 # 2. Vincular desde el panel
 ok(not puede("beto", f"select public.vincular_equipo('{cod1}', '{pri}', 'X')"), "otro negocio no vincula a tu sucursal")
 ok(not puede("dani", f"select public.vincular_equipo('{cod1}', '{pri}', 'X')"), "un verificador no vincula equipos")
-ok(not puede("ana", f"select public.vincular_equipo('00000000', '{pri}', 'X')"), "código equivocado: rechazado")
+ok(valor("ana", f"select coalesce(public.vincular_equipo('00000000', '{pri}', 'X')::text, 'no')") == "no", "código equivocado: no vincula")
 e1 = valor("ana", f"select public.vincular_equipo('{cod1[:4]}-{cod1[4:]}', '{pri}', 'Caja 1')")
 ok(len(e1) == 36, "el dueño vincula con el código (acepta 1234-5678)")
-ok(not puede("ana", f"select public.vincular_equipo('{cod1}', '{pri}', 'Otra vez')"), "el código se usa una sola vez")
+ok(valor("ana", f"select coalesce(public.vincular_equipo('{cod1}', '{pri}', 'Otra vez')::text, 'no')") == "no", "el código se usa una sola vez")
 ok(not puede(None, f"select public.solicitar_vinculo('{CL1}')"), "un equipo ya vinculado no pide código otra vez")
 
 # encargada: solo su sucursal

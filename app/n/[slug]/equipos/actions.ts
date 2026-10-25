@@ -14,10 +14,12 @@ const volver = (slug: string, error: unknown, bien: string): never => {
 export async function vincularEquipo(datos: FormData) {
   const slug = campo(datos, "slug");
   const supabase = await supabaseServidor();
-  const { error } = await supabase.rpc("vincular_equipo", {
+  const { data, error } = await supabase.rpc("vincular_equipo", {
     p_codigo: campo(datos, "codigo"), p_sucursal: campo(datos, "sucursal"), p_nombre: campo(datos, "nombre"),
   });
-  volver(slug, error, "Equipo vinculado. En unos segundos muestra la pantalla de precios.");
+  // Sin error y sin equipo: el código no existe o venció (la base anota el intento para frenar a quien adivina).
+  volver(slug, error ?? (data ? null : { message: "Código no válido o vencido. Mira el código que muestra el equipo ahora." }),
+    "Equipo vinculado. En unos segundos muestra la pantalla de precios.");
 }
 
 export async function cambiarEquipo(datos: FormData) {

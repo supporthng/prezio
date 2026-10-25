@@ -4,11 +4,12 @@ import { Aviso } from "@/components/Aviso";
 import { supabaseServidor } from "@/lib/supabase/server";
 import { ROLES, sitio } from "@/lib/util";
 import { SubNav } from "@/components/SubNav";
+import { Reporte, type Resumen } from "./Reporte";
 import { cambiarFuente, crearSucursal, invitar, quitarMiembro, renombrarSucursal } from "./actions";
 
 type Props = {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ bien?: string; error?: string; invitado?: string }>;
+  searchParams: Promise<{ bien?: string; error?: string; invitado?: string; dias?: string }>;
 };
 
 type Negocio = { id: string; nombre: string; slug: string; plan: string; prueba_hasta: string; moneda: string };
@@ -24,7 +25,8 @@ export async function generateMetadata({ params }: Props) {
 
 export default async function PanelNegocio({ params, searchParams }: Props) {
   const { slug } = await params;
-  const { bien, error, invitado } = await searchParams;
+  const { bien, error, invitado, dias: diasTexto } = await searchParams;
+  const diasReporte = [7, 30, 90].includes(Number(diasTexto)) ? Number(diasTexto) : 7;
   const supabase = await supabaseServidor();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) redirect(`/entrar?siguiente=/n/${slug}`);
@@ -54,6 +56,10 @@ export default async function PanelNegocio({ params, searchParams }: Props) {
   const pendientes = (invitaciones ?? []) as Invitacion[];
   const miRol = losMiembros.find((m) => m.user_id === auth.user!.id)?.rol ?? "verificador";
   const administra = miRol === "dueno" || miRol === "admin";
+  const puedeVerReporte = administra || miRol === "encargado";
+  const { data: resumen } = puedeVerReporte
+    ? await supabase.rpc("resumen_consultas", { p_negocio: negocio.id, p_dias: diasReporte })
+    : { data: null };
   const dias = Math.max(0, Math.ceil((Date.parse(negocio.prueba_hasta) - Date.now()) / 864e5));
   const nombreSucursal = (id: string | null) => lasSucursales.find((s) => s.id === id)?.nombre ?? "";
 
@@ -79,6 +85,7 @@ export default async function PanelNegocio({ params, searchParams }: Props) {
             qué inventario toma los precios cada sucursal.
           </p>
         )}
+        {resumen && <Reporte r={resumen as Resumen} slug={negocio.slug} dias={diasReporte} />}
         <section id="sucursales" className="tarjeta">
           <h2>Sucursales</h2>
           <ul className="lista">
