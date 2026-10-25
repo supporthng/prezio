@@ -294,3 +294,9 @@ input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible
 .reporte-listas { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
 .reporte-listas h3 { margin: 0 0 2px; font-size: 1rem; }
 .reporte-listas p { margin: 0 0 10px; }
+
+/* ---------- importar del sistema anterior */
+.importar-plan h3 { margin: 20px 0 4px; font-size: 1rem; }
+.importar-marca { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+.importar-marca img { height: 56px; max-width: 160px; object-fit: contain; border: 1px solid var(--linea); border-radius: 8px; padding: 4px; background: #fff; }
+.muestra-color { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; border: 1px solid rgba(0, 0, 0, .15); }

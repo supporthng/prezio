@@ -148,7 +148,8 @@ export default async function Inventarios({ params, searchParams }: Props) {
           <p className="quieto pequeno" style={{ marginTop: 12, marginBottom: 0 }}>
             Cada sucursal elige de qué inventario toma sus precios en la pestaña Resumen.
             {administra && <> Respaldo: <a href={`/n/${slug}/respaldo`} download>descargar todo el negocio</a> (configuración,
-            sucursales e inventarios). Un inventario se restaura cargando su CSV con «Reemplazar».</>}
+            sucursales e inventarios). Un inventario se restaura cargando su CSV con «Reemplazar».
+            ¿Vienes del sistema anterior? <a href={`/n/${slug}/importar`}>Importar su respaldo</a>.</>}
           </p>
         </section>
         {administra ? (

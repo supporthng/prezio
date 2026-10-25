@@ -1,6 +1,8 @@
 /** Lector de hojas de cálculo en el navegador, sin librerías: Excel (.xlsx) y CSV.
  *  Devuelve la primera hoja como filas de texto. El archivo nunca sale del equipo hasta que se publica. */
 
+import { Zip } from "@/lib/zip";
+
 export type Filas = string[][];
 
 // ---------------------------------------------------------------- utilidades
@@ -33,52 +35,11 @@ function columna(ref: string): number {
   return n - 1;
 }
 
-// ---------------------------------------------------------------- ZIP (el formato de .xlsx)
-type Entrada = { metodo: number; tamano: number; desplazamiento: number };
-
-function indiceZip(datos: Uint8Array): Map<string, Entrada> {
-  const vista = new DataView(datos.buffer, datos.byteOffset, datos.byteLength);
-  let fin = -1;
-  for (let i = datos.length - 22; i >= Math.max(0, datos.length - 66000); i--) {
-    if (vista.getUint32(i, true) === 0x06054b50) { fin = i; break; }
-  }
-  if (fin < 0) throw new Error("El archivo no es un Excel válido (.xlsx).");
-  const total = vista.getUint16(fin + 10, true);
-  let p = vista.getUint32(fin + 16, true);
-  const entradas = new Map<string, Entrada>();
-  for (let n = 0; n < total; n++) {
-    if (vista.getUint32(p, true) !== 0x02014b50) break;
-    const metodo = vista.getUint16(p + 10, true);
-    const tamano = vista.getUint32(p + 20, true);
-    const largoNombre = vista.getUint16(p + 28, true);
-    const largoExtra = vista.getUint16(p + 30, true);
-    const largoComentario = vista.getUint16(p + 32, true);
-    const desplazamiento = vista.getUint32(p + 42, true);
-    const nombre = decodificador.decode(datos.subarray(p + 46, p + 46 + largoNombre));
-    entradas.set(nombre, { metodo, tamano, desplazamiento });
-    p += 46 + largoNombre + largoExtra + largoComentario;
-  }
-  return entradas;
-}
-
-async function extraer(datos: Uint8Array, e: Entrada): Promise<string> {
-  const vista = new DataView(datos.buffer, datos.byteOffset, datos.byteLength);
-  const inicio = e.desplazamiento + 30 + vista.getUint16(e.desplazamiento + 26, true) + vista.getUint16(e.desplazamiento + 28, true);
-  const comprimido = datos.subarray(inicio, inicio + e.tamano);
-  if (e.metodo === 0) return decodificador.decode(comprimido);
-  if (e.metodo !== 8) throw new Error("Compresión de Excel no compatible.");
-  const flujo = new Blob([comprimido.slice()]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
-  return decodificador.decode(await new Response(flujo).arrayBuffer());
-}
-
 // ---------------------------------------------------------------- Excel
 export async function leerXlsx(buffer: ArrayBuffer): Promise<Filas> {
-  const datos = new Uint8Array(buffer);
-  const zip = indiceZip(datos);
-  const leer = async (ruta: string) => {
-    const e = zip.get(ruta);
-    return e ? extraer(datos, e) : "";
-  };
+  let zip: Zip;
+  try { zip = new Zip(new Uint8Array(buffer)); } catch { throw new Error("El archivo no es un Excel válido (.xlsx)."); }
+  const leer = (ruta: string) => zip.texto(ruta);
   // Primera hoja según el libro (no siempre se llama sheet1.xml).
   let rutaHoja = "xl/worksheets/sheet1.xml";
   const libro = await leer("xl/workbook.xml");

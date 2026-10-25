@@ -147,3 +147,15 @@ npm run typecheck
    `NEXT_PUBLIC_SITE_URL`, la Site URL de Supabase, `ajustes_privados.sitio` y la variable `PREZIO_SITIO` de GitHub.
 5. **Plan de Supabase**: el gratuito pausa el proyecto tras 7 días sin uso y no guarda copias diarias; para clientes
   reales conviene el plan Pro (copias diarias automáticas).
+
+## Etapa 4 · parte 1: importar del sistema anterior
+
+- **`/n/<negocio>/importar`** (Inventarios › «Importar su respaldo», o desde el Resumen si no hay inventarios): se elige
+  el ZIP de *Administración › Respaldo* del sistema anterior; se lee en el navegador (`lib/importar.ts`, `lib/zip.ts`),
+  muestra lo que va a hacer y, al confirmar, crea o actualiza inventarios con sus productos, la Principal (nombre,
+  inventario y ubicación), las sucursales (inventario propio, ubicación, activa) y la apariencia con logo y QR.
+- Conversiones: Google con cuenta → inventario «desde Google» con el mismo archivo y columnas (hay que compartir la
+  hoja con el enlace); SQL Server → aviso para instalar el conector de Prezio; «precios propios» de la versión vieja →
+  inventario con los precios de la Principal más los de la sucursal.
+- Se puede repetir sin duplicar (empareja por nombre de inventario y código de sucursal). No trae usuarios ni equipos.
+- No requiere migración: usa los permisos de dueño o admin.

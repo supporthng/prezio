@@ -82,7 +82,8 @@ export default async function PanelNegocio({ params, searchParams }: Props) {
         {losInventarios.length === 0 && administra && (
           <p className="aviso bien">
             Siguiente paso: carga tus precios en <a href={`/n/${negocio.slug}/inventarios`}>Inventarios</a> y elige aquí de
-            qué inventario toma los precios cada sucursal.
+            qué inventario toma los precios cada sucursal. ¿Vienes del sistema anterior? <a href={`/n/${negocio.slug}/importar`}>Importa
+            su respaldo</a> y se crea todo de una vez.
           </p>
         )}
         {resumen && <Reporte r={resumen as Resumen} slug={negocio.slug} dias={diasReporte} />}
