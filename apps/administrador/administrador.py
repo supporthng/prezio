@@ -126,17 +126,21 @@ def mensaje(e: Exception) -> str:
 
 # ---------------------------------------------------------------- la app
 class Api:
-    """Lo que la ventana (interfaz.html) llama con window.pywebview.api.*. Todo devuelve {ok…} o {error}."""
+    """Lo que la ventana (interfaz.html) llama con window.pywebview.api.*. Todo devuelve {ok…} o {error}.
+
+    pywebview publica para la página TODO lo que no empieza con «_» (también objetos guardados en la instancia,
+    recorriéndolos). Por eso los datos internos (la ventana, el cliente de Prezio, las rutas) llevan «_»:
+    publicar la ventana rompe la API completa, y publicar el cliente dejaría a la página llamar a Prezio sin control."""
 
     def __init__(self, prezio: Prezio | None = None, ruta_config: Path = pc.CONFIG, ruta_sesion: Path = SESION,
                  buscar=red.buscar, abrir_ventana=None, ruta_activacion: Path = ACTIVACION):
-        self.prezio = prezio or Prezio(self._sitio_guardado(ruta_config))
-        self.ruta_config = ruta_config
-        self.ruta_sesion = ruta_sesion
-        self.ruta_activacion = ruta_activacion
+        self._prezio = prezio or Prezio(self._sitio_guardado(ruta_config))
+        self._ruta_config = ruta_config
+        self._ruta_sesion = ruta_sesion
+        self._ruta_activacion = ruta_activacion
         self._buscar = buscar
         self._abrir_ventana = abrir_ventana     # pruebas: recibe cada dirección a la que navega la ventana
-        self.ventana = None                     # la ventana de pywebview (una sola: la app y el panel)
+        self._ventana = None                     # la ventana de pywebview (una sola: la app y el panel)
         self._inicio = ""                       # dirección de la pantalla propia de la app (interfaz.html)
         self._panel_listo = False               # el panel ya tiene su sesión en esta ventana
         self._ses: dict | None = None
@@ -151,14 +155,14 @@ class Api:
         return (pc.leer_json(ruta, {}) or {}).get("sitio") or SITIO
 
     def _cfg(self) -> dict:
-        return pc.leer_json(self.ruta_config, {}) or {}
+        return pc.leer_json(self._ruta_config, {}) or {}
 
     def _guardar_cfg(self, cfg: dict) -> None:
-        pc.guardar_json(self.ruta_config, cfg)
+        pc.guardar_json(self._ruta_config, cfg)
 
     # ---- sesión
     def _cargar_sesion(self) -> None:
-        d = pc.leer_json(self.ruta_sesion, None)
+        d = pc.leer_json(self._ruta_sesion, None)
         if not d or not d.get("renovar"):
             return
         try:
@@ -169,13 +173,13 @@ class Api:
     def _guardar_sesion(self) -> None:
         if not self._ses or not self._ses.get("recordar"):
             try:
-                self.ruta_sesion.unlink()
+                self._ruta_sesion.unlink()
             except OSError:
                 pass
             return
         d = {k: v for k, v in self._ses.items() if k not in ("acceso", "vence")}
         d["renovar"] = cifrado.proteger(self._ses["renovar"], equipo=False)   # solo este usuario de Windows
-        pc.guardar_json(self.ruta_sesion, d)
+        pc.guardar_json(self._ruta_sesion, d)
 
     def _token(self) -> str:
         s = self._ses
@@ -184,7 +188,7 @@ class Api:
         if s.get("acceso") and s.get("vence", 0) - time.time() > 120:
             return s["acceso"]
         try:
-            r = self.prezio.auth("refresh_token", {"refresh_token": s["renovar"]})
+            r = self._prezio.auth("refresh_token", {"refresh_token": s["renovar"]})
         except ErrorApp:
             self._ses = None
             self._guardar_sesion()
@@ -199,7 +203,7 @@ class Api:
         self._guardar_sesion()
 
     def _negocios(self, token: str, uid: str) -> list[dict]:
-        filas = self.prezio.tabla("GET", f"miembros?select=rol,usuario,permisos,negocios(id,nombre,slug,plan,moneda)&user_id=eq.{uid}", token) or []
+        filas = self._prezio.tabla("GET", f"miembros?select=rol,usuario,permisos,negocios(id,nombre,slug,plan,moneda)&user_id=eq.{uid}", token) or []
         return [{"id": f["negocios"]["id"], "nombre": f["negocios"]["nombre"], "slug": f["negocios"]["slug"],
                  "plan": f["negocios"]["plan"], "rol": f["rol"], "permisos": f.get("permisos") or []}
                 for f in filas if f.get("negocios")]
@@ -215,7 +219,7 @@ class Api:
 
     # ---- activación con la licencia del negocio
     def _activacion(self) -> dict | None:
-        a = pc.leer_json(self.ruta_activacion, None)
+        a = pc.leer_json(self._ruta_activacion, None)
         return a if a and a.get("negocio_id") and a.get("licencia") else None
 
     def activar(self, licencia):
@@ -225,13 +229,13 @@ class Api:
             lic = re.sub(r"\s+", "", str(licencia or "")).upper()
             if not re.fullmatch(r"PREZIO-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}", lic):
                 return {"error": "Escribe la licencia completa: PREZIO-XXXX-XXXX-XXXX."}
-            info = self.prezio.rpc("licencia_info", {"p_licencia": lic})
+            info = self._prezio.rpc("licencia_info", {"p_licencia": lic})
             if not info:
                 return {"error": "Esa licencia no existe. Revísala o pídela a tu proveedor de Prezio."}
             actual = self._activacion()
             if actual and actual["negocio_id"] != info["id"]:
                 self.salir()
-            pc.guardar_json(self.ruta_activacion, {"licencia": info["licencia"], "negocio_id": info["id"], "nombre": info["nombre"],
+            pc.guardar_json(self._ruta_activacion, {"licencia": info["licencia"], "negocio_id": info["id"], "nombre": info["nombre"],
                                                    "fecha": time.strftime("%Y-%m-%d %H:%M")})
             return {**self.estado(), "aviso": {"vencida": "La licencia está vencida: el negocio funciona en solo lectura hasta que se pague.",
                                                 "suspendida": "La licencia está suspendida: comunícate con tu proveedor de Prezio."}.get(info.get("estado"))}
@@ -243,7 +247,7 @@ class Api:
         if self._ses:
             return {"error": "Primero sal de tu usuario."}
         try:
-            self.ruta_activacion.unlink()
+            self._ruta_activacion.unlink()
         except OSError:
             pass
         return self.estado()
@@ -252,18 +256,18 @@ class Api:
     def _navegar(self, url: str) -> None:
         if self._abrir_ventana:
             self._abrir_ventana(url)
-        elif self.ventana is not None:
-            self.ventana.load_url(url)
+        elif self._ventana is not None:
+            self._ventana.load_url(url)
 
     def _url_actual(self) -> str:
         try:
-            return (self.ventana.get_current_url() or "") if self.ventana is not None else ""
+            return (self._ventana.get_current_url() or "") if self._ventana is not None else ""
         except Exception:
             return ""
 
     def _desde_la_app(self) -> bool:
         """¿La llamada viene de la pantalla propia de la app? (no de una página de internet abierta en la ventana)."""
-        if self.ventana is None:
+        if self._ventana is None:
             return True
         url = self._url_actual().split("#")[0]
         if self._inicio:
@@ -272,7 +276,7 @@ class Api:
 
     def _desde_prezio(self) -> bool:
         """La pantalla de la app o una página de Prezio (el panel) — para volver a la app o salir."""
-        return self._desde_la_app() or self._url_actual().startswith(self.prezio.sitio + "/")
+        return self._desde_la_app() or self._url_actual().startswith(self._prezio.sitio + "/")
 
     def ir_app(self, seccion="inicio"):
         """Desde el panel: volver a la pantalla de la app (Inicio, Base de datos o Copia automática)."""
@@ -289,7 +293,7 @@ class Api:
         if self._ses:
             ses = {"nombre": self._ses.get("nombre"), "cuenta": self._ses.get("cuenta"), "negocio": self._ses.get("negocio"),
                    "negocios": self._ses.get("negocios", []), "recordar": bool(self._ses.get("recordar"))}
-        return {"ok": True, "version": VERSION, "sitio": self.prezio.sitio, "sesion": ses, "equipo": platform.node(),
+        return {"ok": True, "version": VERSION, "sitio": self._prezio.sitio, "sesion": ses, "equipo": platform.node(),
                 "activacion": self._activacion(),
                 "conector": {"fuentes": len(cfg.get("inventarios") or {}), "cada_min": cfg.get("cada_min", 10),
                              "inicio": self._tarea_instalada(), "negocio": (cfg.get("conector") or {}).get("negocio_id")}}
@@ -315,7 +319,7 @@ class Api:
             if not clave:
                 return {"error": "Escribe tu clave."}
             try:
-                r = self.prezio.auth("password", {"email": correo, "password": clave})
+                r = self._prezio.auth("password", {"email": correo, "password": clave})
             except ErrorApp as e:
                 return {"error": "Usuario o clave incorrectos." if "incorrect" in str(e) else str(e)}
             uid = r["user"]["id"]
@@ -350,8 +354,8 @@ class Api:
     def salir(self):
         try:
             if self._ses and self._ses.get("acceso"):
-                p = self.prezio.publico()
-                self.prezio._pedir("POST", f"{p['supabase_url']}/auth/v1/logout", {},
+                p = self._prezio.publico()
+                self._prezio._pedir("POST", f"{p['supabase_url']}/auth/v1/logout", {},
                                    {"apikey": p["clave_publica"], "Authorization": f"Bearer {self._ses['acceso']}"})
         except Exception:
             pass
@@ -361,7 +365,7 @@ class Api:
         if self._panel_listo:
             self._panel_listo = False
             # El panel cierra su sesión y vuelve solo a la pantalla de entrar de la app.
-            self._navegar(f"{self.prezio.sitio}/auth/salir-app")
+            self._navegar(f"{self._prezio.sitio}/auth/salir-app")
         return {"ok": True}
 
     # ---- panel del negocio (en esta misma ventana, con su propia sesión)
@@ -371,10 +375,10 @@ class Api:
             seccion = seccion if seccion in ("", "sucursales", "inventarios", "apariencia", "equipos", "usuarios") else ""
             siguiente = f"/n/{n['slug']}" + (f"/{seccion}" if seccion else "")
             if self._panel_listo:
-                url = self.prezio.sitio + siguiente     # el panel ya tiene su sesión en esta ventana
+                url = self._prezio.sitio + siguiente     # el panel ya tiene su sesión en esta ventana
             else:
-                hash_ = self.prezio.enlace_panel(self._token())
-                url = f"{self.prezio.sitio}/auth/confirm?" + urllib.parse.urlencode(
+                hash_ = self._prezio.enlace_panel(self._token())
+                url = f"{self._prezio.sitio}/auth/confirm?" + urllib.parse.urlencode(
                     {"token_hash": hash_, "type": "magiclink", "siguiente": siguiente})
             self._panel_listo = True
             self._navegar(url)
@@ -459,7 +463,7 @@ class Api:
     def inventarios(self):
         try:
             n = self._negocio()
-            filas = self.prezio.tabla("GET", f"inventarios?select=id,nombre,origen,estado&negocio_id=eq.{n['id']}&order=nombre", self._token()) or []
+            filas = self._prezio.tabla("GET", f"inventarios?select=id,nombre,origen,estado&negocio_id=eq.{n['id']}&order=nombre", self._token()) or []
             cfg = self._cfg()
             mio = (cfg.get("conector") or {}).get("id")
             locales = cfg.get("inventarios") or {}
@@ -476,10 +480,10 @@ class Api:
         actual = cfg.get("conector") or {}
         if actual.get("negocio_id") == n["id"] and cfg.get("clave"):
             return actual
-        r = self.prezio.rpc("conector_para_app", {"p_negocio": n["id"], "p_nombre": f"PC {platform.node()}"[:60]}, self._token())
+        r = self._prezio.rpc("conector_para_app", {"p_negocio": n["id"], "p_nombre": f"PC {platform.node()}"[:60]}, self._token())
         cfg["conector"] = {"id": r["id"], "negocio_id": n["id"], "negocio": n["nombre"]}
         cfg["clave"] = cifrado.proteger(r["clave"])
-        cfg["sitio"] = self.prezio.sitio
+        cfg["sitio"] = self._prezio.sitio
         if actual.get("negocio_id") and actual.get("negocio_id") != n["id"]:
             cfg["inventarios"] = {}   # era de otro negocio
         return cfg["conector"]
@@ -504,13 +508,13 @@ class Api:
             origen = {"tipo": "conector", "conector_id": con["id"]}
             iid = str(d.get("inventario_id") or "")
             if iid:
-                r = self.prezio.tabla("PATCH", f"inventarios?id=eq.{iid}&negocio_id=eq.{n['id']}", token, {"origen": origen})
+                r = self._prezio.tabla("PATCH", f"inventarios?id=eq.{iid}&negocio_id=eq.{n['id']}", token, {"origen": origen})
                 if not r:
                     return {"error": "No se pudo usar ese inventario (¿tienes la casilla «Inventarios»?)."}
                 nombre_inv = r[0]["nombre"]
             else:
                 nombre_inv = str(d.get("nuevo_nombre") or "").strip()[:60] or f"Base de datos · {base or mapeo['tabla']}"[:60]
-                r = self.prezio.tabla("POST", "inventarios", token, {"negocio_id": n["id"], "nombre": nombre_inv, "origen": origen})
+                r = self._prezio.tabla("POST", "inventarios", token, {"negocio_id": n["id"], "nombre": nombre_inv, "origen": origen})
                 iid = r[0]["id"]
             cfg.setdefault("inventarios", {})[iid] = {**mapeo, "base": base, "conexion": {**cx, "base": base}, "titulo": nombre_inv}
             cfg.setdefault("cada_min", 10)
@@ -518,7 +522,7 @@ class Api:
             aviso = ""
             if d.get("principal"):
                 try:
-                    s = self.prezio.tabla("PATCH", f"sucursales?negocio_id=eq.{n['id']}&es_principal=eq.true", token,
+                    s = self._prezio.tabla("PATCH", f"sucursales?negocio_id=eq.{n['id']}&es_principal=eq.true", token,
                                           {"fuente": {"tipo": "inventario", "inventario_id": iid}})
                     if not s:
                         aviso = " No se pudo asignar a la Principal (falta la casilla «Sucursales»): hazlo en el panel › Sucursales."
@@ -619,12 +623,12 @@ class Api:
     # ---- actualizaciones
     def version_nueva(self):
         """Al abrir: ¿hay una versión más nueva publicada? (la ventana la instala sola)."""
-        info = version_publicada(self.prezio.sitio)
+        info = version_publicada(self._prezio.sitio)
         return {"ok": True, **info} if info else {"ok": True, "version": None}
 
     def actualizar(self):
         """Descarga la versión nueva y la instala; la app se cierra y el instalador la vuelve a abrir."""
-        info = version_publicada(self.prezio.sitio)
+        info = version_publicada(self._prezio.sitio)
         if not info:
             return {"ok": True, "version": None}
         try:
@@ -642,8 +646,8 @@ class Api:
             def cerrar():
                 time.sleep(1.5)
                 try:
-                    if self.ventana is not None:
-                        self.ventana.destroy()
+                    if self._ventana is not None:
+                        self._ventana.destroy()
                 finally:
                     os._exit(0)
             threading.Thread(target=cerrar, daemon=True).start()
@@ -784,7 +788,7 @@ def main():
     api = Api()
     ventana = webview.create_window("Prezio Administrador", str(AQUI / "interfaz.html"), js_api=api,
                                     width=1240, height=860, min_size=(900, 620), background_color="#F3F5F7")
-    api.ventana = ventana
+    api._ventana = ventana   # con «_»: pywebview no la publica para la página (publicarla rompe la API)
 
     def al_cargar():
         if not api._inicio:   # la primera dirección es la pantalla propia de la app

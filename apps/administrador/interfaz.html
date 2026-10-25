@@ -407,8 +407,11 @@ async function puente() {
   return window.pywebview.api;
 }
 async function api(metodo, ...args) {
-  try { return await (await puente())[metodo](...args); }
-  catch (e) { return { error: String(e.message || e) }; }
+  try {
+    const f = (await puente())[metodo];
+    if (typeof f !== "function") return { error: "La app no terminó de abrir bien. Ciérrala y vuelve a abrirla; si sigue igual, reinstálala." };
+    return await f(...args);
+  } catch (e) { return { error: String(e.message || e) }; }
 }
 function aviso(el, r, bien) {
   el.hidden = false;
