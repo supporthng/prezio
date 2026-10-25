@@ -21,6 +21,9 @@ export default async function Negocios({ searchParams }: Props) {
     .eq("user_id", auth.user.id)
     .order("creado", { ascending: true });
   const filas = ((data ?? []) as unknown as Fila[]).filter((f) => f.negocios);
+  const { data: plataforma } = await supabase.rpc("es_plataforma");
+  // Un solo negocio (lo normal): directo a su panel.
+  if (filas.length === 1 && !plataforma && !bien) redirect(`/n/${filas[0].negocios!.slug}`);
   return (
     <>
       <Barra />
@@ -29,12 +32,11 @@ export default async function Negocios({ searchParams }: Props) {
         <h1>Tus negocios</h1>
         {filas.length === 0 ? (
           <div className="tarjeta">
-            <h2>Crea tu primer negocio</h2>
+            <h2>Tu cuenta todavía no tiene negocios</h2>
             <p className="quieto">
-              Ponle el nombre de tu supermercado, tienda o farmacia. Después agregas tus sucursales, tus precios y tus
-              verificadores.
+              {plataforma ? "Da de alta el primero en la Plataforma." : "Pide a quien administra Prezio en tu negocio que te dé acceso."}
             </p>
-            <Link className="boton" href="/negocios/nuevo">Crear negocio</Link>
+            {plataforma && <Link className="boton" href="/plataforma">Ir a la Plataforma</Link>}
           </div>
         ) : (
           <>
@@ -48,9 +50,11 @@ export default async function Negocios({ searchParams }: Props) {
                 </Link>
               ))}
             </div>
-            <p style={{ marginTop: 24 }}>
-              <Link className="boton secundario" href="/negocios/nuevo">Crear otro negocio</Link>
-            </p>
+            {plataforma && (
+              <p style={{ marginTop: 24 }}>
+                <Link className="boton secundario" href="/plataforma">Plataforma: dar de alta negocios</Link>
+              </p>
+            )}
           </>
         )}
       </main>

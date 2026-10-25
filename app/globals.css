@@ -459,3 +459,27 @@ input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible
 .mv-fila { display: flex; gap: 8px; margin-top: 6px; }
 .mv-fila input { flex: 1; min-width: 0; font-size: 1.1rem; letter-spacing: .04em; }
 @media (prefers-reduced-motion: reduce) { .mv-entra, .mv-cargando span { animation: none; } .mv-boton { transition: none; } }
+
+/* ---------- plataforma */
+.acceso-dueno { border: 1px solid var(--linea); border-radius: 12px; padding: 14px 16px 4px; margin: 6px 0 16px; }
+.acceso-dueno legend { font-weight: 700; padding: 0 6px; }
+.acceso-dueno .opciones { margin-bottom: 12px; }
+.acceso-dueno:has(input[value="usuario"]:checked) .solo-correo,
+.acceso-dueno:has(input[value="correo"]:checked) .solo-usuario { display: none; }
+.plat-lista { list-style: none; padding: 0; margin: 14px 0 0; display: grid; gap: 14px; }
+.plat-negocio.suspendido { border-left: 5px solid #c53030; background: color-mix(in srgb, #c53030 4%, var(--papel, #fff)); }
+.plat-cabeza { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.plat-cabeza h3 { margin: 0 0 2px; font-size: 1.15rem; }
+.plat-cabeza p { margin: 0; }
+.plat-datos { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px 18px; margin: 14px 0; }
+.plat-datos dt { font-size: .8rem; color: var(--gris); }
+.plat-datos dd { margin: 2px 0 0; font-weight: 600; display: flex; flex-direction: column; overflow-wrap: anywhere; }
+.plat-acciones { display: flex; gap: 12px 20px; flex-wrap: wrap; align-items: flex-start; border-top: 1px dashed var(--linea); padding-top: 12px; }
+.plat-dueno summary { cursor: pointer; font-weight: 600; padding: 8px 0; }
+.plat-dueno[open] { flex-basis: 100%; }
+.chip.plan-suspendido { background: #fde8e8; color: #9b1c1c; }
+.chip.plan-profesional { background: #e6f4ea; color: #1e6b3a; }
+.error-texto { color: #b42318; }
+.plat-buscar, .plat-plan { display: flex; gap: 8px; align-items: center; flex-wrap: nowrap; }
+.plat-buscar input { width: min(320px, 60vw); min-width: 0; }
+.plat-plan select { width: auto; }

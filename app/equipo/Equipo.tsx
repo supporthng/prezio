@@ -223,7 +223,7 @@ export function Equipo({ sitio }: { sitio: string }) {
 
   function consultar(leido: string) {
     const cod = leido.trim();
-    if (!cod || cod.length > 64 || faseRef.current !== "listo") return;
+    if (!cod || cod.length > 64 || faseRef.current !== "listo" || suspendido) return;
     let hallado: { codigo: string; p: Producto } | null = null;
     for (const forma of variantes(cod)) {
       const p = productos.current.get(forma);
@@ -265,6 +265,7 @@ export function Equipo({ sitio }: { sitio: string }) {
   }, [menu, pidiendoSalida]);
 
   const apariencia = normalizar(info?.negocio.apariencia ?? {});
+  const suspendido = Boolean(info?.negocio.suspendido);
   const formatoFecha = (iso: string | null) => (iso ? new Date(iso).toLocaleString("es-DO", { dateStyle: "medium", timeStyle: "short" }) : "—");
 
   if (fase === "cargando") return <div className="equipo-vincular"><p className="quieto">Abriendo…</p></div>;
@@ -306,7 +307,7 @@ export function Equipo({ sitio }: { sitio: string }) {
   return (
     <div className="verificador" onClick={enfocar}>
       <Pantalla apariencia={apariencia} moneda={info?.negocio.moneda ?? "RD$"} negocio={info?.negocio.nombre ?? ""}
-        sucursal={info?.sucursal.nombre} estado={estado}>
+        sucursal={info?.sucursal.nombre} estado={suspendido ? { tipo: "suspendido" } : estado}>
         <input ref={entrada} className="pz-lector" aria-label="Código de barras" inputMode="none" autoComplete="off" autoFocus
           onKeyDown={(e) => {
             if (e.key === "Enter") {

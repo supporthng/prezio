@@ -98,9 +98,9 @@ export default async function Sucursales({ params, searchParams }: Props) {
                       </div>
                       <button className="boton secundario" type="submit">Usar</button>
                       <p className="quieto pequeno" style={{ flexBasis: "100%", margin: 0 }}>
-                        ¿Desde Google Drive o SQL Server? Créalo en Inventarios ›{" "}
+                        ¿Desde Google Drive o desde tu sistema? Créalo en Inventarios ›{" "}
                         <a href={`/n/${slug}/inventarios#t-google`}>Inventario desde Google</a> o{" "}
-                        <a href={`/n/${slug}/inventarios#t-conector`}>Conector de SQL Server</a>, y elígelo aquí.
+                        <a href={`/n/${slug}/inventarios#t-conector`}>tu sistema de facturación</a>, y elígelo aquí.
                       </p>
                     </form>
                   ) : (

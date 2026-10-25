@@ -1,8 +1,8 @@
 import subprocess, json, os, shlex
 U = {"ana": "00000000-0000-0000-0000-00000000000a", "beto": "00000000-0000-0000-0000-00000000000b",
      "carla": "00000000-0000-0000-0000-00000000000c", "dani": "00000000-0000-0000-0000-00000000000d",
-     "eva": "00000000-0000-0000-0000-00000000000e"}
-MAIL = {"ana": "ana@a.com", "beto": "beto@b.com", "carla": "carla@a.com", "dani": "dani@a.com", "eva": "eva@x.com"}
+     "eva": "00000000-0000-0000-0000-00000000000e", "pat": "00000000-0000-0000-0000-000000000010"}
+MAIL = {"ana": "ana@a.com", "beto": "beto@b.com", "carla": "carla@a.com", "dani": "dani@a.com", "eva": "eva@x.com", "pat": "pat@prezio.com"}
 bien = mal = 0
 def sql(quien, consulta):
     pre = ""
@@ -29,3 +29,11 @@ def puede(quien, q): return sql(quien, q)[0]
 def valor(quien, q):
     r, v = sql(quien, q); return v if r else "ERROR: " + v
 
+
+def nuevo_negocio(dueno, nombre):
+    """Alta como la hace la plataforma: crea el negocio y le pone dueño."""
+    r = valor("pat", f"select public.plataforma_crear_negocio('{nombre}')::json->>'id'")
+    if r.startswith("ERROR"):
+        return r
+    e = valor("pat", f"select public.plataforma_poner_dueno('{r}', '{U[dueno]}')")
+    return e if e.startswith("ERROR") else r

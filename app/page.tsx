@@ -40,9 +40,9 @@ export default async function Inicio({ searchParams }: Props) {
         Carga tus precios desde Excel, Google o tu sistema, y pon verificadores en cada sucursal. Funcionan aunque se
         caiga el internet.
       </p>
+      <p className="quieto pequeno">¿Quieres Prezio en tu negocio? Pide tu acceso a tu proveedor de Prezio.</p>
       <div className="fila" style={{ marginTop: 24 }}>
-        <Link className="boton" href="/registro">Probar gratis 30 días</Link>
-        <Link className="boton secundario" href="/entrar">Entrar</Link>
+        <Link className="boton" href="/entrar">Entrar</Link>
       </div>
     </EntradaMarco>
   );

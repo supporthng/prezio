@@ -59,7 +59,7 @@ export default async function Entrar({ searchParams }: Props) {
         </form>
       )}
       <p className="pequeno" style={{ marginTop: 20 }}>
-        ¿No tienes cuenta? <Link href={`/registro?siguiente=${encodeURIComponent(sig)}`}>Crea una gratis</Link>
+        ¿No tienes acceso? Pídelo a quien administra Prezio en tu negocio.
       </p>
       {!conUsuario && <details className="pequeno">
         <summary style={{ cursor: "pointer" }}>¿Olvidaste tu clave?</summary>

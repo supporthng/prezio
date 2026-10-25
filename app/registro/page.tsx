@@ -21,10 +21,22 @@ export default async function Registro({ searchParams }: Props) {
       </EntradaMarco>
     );
   }
+  if (!sig.startsWith("/invitacion/")) {
+    return (
+      <EntradaMarco>
+        <h1>Pide tu acceso</h1>
+        <p className="quieto">
+          Las cuentas de Prezio las entrega tu proveedor al dar de alta tu negocio. Si te invitaron, abre el enlace de
+          la invitación que te llegó por correo.
+        </p>
+        <Link className="boton" href="/entrar">Entrar</Link>
+      </EntradaMarco>
+    );
+  }
   return (
     <EntradaMarco>
       <h1>Crea tu cuenta</h1>
-      <p className="quieto">30 días de prueba con todas las funciones. Sin tarjeta.</p>
+      <p className="quieto">Para aceptar la invitación a un negocio.</p>
       <Aviso error={error} />
       <form action={registrarse}>
         <input type="hidden" name="siguiente" value={sig} />

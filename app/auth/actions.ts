@@ -26,6 +26,8 @@ export async function entrar(datos: FormData) {
 
 export async function registrarse(datos: FormData) {
   const siguiente = rutaSegura(texto(datos, "siguiente"));
+  // El registro libre está cerrado: solo se crea cuenta para aceptar una invitación.
+  if (!siguiente.startsWith("/invitacion/")) redirect("/registro");
   const clave = String(datos.get("clave") ?? "");
   const volver = (m: string) =>
     redirect(`/registro?error=${encodeURIComponent(m)}&siguiente=${encodeURIComponent(siguiente)}`);
@@ -60,7 +62,8 @@ export async function cambiarClave(datos: FormData) {
   const supabase = await supabaseServidor();
   const { error } = await supabase.auth.updateUser({ password: clave });
   if (error) redirect(`/cuenta/clave?error=${encodeURIComponent(mensajeError(error))}`);
-  redirect(`/negocios?bien=${encodeURIComponent("Clave cambiada.")}`);
+  const siguiente = rutaSegura(texto(datos, "siguiente"));
+  redirect(`${siguiente}${siguiente.includes("?") ? "&" : "?"}bien=${encodeURIComponent("Clave guardada.")}`);
 }
 
 /** Entrar con negocio + usuario + clave (usuarios sin correo que crea el dueño). */

@@ -7,7 +7,7 @@ export const APP_EQUIPO = "web 1.0";
 
 export type InfoEquipo = {
   equipo: { id: string; nombre: string };
-  negocio: { nombre: string; slug: string; moneda: string; apariencia: Record<string, unknown> };
+  negocio: { nombre: string; slug: string; moneda: string; apariencia: Record<string, unknown>; suspendido?: boolean };
   sucursal: { id: string; nombre: string; codigo: string };
   version: string;
   hora: string;

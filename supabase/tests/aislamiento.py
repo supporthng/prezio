@@ -4,8 +4,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _comun import *   # noqa: F401,F403  (sql, valor, puede, ok, U, MAIL) — misma conexión en local y en GitHub
 import _comun as c
 
-A = valor("ana", "select public.crear_negocio('Supermercado Abarrotao');")
-B = valor("beto", "select public.crear_negocio('Farmacia Beto');")
+A = nuevo_negocio("ana", "Supermercado Abarrotao")
+B = nuevo_negocio("beto", "Farmacia Beto")
 ok(len(A) == 36 and len(B) == 36, f"dos negocios creados ({A[:8]}…, {B[:8]}…)")
 ok(valor("ana", f"select slug || '|' || plan from negocios where id = '{A}'") == "supermercado-abarrotao|prueba", "slug y plan de prueba")
 ok(valor("ana", f"select nombre from sucursales where negocio_id = '{A}' and es_principal") == "Principal", "se crea la Principal")
@@ -59,9 +59,8 @@ ok(valor("beto", "select count(*) from miembros") == "1", "Beto solo ve los miem
 ok(valor("beto", "select count(*) from invitaciones") == "0", "Beto no ve las invitaciones de Ana")
 ok(valor("carla", "select count(*) from invitaciones") == "0", "la encargada no ve invitaciones")
 ok(puede("ana", f"select public.quitar_miembro('{A}', '{U['carla']}');") and valor("carla", "select count(*) from negocios") == "0", "al quitar a Carla deja de ver el negocio")
-for i in range(4): valor("eva", f"select public.crear_negocio('Negocio {i}');")
-ok(valor("eva", "select public.crear_negocio('Quinto');") != "" and not puede("eva", "select public.crear_negocio('Sexto');"), "máximo 5 negocios por cuenta")
-ok(valor("ana", "select public.crear_negocio('Ñandú Ácido');").startswith("ERROR") is False and valor("ana", "select slug from negocios where nombre = 'Ñandú Ácido'") == "nandu-acido", "slug sin acentos")
+ok(not puede("eva", "select public.crear_negocio('Mi negocio');"), "una cuenta cualquiera ya no crea negocios (solo la plataforma)")
+ok(not nuevo_negocio("pat", "Ñandú Ácido").startswith("ERROR") and valor("pat", "select (public.plataforma_negocios() -> 0 ->> 'slug')") == "nandu-acido", "slug sin acentos")
 print(f"{c.bien} bien, {c.mal} mal")
 # Perfiles
 ok(valor("ana", "select count(*) from perfiles") == "2", "Ana ve su perfil y el de Dani (comparten negocio), no los demás")

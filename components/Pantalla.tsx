@@ -5,6 +5,7 @@ import { variables, type Apariencia } from "@/lib/apariencia";
 
 export type EstadoPantalla =
   | { tipo: "espera" }
+  | { tipo: "suspendido" }
   | { tipo: "buscando"; codigo: string }
   | { tipo: "no"; codigo: string }
   | { tipo: "sin_fuente"; codigo: string }
@@ -86,7 +87,7 @@ export function Pantalla({ apariencia: a, moneda, negocio, sucursal, estado, vis
       </main>
     );
   } else {
-    const no = estado.tipo === "no" || estado.tipo === "sin_fuente";
+    const no = estado.tipo === "no" || estado.tipo === "sin_fuente" || estado.tipo === "suspendido";
     cuerpo = (
       <main className="pz-espera">
         {!panel && (logo || hayNombre) && (
@@ -97,13 +98,15 @@ export function Pantalla({ apariencia: a, moneda, negocio, sucursal, estado, vis
         )}
         <section className="pz-centro">
           <h1 className={`pz-titulo${no ? " no" : ""}`}>
-            {estado.tipo === "no" ? "No encontramos este producto"
+            {estado.tipo === "suspendido" ? "Servicio suspendido"
+              : estado.tipo === "no" ? "No encontramos este producto"
               : estado.tipo === "sin_fuente" ? "Esta sucursal todavía no tiene precios"
               : a.titulo_espera}
           </h1>
           <div className={`pz-laser${no ? " no" : ""}${estado.tipo === "buscando" ? " buscando" : ""}`} aria-hidden="true"><span /></div>
           <p className="pz-pista">
-            {estado.tipo === "no" ? <>Código <strong>{estado.codigo}</strong>. Consulta el precio en caja.</>
+            {estado.tipo === "suspendido" ? "Consulta los precios en caja."
+              : estado.tipo === "no" ? <>Código <strong>{estado.codigo}</strong>. Consulta el precio en caja.</>
               : estado.tipo === "sin_fuente" ? "Elige su inventario en el panel de Prezio."
               : a.mensaje_espera}
           </p>

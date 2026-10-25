@@ -60,7 +60,7 @@ export default async function Equipos({ params, searchParams }: Props) {
   const descargas: { clave: string; nombre: string; detalle: string; app: App }[] = [
     { clave: "android", nombre: "Android", detalle: "Tabletas y teléfonos Android 5 o más nuevo (APK).", app: apps.android },
     { clave: "windows", nombre: "Windows", detalle: "PC o pantalla con Windows 10 u 11 (instalador).", app: apps.windows },
-    { clave: "administrador", nombre: "Prezio Administrador (Windows)", detalle: "Para la oficina: el panel en una ventana y el conector de SQL Server con pasos.",
+    { clave: "administrador", nombre: "Prezio Administrador (Windows)", detalle: "Para la oficina: el panel del negocio y la conexión con la base de datos del sistema (busca el servidor en la red).",
       app: (apps as { administrador?: App }).administrador ?? { version: "", url: "", fecha: "" } },
   ];
 

@@ -4,8 +4,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _comun import *   # noqa: F401,F403  (sql, valor, puede, ok, U)
 import _comun as c
 
-A = valor("ana", "select public.crear_negocio('Tienda Precios');")
-B = valor("beto", "select public.crear_negocio('Otra Tienda');")
+A = nuevo_negocio("ana", "Tienda Precios")
+B = nuevo_negocio("beto", "Otra Tienda")
 pri = valor("ana", f"select id from sucursales where negocio_id = '{A}' and es_principal")
 cen = valor("ana", f"insert into sucursales (negocio_id, codigo, nombre) values ('{A}', 'centro', 'Centro') returning id;")
 norte = valor("ana", f"insert into sucursales (negocio_id, codigo, nombre) values ('{A}', 'norte', 'Norte') returning id;")

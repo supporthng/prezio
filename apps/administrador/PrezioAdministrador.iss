@@ -1,9 +1,9 @@
-; Instalador de Prezio Administrador (panel + conector de SQL Server) para Windows.
+; Instalador de Prezio Administrador (la app de cada negocio: panel + conector de bases de datos) para Windows.
 ; Pide administrador una vez: instala para todos, prepara la carpeta de configuración y deja que el conector
 ; arranque solo al encender (tarea de Windows «Prezio Conector», que se activa desde el programa).
 #define MyAppName "Prezio Administrador"
 #ifndef MyAppVersion
-  #define MyAppVersion "1.0.0"
+  #define MyAppVersion "2.0.0"
 #endif
 #define MyAppExeName "PrezioAdministrador.exe"
 [Setup]

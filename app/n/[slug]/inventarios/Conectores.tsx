@@ -39,10 +39,18 @@ export function Conectores({ negocioId, slug, conectores, sitio, descarga, nombr
 
   return (
     <section className="tarjeta" aria-labelledby="t-conector" style={{ marginTop: 20 }}>
-      <h2 id="t-conector">Conector de SQL Server</h2>
+      <h2 id="t-conector">Conectar el sistema de facturación</h2>
       <p className="quieto" style={{ marginTop: 0 }}>
-        Un programa para la PC donde está el sistema de facturación. Lee los precios de SQL Server y los envía a
-        Prezio cada pocos minutos. Usa su propia clave: si se pierde la PC, quitas el conector y la clave deja de servir.
+        Para precios que salen de una base de datos (SQL Server, MySQL / MariaDB, PostgreSQL o Firebird).
+      </p>
+      <ol className="pequeno" style={{ margin: "0 0 16px", paddingLeft: "1.2em", lineHeight: 1.7 }}>
+        <li>En una PC de la misma red que el servidor, instala <a href={descarga}>Prezio Administrador</a>.</li>
+        <li>Entra con tu usuario (código del negocio <strong>{slug}</strong>).</li>
+        <li>En «Base de datos», toca «Buscar servidores en mi red», elige el tuyo y autoriza con el usuario y la clave de la base.</li>
+        <li>Elige la tabla de productos y sus columnas: la app crea el inventario y envía los precios sola, cada pocos minutos.</li>
+      </ol>
+      <p className="quieto pequeno">
+        Cada PC que envía precios aparece aquí como un conector. Si se pierde la PC, quítalo y su clave deja de servir.
       </p>
 
       {clave && (
@@ -56,10 +64,8 @@ export function Conectores({ negocioId, slug, conectores, sitio, descarga, nombr
             </button>
           </div>
           <ol className="pequeno" style={{ margin: "12px 0 0", paddingLeft: "1.2em", lineHeight: 1.6 }}>
-            <li>En la PC del sistema, descarga e instala <a href={descarga}>Prezio Administrador</a>.</li>
-            <li>En «Conector de SQL Server», escribe la dirección <strong>{sitio}</strong>, pega esta clave y toca «Probar».</li>
-            <li>Conecta con SQL Server, elige la base y, para cada inventario, la tabla y sus columnas (con muestra).</li>
-            <li>Toca «Enviar ahora» y «Arrancar solo al encender la PC».</li>
+            <li>Es para el conector de consola (PrezioConector.exe): ejecútalo con <code>--configurar</code>, escribe la dirección <strong>{sitio}</strong> y pega esta clave.</li>
+            <li>Con Prezio Administrador no hace falta: entra con tu usuario y conecta la base desde «Base de datos».</li>
           </ol>
           <button className="boton secundario" type="button" style={{ marginTop: 12 }} onClick={() => setClave(null)}>Ya la guardé</button>
         </div>
@@ -89,7 +95,7 @@ export function Conectores({ negocioId, slug, conectores, sitio, descarga, nombr
 
       <div className="fila">
         <div className="campo" style={{ marginBottom: 0 }}>
-          <label htmlFor="c-nombre">Nuevo conector</label>
+          <label htmlFor="c-nombre">Conector con clave (avanzado, sin la app)</label>
           <input id="c-nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} maxLength={60} placeholder="Ej.: PC de caja" />
         </div>
         <button className="boton secundario" type="button" onClick={crear} disabled={trabajando}>Crear conector y clave</button>

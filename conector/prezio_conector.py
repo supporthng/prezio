@@ -1,7 +1,8 @@
-"""Prezio · Conector de SQL Server.
+"""Prezio · Conector de bases de datos (SQL Server, MySQL / MariaDB, PostgreSQL y Firebird).
 
-Se instala en la PC donde está el sistema de facturación. Cada pocos minutos lee los precios de SQL Server
-y los envía a Prezio (solo cuando cambiaron). Habla únicamente con la dirección de Prezio, con su propia
+Se instala en la PC donde está el sistema de facturación. Cada pocos minutos lee los precios de la base del
+negocio y los envía a Prezio (solo cuando cambiaron). Lo configura la app Prezio Administrador (buscar el
+servidor en la red, autorizar con las credenciales de la base y elegir tabla y columnas). Habla únicamente con la dirección de Prezio, con su propia
 clave de conector; nunca usa claves de Supabase.
 
 Uso:
@@ -33,7 +34,7 @@ from decimal import Decimal, InvalidOperation
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
-VERSION = "1.0.0"
+VERSION = "2.0.0"
 CARPETA = Path(os.environ.get("PROGRAMDATA") or (Path.home() / ".prezio")) / "Prezio"
 CONFIG = CARPETA / "conector.json"
 ESTADO = CARPETA / "estado.json"
@@ -45,45 +46,9 @@ log = logging.getLogger("prezio")
 
 
 # ---------------------------------------------------------------- claves guardadas (cifradas con Windows)
-def _dpapi(datos: bytes, descifrar: bool) -> bytes:
-    import ctypes
-    from ctypes import wintypes
-
-    class BLOB(ctypes.Structure):
-        _fields_ = [("cbData", wintypes.DWORD), ("pbData", ctypes.POINTER(ctypes.c_byte))]
-
-    buf = ctypes.create_string_buffer(datos, len(datos))
-    entrada = BLOB(len(datos), ctypes.cast(buf, ctypes.POINTER(ctypes.c_byte)))
-    salida = BLOB()
-    # 0x1 sin ventanas, 0x4 equipo: así la descifra también la tarea que corre como SYSTEM al encender.
-    banderas = 0x1 | 0x4
-    crypt = ctypes.windll.crypt32
-    if descifrar:
-        ok = crypt.CryptUnprotectData(ctypes.byref(entrada), None, None, None, None, banderas, ctypes.byref(salida))
-    else:
-        ok = crypt.CryptProtectData(ctypes.byref(entrada), "Prezio", None, None, None, banderas, ctypes.byref(salida))
-    if not ok:
-        raise ctypes.WinError()
-    try:
-        return ctypes.string_at(salida.pbData, salida.cbData)
-    finally:
-        ctypes.windll.kernel32.LocalFree(salida.pbData)
-
-
-def proteger(texto: str) -> str:
-    if not texto:
-        return ""
-    if os.name == "nt":
-        return "dpapi:" + base64.b64encode(_dpapi(texto.encode("utf-8"), False)).decode()
-    return "plano:" + base64.b64encode(texto.encode("utf-8")).decode()   # solo para pruebas fuera de Windows
-
-
-def revelar(valor: str) -> str:
-    if not valor:
-        return ""
-    tipo, _, datos = valor.partition(":")
-    crudo = base64.b64decode(datos)
-    return (_dpapi(crudo, True) if tipo == "dpapi" else crudo).decode("utf-8")
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from cifrado import proteger, revelar  # noqa: E402,F401
+import motores  # noqa: E402
 
 
 # ---------------------------------------------------------------- archivos
@@ -165,8 +130,8 @@ def cadena_conexion(sql: dict, base: str | None = None) -> str:
 
 
 def conectar_sql(sql: dict, base: str | None = None):
-    import pyodbc   # incluido en PrezioConector.exe
-    return pyodbc.connect(cadena_conexion(sql, base), timeout=10, autocommit=True, readonly=True)
+    """Conexión a SQL Server con la configuración de la versión 1."""
+    return motores.conectar(conexion_legada(sql), base)
 
 
 def identificador(nombre: str) -> str:
@@ -222,11 +187,30 @@ def productos_de(filas) -> list[dict]:
     return list(vistos.values())
 
 
-def leer_productos(cfg: dict, mapeo: dict, conectar=conectar_sql) -> list[dict]:
-    with closing(conectar(cfg["sql"])) as conexion:
-        cursor = conexion.cursor()
-        cursor.execute(consulta_de(mapeo))
-        return productos_de(cursor.fetchall())
+def conexion_legada(sql: dict) -> dict:
+    """La configuración de la versión 1 (solo SQL Server, «servidor» como texto) en el formato de motores."""
+    servidor = str(sql.get("servidor") or "")
+    host, instancia, puerto = servidor, "", None
+    if "," in servidor:
+        host, _, p = servidor.partition(",")
+        puerto = int(p) if p.strip().isdigit() else None
+    if "\\" in host:
+        host, _, instancia = host.partition("\\")
+    return {"motor": "sqlserver", "host": host.strip(), "instancia": instancia.strip(), "puerto": puerto,
+            "auth": "windows" if sql.get("modo") == "windows" else "sql", "usuario": sql.get("usuario", ""),
+            "clave": sql.get("clave", ""), "base": sql.get("base"), "controlador": sql.get("controlador"),
+            "confiar_certificado": sql.get("confiar_certificado", True)}
+
+
+def leer_productos(cfg: dict, mapeo: dict, conectar=None) -> list[dict]:
+    """Productos válidos de un inventario. Cada inventario tiene su conexión (versión 2) o usa la general (versión 1)."""
+    if conectar is not None:   # pruebas: una conexión DB-API cualquiera
+        with closing(conectar(cfg["sql"])) as conexion:
+            cursor = conexion.cursor()
+            cursor.execute(consulta_de(mapeo))
+            return productos_de(cursor.fetchall())
+    cx = mapeo.get("conexion") or conexion_legada(cfg.get("sql") or {})
+    return productos_de(motores.leer(cx, mapeo))
 
 
 # ---------------------------------------------------------------- enviar
@@ -234,7 +218,7 @@ def huella(productos: list[dict]) -> str:
     return hashlib.sha256(json.dumps(sorted((p["codigo"], p["nombre"], p["precio"]) for p in productos)).encode()).hexdigest()
 
 
-def sincronizar(cfg: dict, conectar=conectar_sql) -> dict:
+def sincronizar(cfg: dict, conectar=None) -> dict:
     """Una vuelta: pregunta a Prezio qué inventarios llenar, lee SQL y envía lo que cambió."""
     estado = leer_json(ESTADO, {})
     info = estado_prezio(cfg)

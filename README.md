@@ -191,14 +191,55 @@ npm run typecheck
 - **Reporte**: cada consulta queda con canal «movil». Límite de 300 consultas por minuto por sucursal.
 - **Requiere**: ejecutar `supabase/migrations/0009_consulta_movil.sql` (después de 0008).
 
-## Prezio Administrador (Windows)
+## Plataforma: tú das de alta los negocios
 
-- **`apps/administrador`**: un programa con dos partes: **Panel de Prezio** (en su propia ventana, recuerda la sesión)
-  y **Conector de SQL Server** por pasos: (1) dirección de Prezio y clave del conector, (2) servidor, inicio de sesión
-  y base de datos, (3) para cada inventario la tabla o vista y sus columnas (las sugiere solo y muestra una muestra
-  con el total), o una consulta propia, (4) frecuencia, «Enviar ahora» y «Arrancar solo al encender la PC».
-- El envío automático lo hace el mismo programa (`PrezioAdministrador.exe --servicio`) con la tarea de Windows
-  «Prezio Conector» como SYSTEM. Las claves se guardan cifradas con la protección de Windows (DPAPI).
-- **`.github/workflows/app-administrador.yml`** lo compila, lo publica en Releases › «administrador» y lo anota en
-  `public/apps.json`; el panel lo ofrece en Inventarios (conector) y en Equipos.
-- `conector/prezio_conector.py` (de consola) sigue funcionando; el Administrador lo usa por dentro.
+- **Registro cerrado**: nadie crea negocios por su cuenta. La página `/registro` solo sirve para aceptar una
+  invitación de un negocio.
+- **`/plataforma`** (solo administradores de plataforma) te permite:
+  - dar de alta un negocio con nombre, código (ej. `abarrotao-market`), moneda y plan;
+  - darle acceso al dueño de una de dos formas:
+    - **usuario y clave**, que le entregas tú;
+    - **invitación por correo**: el dueño recibe un enlace y elige su clave.
+  - ver dueños, usuarios, sucursales, verificadores conectados hoy, productos y la última consulta;
+  - cambiar el plan, **suspender** o reactivar un negocio, y agregar otro dueño.
+- **Suspendido**:
+  - el panel queda de solo lectura y muestra un aviso;
+  - los verificadores muestran «Servicio suspendido»;
+  - la consulta desde el celular se apaga y el conector deja de recibir precios.
+  - Al reactivarlo todo vuelve solo, sin vincular los equipos de nuevo.
+- **Requiere**:
+  1. Ejecutar `supabase/migrations/0010_plataforma.sql`.
+  2. Una vez, en el SQL Editor: `select public.agregar_admin_plataforma('tu-correo');`
+  3. Tener `SUPABASE_SECRET_KEY` en Vercel.
+  4. En Supabase › Authentication › URL Configuration › Redirect URLs, agregar `https://prezio-jade.vercel.app/**`.
+     El enlace de la invitación vuelve a `/auth/sesion`.
+  5. Para invitar por correo, configurar el correo propio (SMTP).
+
+## Prezio Administrador (Windows) · la app de cada negocio
+
+- **Entrar**: con el código del negocio + usuario + clave, o con correo. Son las mismas cuentas y casillas de
+  permisos de la web. «Recordarme» guarda la sesión cifrada, solo para ese usuario de Windows.
+- **Panel del negocio**: cada sección se abre en su propia ventana, sin volver a entrar. La app pide a
+  `/api/sesion-app` un enlace de un solo uso y el panel abre su propia sesión, así la de la app no se cierra.
+- **Base de datos**:
+  1. «Buscar servidores en mi red»: prueba en la red local (las /24 privadas de la PC) los puertos de
+     SQL Server 1433, MySQL/MariaDB 3306, PostgreSQL 5432 y Firebird 3050. Confirma el motor cuando el servidor se
+     presenta y pregunta al SQL Server Browser (UDP 1434) por las instancias con nombre (SQLEXPRESS…) y su puerto.
+     Si un servidor no aparece, se escribe a mano o se busca en otra red.
+  2. **Autorizar** con las credenciales de la base:
+     - SQL Server: usuario de SQL o usuario de Windows;
+     - Firebird: además la ruta o alias del archivo `.fdb`.
+  3. Elegir base, tabla y columnas. La app sugiere las columnas y muestra una vista previa.
+  4. Elegir un inventario nuevo o uno que ya existe, y si se usa en la Principal.
+  - La app crea el conector de la PC y el inventario. No hay claves que copiar.
+  - Las credenciales de la base quedan cifradas en la PC (DPAPI) y nunca van a Prezio.
+- **Copia automática**: cada N minutos envía solo lo que cambió. Con «Arrancar con Windows» envía aunque nadie
+  abra la app (tarea «Prezio Conector», `PrezioAdministrador.exe --servicio`).
+- **Código**:
+  - `conector/motores.py`: los cuatro motores;
+  - `conector/red.py`: la búsqueda en la red;
+  - `conector/cifrado.py`: claves cifradas;
+  - `conector/prezio_conector.py`: el envío. Sigue aceptando la configuración de la versión 1.
+- **Compilación** (`.github/workflows/app-administrador.yml`):
+  - incluye pyodbc, PyMySQL, pg8000, firebird-driver y el cliente de Firebird (`fbclient.dll` de Firebird 4.0.5);
+  - lo publica en Releases › «administrador» como versión 2.0.N.
