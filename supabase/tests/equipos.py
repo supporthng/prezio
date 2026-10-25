@@ -115,4 +115,19 @@ ok(valor("ana", f"select count(*) from consultas where codigo = '111' and equipo
 r = js(valor(None, f"select public.solicitar_vinculo('{CL1}')"))
 ok(isinstance(r, dict), "el equipo quitado puede pedir un código nuevo")
 
+# 7. Vincular desde el propio equipo con usuario autorizado (0005)
+CL5 = "e" * 64
+valor(None, f"select public.solicitar_vinculo('{CL5}')")
+ok(not puede(None, f"select public.vincular_en_equipo('{CL5}', '{pri}', 'X')"), "en el equipo: sin entrar con usuario no se vincula")
+ok(not puede("dani", f"select public.vincular_en_equipo('{CL5}', '{pri}', 'X')"), "en el equipo: un verificador no autoriza")
+ok(not puede("beto", f"select public.vincular_en_equipo('{CL5}', '{pri}', 'X')"), "en el equipo: usuario de otro negocio no autoriza")
+ok(not puede("carla", f"select public.vincular_en_equipo('{CL5}', '{norte}', 'X')"), "en el equipo: la encargada no lo pone en otra sucursal")
+r = js(valor("carla", f"select public.vincular_en_equipo('{CL5}', '{centro}', 'Entrada')"))
+ok(isinstance(r, dict) and len(r["equipo"]) == 36, "en el equipo: la encargada lo pone en su sucursal")
+ok(valor(False, f"select count(*) from vinculos where huella = public.huella_de('{CL5}')") == "0", "su código de 8 cifras se borra")
+st = js(valor(None, f"select public.equipo_estado('{CL5}')"))
+ok(st["sucursal"]["id"] == centro and st["equipo"]["nombre"] == "Entrada", "el equipo arranca en la sucursal elegida")
+ok(not puede("ana", f"select public.vincular_en_equipo('{CL5}', '{pri}', 'Otra')"), "un equipo ya vinculado no se vincula dos veces")
+ok(not puede("ana", f"select public.vincular_en_equipo('corta', '{pri}', 'X')"), "clave de equipo inválida: rechazada")
+
 print(f"\n{c.bien} bien, {c.mal} mal")

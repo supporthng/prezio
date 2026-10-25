@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Pantalla, type EstadoPantalla } from "@/components/Pantalla";
+import { Autorizar } from "./Autorizar";
 import { normalizar } from "@/lib/apariencia";
 import { variantes } from "@/lib/codigos";
 import {
@@ -25,6 +26,7 @@ export function Equipo({ sitio }: { sitio: string }) {
   const [estado, setEstado] = useState<EstadoPantalla>({ tipo: "espera" });
   const [enLinea, setEnLinea] = useState(true);
   const [aviso, setAviso] = useState("");
+  const [autorizar, setAutorizar] = useState(false);
   const [menu, setMenu] = useState<null | { productos: number; pendientes: number; sincronizado: string | null }>(null);
 
   const clave = useRef("");
@@ -215,15 +217,28 @@ export function Equipo({ sitio }: { sitio: string }) {
         <div className="equipo-vincular-caja">
           <p className="equipo-marca">Prezio</p>
           <h1>Vincula este equipo</h1>
-          <ol>
-            <li>En otro teléfono o computadora entra a <strong>{sitio.replace(/^https?:\/\//, "")}</strong>.</li>
-            <li>Abre tu negocio › <strong>Equipos</strong> › Vincular un equipo.</li>
-            <li>Escribe este código y elige la sucursal:</li>
-          </ol>
-          <p className="equipo-codigo" aria-live="polite">{c ? `${c.slice(0, 4)} ${c.slice(4)}` : "· · · ·  · · · ·"}</p>
-          <p className="quieto pequeno">
-            {aviso || (c ? "El código cambia cada 15 minutos. Esta pantalla sigue sola al vincularlo." : "Pidiendo código…")}
-          </p>
+          {autorizar ? (
+            <Autorizar clave={clave.current} onCancelar={() => setAutorizar(false)}
+              onListo={() => { setAutorizar(false); void sincronizar(); }} />
+          ) : (
+            <>
+              <div className="equipo-opciones">
+                <section>
+                  <h2>Aquí mismo</h2>
+                  <p>Entra con un usuario administrador y elige la sucursal en este equipo.</p>
+                  <button className="boton marca" type="button" onClick={() => setAutorizar(true)}>Elegir sucursal</button>
+                </section>
+                <section>
+                  <h2>Desde otro equipo</h2>
+                  <p>En <strong>{sitio.replace(/^https?:\/\//, "")}</strong> › tu negocio › <strong>Equipos</strong>, escribe este código:</p>
+                  <p className="equipo-codigo" aria-live="polite">{c ? `${c.slice(0, 4)} ${c.slice(4)}` : "· · · ·  · · · ·"}</p>
+                </section>
+              </div>
+              <p className="quieto pequeno">
+                {aviso || (c ? "El código cambia cada 15 minutos. Esta pantalla sigue sola al vincularlo." : "Pidiendo código…")}
+              </p>
+            </>
+          )}
         </div>
       </div>
     );

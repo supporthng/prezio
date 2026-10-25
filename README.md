@@ -38,6 +38,9 @@ y pone verificadores en sus sucursales, que funcionan aun sin internet.
   de sucursal o se desvincula. El encargado maneja solo los de su sucursal.
 - El equipo no inicia sesión: tiene su propia clave al azar y en la base solo queda su huella (SHA-256).
 - Se puede instalar como app (pantalla completa) desde el navegador: `public/manifest.webmanifest` y `public/sw.js`.
+- **Vincular en el propio equipo**: en `/equipo`, «Elegir sucursal» pide entrar con el dueño, un administrador o el
+  encargado (el encargado solo ve su sucursal); se elige negocio, sucursal y nombre. La sesión solo autoriza: no
+  se guarda en el equipo. Requiere **`supabase/migrations/0005_vincular_en_el_equipo.sql`**.
 - Requiere ejecutar **`supabase/migrations/0003_equipos.sql`**.
 
 ## Etapa 3 · parte 2: inventarios que se llenan solos
@@ -65,7 +68,7 @@ En **Inventarios**, además de cargar Excel, un inventario puede llenarse solo:
 ### 1. Supabase (proyecto nuevo, solo para Prezio)
 
 1. En [supabase.com](https://supabase.com) crea un proyecto **nuevo** (no uses el del sistema actual).
-2. **SQL Editor** › ejecuta, en orden, `supabase/migrations/0001_base.sql`, `0002_precios_y_apariencia.sql`, `0003_equipos.sql` y `0004_fuentes_automaticas.sql`.
+2. **SQL Editor** › ejecuta, en orden, `supabase/migrations/0001_base.sql`, `0002_precios_y_apariencia.sql`, `0003_equipos.sql`, `0004_fuentes_automaticas.sql` y `0005_vincular_en_el_equipo.sql`.
 3. **Authentication › URL Configuration**:
    - *Site URL*: la dirección de Vercel (por ejemplo `https://prezio.vercel.app`).
    - *Redirect URLs*: agrega `https://prezio.vercel.app/**` (y `http://localhost:3000/**` si trabajas en tu PC).
@@ -93,7 +96,7 @@ En **Inventarios**, además de cargar Excel, un inventario puede llenarse solo:
 - El navegador y el servidor usan solo la clave **pública**; lo que cada usuario puede ver lo deciden las reglas
   de la base de datos (RLS), no la app.
 - El plan y la suscripción no los puede cambiar un cliente (solo Prezio con la clave de servidor).
-- `supabase/tests/aislamiento.py` (49 pruebas), `precios.py` (17), `equipos.py` (50) y `fuentes.py` (45) prueban en PostgreSQL que los negocios no se ven
+- `supabase/tests/aislamiento.py` (49 pruebas), `precios.py` (17), `equipos.py` (59) y `fuentes.py` (45) prueban en PostgreSQL que los negocios no se ven
   entre sí, los permisos por rol, la consulta de precios por sucursal, los permisos del logo/QR y los equipos (vincular, mover, quitar, subir consultas) y las fuentes automáticas (Google, conector, cargas por partes).
 
 ## Trabajar en tu PC (opcional)

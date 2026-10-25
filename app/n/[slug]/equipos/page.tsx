@@ -65,8 +65,9 @@ export default async function Equipos({ params, searchParams }: Props) {
               <h2 id="t-vincular">Vincular un equipo</h2>
               <p className="quieto" style={{ marginTop: 0 }}>
                 En la tableta, el teléfono o la PC del verificador abre <strong>{direccion.replace(/^https?:\/\//, "")}</strong>.
-                Muestra un código de 8 cifras: escríbelo aquí. Desde ese momento guarda los precios de su sucursal y
-                sigue funcionando aunque se vaya el internet.
+                Ahí mismo puedes tocar <strong>Elegir sucursal</strong> y entrar con tu usuario, o escribir aquí el código
+                de 8 cifras que muestra. Desde ese momento guarda los precios de su sucursal y sigue funcionando aunque
+                se vaya el internet.
               </p>
               <form action={vincularEquipo} className="fila">
                 <input type="hidden" name="slug" value={slug} />
