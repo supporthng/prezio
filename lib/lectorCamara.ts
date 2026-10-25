@@ -128,6 +128,7 @@ export async function abrirLector(caja: HTMLElement, alLeer: (codigo: string) =>
   try {
     avisar("Abriendo la cámara…");
     const detectorPedido = (detectorListo ??= obtenerDetector().catch((e) => { detectorListo = null; throw e; }));
+    detectorPedido.catch(() => {});   // si la cámara falla antes, que el error del lector no quede suelto
     stream = await navigator.mediaDevices.getUserMedia({
       audio: false, video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
     });

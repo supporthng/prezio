@@ -21,7 +21,7 @@ export default async function Sucursales({ params, searchParams }: Props) {
     supabase.from("sucursales").select("id, nombre, codigo, es_principal, activa, fuente, geo_activa, latitud, longitud, radio_m")
       .eq("negocio_id", negocio.id).order("es_principal", { ascending: false }).order("nombre"),
     supabase.from("inventarios").select("id, nombre").eq("negocio_id", negocio.id).order("nombre"),
-    supabase.from("negocios").select("consulta_movil").eq("id", negocio.id).maybeSingle(),
+    supabase.from("negocios").select("consulta_movil, apariencia").eq("id", negocio.id).maybeSingle(),
   ]);
   const todas = (suc ?? []) as Sucursal[];
   // Quien tiene permisos solo en algunas sucursales ve esas.
@@ -29,6 +29,8 @@ export default async function Sucursales({ params, searchParams }: Props) {
   const inventarios = (inv ?? []) as { id: string; nombre: string }[];
   const movilActiva = Boolean((neg as { consulta_movil?: boolean } | null)?.consulta_movil);
   const puedeApariencia = puede("apariencia");
+  const ap = ((neg as { apariencia?: { logo?: string | null; mostrar_logo?: boolean } } | null)?.apariencia) ?? {};
+  const faltaLogo = !ap.logo || ap.mostrar_logo === false;
   const base = sitio() || "https://prezio-jade.vercel.app";
 
   return (
@@ -56,6 +58,13 @@ export default async function Sucursales({ params, searchParams }: Props) {
             </form>
           ) : <span className="quieto pequeno">La activa quien tenga la casilla «Apariencia».</span>}
         </section>
+
+        {faltaLogo && (
+          <p className="aviso error" style={{ marginTop: 16 }}>
+            {ap.logo ? "El logo está oculto" : "Todavía no has subido el logo del negocio"}: la consulta del celular y los verificadores
+            muestran solo el nombre. <a href={`/n/${slug}/apariencia`}>{ap.logo ? "Actívalo en Apariencia" : "Súbelo en Apariencia"}</a>.
+          </p>
+        )}
 
         <section className="tarjeta" aria-labelledby="t-sucursales" style={{ marginTop: 20 }}>
           <h2 id="t-sucursales">Sucursales</h2>

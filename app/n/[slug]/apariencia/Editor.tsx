@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Pantalla, type EstadoPantalla } from "@/components/Pantalla";
 import { ESTILOS, type Apariencia, type Estilo } from "@/lib/apariencia";
 import { supabaseNavegador } from "@/lib/supabase/browser";
-import { guardarApariencia } from "./actions";
+import { guardarApariencia, guardarImagen } from "./actions";
 
 type Props = { negocioId: string; slug: string; negocio: string; sucursal: string; inicial: Apariencia; moneda: string; puedeEditar: boolean };
 
@@ -38,8 +38,14 @@ export function Editor({ negocioId, slug, negocio, sucursal, inicial, moneda: mo
     const { error } = await supabase.storage.from("marcas").upload(ruta, archivo, { upsert: true, contentType: archivo.type, cacheControl: "60" });
     if (error) { setAviso({ ok: false, mensaje: "No se pudo subir la imagen: " + error.message }); return; }
     const url = supabase.storage.from("marcas").getPublicUrl(ruta).data.publicUrl + `?v=${Date.now()}`;
-    cambiar(cual, url);
-    setAviso({ ok: true, mensaje: "Imagen lista. Toca «Guardar apariencia» para aplicarla." });
+    const r = await guardarImagen(negocioId, slug, cual, url);
+    if (r.ok) setA((x) => ({ ...x, [cual]: url, [cual === "logo" ? "mostrar_logo" : "mostrar_qr"]: true }));
+    setAviso(r);
+  }
+  async function quitar(cual: "logo" | "qr") {
+    const r = await guardarImagen(negocioId, slug, cual, null);
+    if (r.ok) setA((x) => ({ ...x, [cual]: null }));
+    setAviso(r);
   }
 
   async function guardar() {
@@ -85,11 +91,22 @@ export function Editor({ negocioId, slug, negocio, sucursal, inicial, moneda: mo
           <div className="fila">
             <div className="campo">
               <label htmlFor="logo">Logo (PNG o JPG, máx. 2 MB)</label>
+              <div className="imagen-actual">
+                {a.logo ? <img src={a.logo} alt="Logo actual" /> : <span className="quieto pequeno">Sin logo</span>}
+                {a.logo && puedeEditar && <button type="button" className="enlace-boton" onClick={() => void quitar("logo")}>Quitar</button>}
+              </div>
               <input id="logo" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onChange={(e) => void subir("logo", e.target.files?.[0])} />
+              {!a.logo && <p className="aviso error" style={{ margin: "8px 0 0" }}>Todavía no has subido el logo: las pantallas muestran solo el nombre.</p>}
+              {a.logo && !a.mostrar_logo && <p className="aviso error" style={{ margin: "8px 0 0" }}>El logo está oculto: marca «Logo del negocio» abajo y guarda.</p>}
             </div>
             <div className="campo">
               <label htmlFor="qr">Código QR (opcional)</label>
+              <div className="imagen-actual">
+                {a.qr ? <img src={a.qr} alt="QR actual" /> : <span className="quieto pequeno">Sin QR</span>}
+                {a.qr && puedeEditar && <button type="button" className="enlace-boton" onClick={() => void quitar("qr")}>Quitar</button>}
+              </div>
               <input id="qr" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onChange={(e) => void subir("qr", e.target.files?.[0])} />
+              <p className="quieto pequeno" style={{ margin: "6px 0 0" }}>O usa el QR de la consulta desde el celular: Sucursales › Enlace y QR.</p>
             </div>
           </div>
           <div className="opciones">

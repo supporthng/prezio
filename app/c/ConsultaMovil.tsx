@@ -25,12 +25,19 @@ export function ConsultaMovil({ negocio, moneda, sucursal, color, logo }: Props)
   const [vista, setVista] = useState<Vista>({ tipo: "inicio" });
   const [guia, setGuia] = useState("");
   const [escrito, setEscrito] = useState("");
+  const [sinCamara, setSinCamara] = useState(false);
   const caja = useRef<HTMLDivElement>(null);
   const lector = useRef<Lector | null>(null);
   const posicion = useRef<{ lat: number; lon: number; t: number } | null>(null);
   const precioColor = legible(color, "#ffffff", 4.5);
 
-  useEffect(() => () => lector.current?.detener(), []);
+  // La cámara se abre sola al entrar (el navegador pide permiso la primera vez).
+  const abierta = useRef(false);
+  useEffect(() => {
+    if (!abierta.current) { abierta.current = true; void escanear(); }
+    return () => { lector.current?.detener(); lector.current = null; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function ubicacion(): Promise<{ lat: number; lon: number }> {
     const p = posicion.current;
@@ -81,12 +88,15 @@ export function ConsultaMovil({ negocio, moneda, sucursal, color, logo }: Props)
     activarSonido();
     setGuia("Abriendo la cámara…");
     setVista({ tipo: "camara" });
-    await new Promise((r) => setTimeout(r, 0));
+    for (let i = 0; i < 30 && !caja.current; i++) await new Promise((r) => requestAnimationFrame(() => r(null)));
     if (!caja.current) return;
+    lector.current?.detener();
     try {
       lector.current = await abrirLector(caja.current, (codigo) => { lector.current = null; void consultar(codigo); }, setGuia);
     } catch {
-      lector.current = null;   // el aviso ya dice qué pasó; queda la opción de escribir
+      lector.current = null;   // sin permiso o sin cámara: queda la opción de escribir el código
+      setSinCamara(true);
+      setVista({ tipo: "inicio" });
     }
   }
   function cancelar() { lector.current?.detener(); lector.current = null; setVista({ tipo: "inicio" }); }
@@ -103,7 +113,7 @@ export function ConsultaMovil({ negocio, moneda, sucursal, color, logo }: Props)
         <section className="movil-tarjeta">
           <div ref={caja} className="movil-lector" onClick={() => activarSonido()}><div className="laser" /></div>
           <p className="movil-guia" role="status">{guia}</p>
-          <button className="movil-boton secundario" type="button" onClick={cancelar}>Cancelar</button>
+          <button className="movil-boton secundario" type="button" onClick={cancelar}>Escribir el código</button>
         </section>
       ) : v.tipo === "producto" ? (
         <section className="movil-tarjeta movil-resultado" aria-live="polite">
@@ -128,7 +138,9 @@ export function ConsultaMovil({ negocio, moneda, sucursal, color, logo }: Props)
       ) : (
         <section className="movil-tarjeta">
           <h1>Consulta un precio</h1>
-          <p className="movil-ayuda">Apunta la cámara al código de barras del producto.</p>
+          {sinCamara
+            ? <p className="movil-alerta" role="alert">No pudimos abrir la cámara. Permite la cámara para esta página (candado junto a la dirección › Cámara › Permitir) o escribe el código.</p>
+            : <p className="movil-ayuda">Apunta la cámara al código de barras del producto.</p>}
           <button className="movil-boton grande" type="button" onClick={escanear} disabled={v.tipo === "buscando"}>
             {v.tipo === "buscando" ? "Buscando…" : "📷 Escanear con la cámara"}
           </button>
