@@ -6,7 +6,7 @@
 - Bloquea Alt+Tab, Alt+Esc, Ctrl+Esc, Ctrl+Shift+Esc, Alt+F4, Alt+Espacio y la tecla Windows.
 - Oculta la barra de tareas (Inicio) mientras está abierta; vuelve a aparecer al cerrar la app.
 - No se puede cerrar ni minimizar: se sale SOLO desde el menú ⓘ › «Salir de la app», con la clave de salida.
-- Se actualiza sola: al abrir y cada 6 horas revisa SITIO/apps.json e instala la versión nueva en silencio.
+- Se actualiza sola: al abrir y cada hora revisa SITIO/apps.json e instala la versión nueva en silencio.
 - Una sola copia abierta a la vez.
 
 Ctrl+Alt+Supr no se puede bloquear desde un programa (es una protección de Windows). Para un
@@ -34,7 +34,7 @@ DIRECCION = SITIO + "/equipo"
 DATOS = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), "Prezio", "WebView")
 REGISTRO = os.path.join(os.path.dirname(DATOS), "actualizacion.log")
 APPS_JSON = SITIO + "/apps.json"
-CADA_REVISION_S = 6 * 60 * 60
+CADA_REVISION_S = 60 * 60
 
 
 def anotar(texto):
@@ -275,9 +275,9 @@ class Kiosco:
             return False
 
     def revisar_cada_rato(self):
-        time.sleep(30)          # dejar que la app abra y cargue los precios
+        time.sleep(5)           # dejar que la app abra y cargue los precios
         while True:
-            for _ in range(3):
+            for _ in range(5):
                 if self._revisar():
                     break
                 time.sleep(60)

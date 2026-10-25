@@ -61,7 +61,8 @@ public class MainActivity extends Activity {
     static final String HOST_APP = Uri.parse(BuildConfig.SITIO).getHost();
     /** Solo se aceptan actualizaciones publicadas en las descargas de Prezio. */
     static final String ORIGEN_ACTUALIZACION = BuildConfig.ORIGEN_DESCARGAS;
-    static final long CADA_REVISION_MS = 6L * 60 * 60 * 1000;
+    static final long CADA_REVISION_MS = 60L * 60 * 1000;      // cada hora
+    static final long ENTRE_REVISIONES_MS = 10L * 60 * 1000;   // al volver al frente, como mucho cada 10 min
 
     private WebView web;
     private FrameLayout raiz;
@@ -76,6 +77,12 @@ public class MainActivity extends Activity {
 
     private boolean vigilar() { return !saliendo && System.currentTimeMillis() > libreHasta; }
     private boolean revisando = false;
+    private long ultimaRevision = 0;
+    private int reintentos = 0;
+    /** Al abrir o volver al frente: revisar si hace rato que no se revisa. */
+    private final Runnable revisarAlAbrir = () -> {
+        if (System.currentTimeMillis() - ultimaRevision > ENTRE_REVISIONES_MS) revisarActualizacion(false);
+    };
     /** Revisión periódica de versión nueva de la app. */
     private final Runnable revisarCadaRato = new Runnable() {
         @Override public void run() {
@@ -101,7 +108,7 @@ public class MainActivity extends Activity {
         ocultarBarras();
         activarBloqueo();
         escucharDescargas();
-        hilo.postDelayed(revisarCadaRato, 30000);   // dejar que abra y cargue los precios primero
+        hilo.postDelayed(revisarCadaRato, CADA_REVISION_MS);   // la primera revisión se hace en onResume
     }
 
     @Override
@@ -150,6 +157,8 @@ public class MainActivity extends Activity {
                     while ((linea = r.readLine()) != null) texto.append(linea);
                 }
                 JSONObject android = new JSONObject(texto.toString()).optJSONObject("android");
+                ultimaRevision = System.currentTimeMillis();
+                reintentos = 0;
                 int codigo = android == null ? 0 : android.optInt("codigo", 0);
                 String url = android == null ? "" : android.optString("url", "");
                 if (codigo > BuildConfig.VERSION_CODE && url.startsWith(ORIGEN_ACTUALIZACION) && url.endsWith(".apk")) {
@@ -159,6 +168,8 @@ public class MainActivity extends Activity {
                 }
             } catch (Exception e) {
                 if (avisar) avisarWeb("error");
+                // Sin internet todavía (p. ej. recién encendido el equipo): reintentar en un minuto.
+                else if (reintentos++ < 5) hilo.postDelayed(() -> revisarActualizacion(false), 60000);
             } finally {
                 revisando = false;
             }
@@ -322,6 +333,8 @@ public class MainActivity extends Activity {
         super.onResume();
         hilo.removeCallbacks(traerAlFrente);
         saliendo = false;
+        hilo.removeCallbacks(revisarAlAbrir);
+        hilo.postDelayed(revisarAlAbrir, 5000);   // dejar que abra y cargue los precios primero
         ocultarBarras();
         activarBloqueo();
         if (web != null) web.onResume();
