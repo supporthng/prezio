@@ -449,6 +449,16 @@ public class MainActivity extends Activity {
             });
         }
 
+        /** Cerrar la app (botón ✕): quita el bloqueo y cierra, SIN abrir los Ajustes de Android. */
+        @JavascriptInterface public void cerrar() {
+            hilo.post(() -> {
+                saliendo = true;
+                hilo.removeCallbacks(traerAlFrente);
+                try { if (enModoBloqueo()) stopLockTask(); } catch (RuntimeException ignorado) { }
+                finishAndRemoveTask();
+            });
+        }
+
         /** Elegir otra pantalla de inicio (para dejar de usar el equipo como verificador). */
         @JavascriptInterface public void cambiarInicio() {
             hilo.post(() -> {

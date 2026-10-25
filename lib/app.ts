@@ -5,11 +5,12 @@ export type AppNativa = {
   plataforma: "android" | "windows";
   version: () => Promise<string>;
   salir: () => void;
+  cerrar: () => void;
   buscarActualizacion: () => void;
 };
 
-type Android = { plataforma(): string; version(): string; salir(): void; buscarActualizacion(): void };
-type Windows = { version(): Promise<string>; salir(): Promise<unknown>; buscarActualizacion(): Promise<unknown> };
+type Android = { plataforma(): string; version(): string; salir(): void; cerrar?(): void; buscarActualizacion(): void };
+type Windows = { version(): Promise<string>; salir(): Promise<unknown>; cerrar?(): Promise<unknown>; buscarActualizacion(): Promise<unknown> };
 
 export function appNativa(): AppNativa | null {
   if (typeof window === "undefined") return null;
@@ -20,6 +21,7 @@ export function appNativa(): AppNativa | null {
       plataforma: "android",
       version: async () => { try { return a.version(); } catch { return ""; } },
       salir: () => a.salir(),
+      cerrar: () => { if (a.cerrar) a.cerrar(); else a.salir(); },
       buscarActualizacion: () => a.buscarActualizacion(),
     };
   }
@@ -29,6 +31,7 @@ export function appNativa(): AppNativa | null {
       plataforma: "windows",
       version: async () => { try { return String(await api.version()); } catch { return ""; } },
       salir: () => { void api.salir(); },
+      cerrar: () => { void (api.cerrar ?? api.salir)(); },
       buscarActualizacion: () => { void api.buscarActualizacion(); },
     };
   }

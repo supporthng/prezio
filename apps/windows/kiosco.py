@@ -232,6 +232,10 @@ class Kiosco:
             self._ventana.destroy()
         return True
 
+    def cerrar(self):
+        """Botón ✕: cierra la app (no hay Ajustes que abrir en Windows)."""
+        return self.salir()
+
     def buscarActualizacion(self):
         """Desde el menú del equipo: revisar ahora y avisar en pantalla."""
         threading.Thread(target=self._revisar, args=(True,), name="revisar-ahora", daemon=True).start()

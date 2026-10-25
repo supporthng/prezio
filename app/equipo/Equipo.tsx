@@ -45,6 +45,7 @@ export function Equipo({ sitio }: { sitio: string }) {
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
   const vez = useRef(0);
   const dialogo = useRef<HTMLDialogElement>(null);
+  const accionClave = useRef<"menu" | "cerrar">("menu");
   const textoApp = useRef(APP_EQUIPO);
 
   const cambiarFase = (f: Fase) => { faseRef.current = f; setFase(f); };
@@ -199,6 +200,7 @@ export function Equipo({ sitio }: { sitio: string }) {
     setErrorSalida("");
     if (await claveCorrecta(claveSalida, s).catch(() => false)) {
       setClaveSalida(""); setPidiendoSalida(false);
+      if (accionClave.current === "cerrar") { dialogo.current?.close(); cerrarApp(); return; }
       await mostrarMenu();
     } else {
       setErrorSalida("Clave incorrecta.");
@@ -242,7 +244,22 @@ export function Equipo({ sitio }: { sitio: string }) {
     }
   }
 
+  /** Botón ✕: cierra la app sin abrir configuración. Con clave de salida, la pide primero. */
+  function cerrarApp() {
+    if (nativa) nativa.app.cerrar();
+    else window.close();
+  }
+  function pedirCierre() {
+    if (nativa && info?.salida) {
+      accionClave.current = "cerrar";
+      setMenu(null); setPidiendoSalida(true); setErrorSalida(""); setClaveSalida("");
+      dialogo.current?.showModal();
+      return;
+    }
+    cerrarApp();
+  }
   async function abrirMenu() {
+    accionClave.current = "menu";
     if (nativa && info?.salida) {
       setMenu(null); setPidiendoSalida(true); setErrorSalida(""); setClaveSalida("");
       dialogo.current?.showModal();
@@ -319,6 +336,8 @@ export function Equipo({ sitio }: { sitio: string }) {
           }} />
       </Pantalla>
       <div className="verificador-esquina">
+        <button type="button" title="Cerrar" aria-label="Cerrar la app"
+          onClick={(e) => { e.stopPropagation(); pedirCierre(); }}>✕</button>
         <button type="button" title="Información del equipo" aria-label="Información del equipo"
           onClick={(e) => { e.stopPropagation(); void abrirMenu(); }}>
           {enLinea ? "ⓘ" : <span className="equipo-sin-red" aria-label="Sin internet">⚠</span>}
@@ -329,13 +348,13 @@ export function Equipo({ sitio }: { sitio: string }) {
         onClick={(e) => e.stopPropagation()}>
         {pidiendoSalida && info?.salida && (
           <form className="equipo-candado" onSubmit={desbloquear}>
-            <h2>Configuración del equipo</h2>
+            <h2>{accionClave.current === "cerrar" ? "Cerrar la app" : "Configuración del equipo"}</h2>
             <label htmlFor="clave-salida">Clave de salida</label>
             <input id="clave-salida" type="password" inputMode="numeric" autoComplete="off" autoFocus
               value={claveSalida} onChange={(e) => setClaveSalida(e.target.value)} />
             {errorSalida && <p className="error-campo" role="alert">{errorSalida}</p>}
             <div className="fila" style={{ marginTop: 14 }}>
-              <button className="boton" type="submit" disabled={!claveSalida}>Entrar</button>
+              <button className="boton" type="submit" disabled={!claveSalida}>{accionClave.current === "cerrar" ? "Cerrar" : "Entrar"}</button>
               <button className="boton secundario" type="button" onClick={() => dialogo.current?.close()}>Cancelar</button>
             </div>
             <p className="quieto pequeno" style={{ marginBottom: 0 }}>La clave se pone en Prezio › Equipos. Funciona sin internet.</p>
