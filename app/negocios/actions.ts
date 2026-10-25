@@ -9,6 +9,7 @@ export async function crearNegocio(datos: FormData) {
   const supabase = await supabaseServidor();
   const { data: id, error } = await supabase.rpc("crear_negocio", { p_nombre: nombre });
   if (error || !id) redirect(`/negocios/nuevo?error=${encodeURIComponent(mensajeError(error))}`);
-  const { data: negocio } = await supabase.from("negocios").select("slug").eq("id", id).single();
+  const { data } = await supabase.from("negocios").select("slug").eq("id", String(id)).single();
+  const negocio = data as { slug: string } | null;
   redirect(negocio ? `/n/${negocio.slug}?bien=${encodeURIComponent("Negocio creado. Ya tienes tu sucursal Principal.")}` : "/negocios");
 }

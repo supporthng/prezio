@@ -1,4 +1,6 @@
-import { createServerClient } from "@supabase/ssr";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
+
+type CookieNueva = { name: string; value: string; options: CookieOptions };
 import { NextResponse, type NextRequest } from "next/server";
 
 const PRIVADAS = ["/negocios", "/n/"];
@@ -14,7 +16,7 @@ export async function actualizarSesion(request: NextRequest) {
         getAll() {
           return request.cookies.getAll();
         },
-        setAll(lista) {
+        setAll(lista: CookieNueva[]) {
           lista.forEach(({ name, value }) => request.cookies.set(name, value));
           respuesta = NextResponse.next({ request });
           lista.forEach(({ name, value, options }) => respuesta.cookies.set(name, value, options));

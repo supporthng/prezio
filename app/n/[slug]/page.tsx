@@ -10,6 +10,7 @@ type Props = {
   searchParams: Promise<{ bien?: string; error?: string; invitado?: string }>;
 };
 
+type Negocio = { id: string; nombre: string; slug: string; plan: string; prueba_hasta: string; moneda: string };
 type Sucursal = { id: string; nombre: string; codigo: string; es_principal: boolean; activa: boolean };
 type Miembro = { user_id: string; rol: string; sucursal_id: string | null };
 type Perfil = { id: string; nombre: string; correo: string };
@@ -28,11 +29,12 @@ export default async function PanelNegocio({ params, searchParams }: Props) {
   if (!auth.user) redirect(`/entrar?siguiente=/n/${slug}`);
 
   // La RLS solo devuelve el negocio si el usuario es miembro: si no, es como si no existiera.
-  const { data: negocio } = await supabase
+  const { data: fila } = await supabase
     .from("negocios")
     .select("id, nombre, slug, plan, prueba_hasta, moneda")
     .eq("slug", slug)
     .maybeSingle();
+  const negocio = fila as Negocio | null;
   if (!negocio) notFound();
 
   const [{ data: sucursales }, { data: miembros }, { data: perfiles }, { data: invitaciones }] = await Promise.all([
