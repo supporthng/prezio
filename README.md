@@ -15,15 +15,28 @@ y pone verificadores en sus sucursales, que funcionan aun sin internet.
 - Invitar personas con un enlace: administrador, encargado de una sucursal o verificador; quitar miembros.
 - Base de datos con datos separados por negocio: `supabase/migrations/0001_base.sql`.
 
+## Etapa 2
+
+- **Inventarios** (`/n/<negocio>/inventarios`): cargar Excel (.xlsx) o CSV, leído en el navegador con un lector
+  propio (`lib/hoja.ts`, sin librerías); actualizar, reemplazar o crear un inventario; renombrar; no se borra
+  uno que use una sucursal.
+- **Fuente de precios por sucursal** (Resumen): cada sucursal elige un inventario o «Igual que la Principal».
+- **Apariencia** (`/n/<negocio>/apariencia`): los 5 estilos del sistema actual, color, logo, QR, textos y
+  segundos del precio, con vista previa horizontal y vertical (`components/Pantalla.tsx`, `app/pantalla.css`).
+- **Verificador en línea** (`/v/<negocio>/<sucursal>`): pantalla completa; el lector escribe en un cuadro
+  invisible siempre activo; `consultar_precio` busca todas las formas del código (`lib/codigos.ts`) y registra
+  la consulta.
+- Requiere ejecutar **`supabase/migrations/0002_precios_y_apariencia.sql`** en Supabase › SQL Editor.
+
 ## Puesta en marcha
 
 ### 1. Supabase (proyecto nuevo, solo para Prezio)
 
 1. En [supabase.com](https://supabase.com) crea un proyecto **nuevo** (no uses el del sistema actual).
-2. **SQL Editor** › pega todo `supabase/migrations/0001_base.sql` › **Run**.
+2. **SQL Editor** › ejecuta, en orden, `supabase/migrations/0001_base.sql` y `0002_precios_y_apariencia.sql`.
 3. **Authentication › URL Configuration**:
    - *Site URL*: la dirección de Vercel (por ejemplo `https://prezio.vercel.app`).
-   - *Redirect URLs*: agrega `https://prezio.vercel.app/auth/confirm` (y `http://localhost:3000/auth/confirm` si trabajas en tu PC).
+   - *Redirect URLs*: agrega `https://prezio.vercel.app/**` (y `http://localhost:3000/**` si trabajas en tu PC).
 4. **Project Settings › API**: copia la *Project URL* y la clave **pública** (*publishable* o *anon*).
    La clave secreta (*service_role* / *secret*) **no** se usa aquí ni se comparte.
 
@@ -48,7 +61,8 @@ y pone verificadores en sus sucursales, que funcionan aun sin internet.
 - El navegador y el servidor usan solo la clave **pública**; lo que cada usuario puede ver lo deciden las reglas
   de la base de datos (RLS), no la app.
 - El plan y la suscripción no los puede cambiar un cliente (solo Prezio con la clave de servidor).
-- `supabase/tests/aislamiento.py` prueba en PostgreSQL que dos negocios no se ven entre sí (49 pruebas).
+- `supabase/tests/aislamiento.py` (49 pruebas) y `precios.py` (17) prueban en PostgreSQL que los negocios no se ven
+  entre sí, los permisos por rol, la consulta de precios por sucursal y los permisos del logo/QR.
 
 ## Trabajar en tu PC (opcional)
 

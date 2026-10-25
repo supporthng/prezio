@@ -19,6 +19,13 @@ export async function GET(request: NextRequest) {
   } else {
     error = { message: "Enlace incompleto" };
   }
+  // Un enlace de «recuperar clave» que llegó sin destino: después de entrar, elegir la clave nueva.
+  if (!error && tipo === "recovery" && !url.searchParams.get("siguiente")) {
+    const nueva = url.clone();
+    nueva.pathname = "/cuenta/clave";
+    nueva.search = "";
+    return NextResponse.redirect(nueva);
+  }
   const destino = url.clone();
   destino.search = "";
   if (error) {

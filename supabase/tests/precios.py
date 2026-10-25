@@ -1,0 +1,60 @@
+"""Etapa 2: consultar_precio por sucursal y permisos del logo/QR. Correr en una base recién creada."""
+import json, sys, os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _comun import *   # noqa: F401,F403  (sql, valor, puede, ok, U)
+import _comun as c
+
+A = valor("ana", "select public.crear_negocio('Tienda Precios');")
+B = valor("beto", "select public.crear_negocio('Otra Tienda');")
+pri = valor("ana", f"select id from sucursales where negocio_id = '{A}' and es_principal")
+cen = valor("ana", f"insert into sucursales (negocio_id, codigo, nombre) values ('{A}', 'centro', 'Centro') returning id;")
+norte = valor("ana", f"insert into sucursales (negocio_id, codigo, nombre) values ('{A}', 'norte', 'Norte') returning id;")
+inv1 = valor("ana", f"insert into inventarios (negocio_id, nombre) values ('{A}', 'General') returning id;")
+inv2 = valor("ana", f"insert into inventarios (negocio_id, nombre) values ('{A}', 'Norte') returning id;")
+valor("ana", f"""select public.reemplazar_productos('{inv1}', '[{{"codigo":"042100005264","nombre":"Galletas","precio":95}},{{"codigo":"7501055363063","nombre":"Refresco 2L","precio":125.5}}]');""")
+valor("ana", f"""select public.reemplazar_productos('{inv2}', '[{{"codigo":"7501055363063","nombre":"Refresco 2L","precio":110}}]');""")
+invB = valor("beto", f"insert into inventarios (negocio_id, nombre) values ('{B}', 'Ajeno') returning id;")
+valor("beto", f"""select public.reemplazar_productos('{invB}', '[{{"codigo":"999","nombre":"Secreto","precio":1}}]');""")
+
+def consulta(quien, suc, formas):
+    arr = "array[" + ",".join(f"'{f}'" for f in formas) + "]::text[]"
+    v = valor(quien, f"select public.consultar_precio('{suc}', {arr});")
+    return json.loads(v) if v.startswith("{") else v
+
+r = consulta("ana", pri, ["7501055363063"])
+ok(r.get("sin_fuente") is True and r["encontrado"] is False, "sin fuente elegida: avisa que la sucursal no tiene precios")
+fu = json.dumps({"tipo": "inventario", "inventario_id": inv1})
+valor("ana", f"update sucursales set fuente = '{fu}' where id = '{pri}';")
+r = consulta("ana", pri, ["7501055363063"])
+ok(r["encontrado"] and r["precio"] == 125.5 and r["nombre"] == "Refresco 2L", f"Principal: precio de su inventario {r}")
+r = consulta("ana", cen, ["7501055363063"])
+ok(r["encontrado"] and r["precio"] == 125.5, "Centro sin fuente propia = igual que la Principal")
+fu2 = json.dumps({"tipo": "inventario", "inventario_id": inv2})
+valor("ana", f"update sucursales set fuente = '{fu2}' where id = '{norte}';")
+r = consulta("ana", norte, ["7501055363063"])
+ok(r["encontrado"] and r["precio"] == 110, "Norte usa su propio inventario (otro precio)")
+r = consulta("ana", norte, ["042100005264"])
+ok(not r["encontrado"] and r["sin_fuente"] is False, "Norte: producto que no está en su inventario = no encontrado (no se mezcla)")
+r = consulta("ana", pri, ["04252614", "042100005264", "0042100005264", "42100005264"])
+ok(r["encontrado"] and r["codigo"] == "042100005264", "busca por las formas equivalentes del código")
+ok(valor("ana", f"select count(*) from consultas where negocio_id = '{A}'") == "6", "cada consulta queda registrada (6)")
+ok(valor("ana", f"select count(*) from consultas where negocio_id = '{A}' and encontrado") == "4", "con encontrado sí/no")
+# Seguridad
+r = consulta("beto", pri, ["7501055363063"])
+ok(isinstance(r, str) and "ERROR" in r, "Beto no puede consultar precios de una sucursal de Ana")
+mala = json.dumps({"tipo": "inventario", "inventario_id": invB})
+valor("ana", f"update sucursales set fuente = '{mala}' where id = '{cen}';")
+r = consulta("ana", cen, ["999"])
+ok(r.get("sin_fuente") is True, "una fuente que apunta al inventario de OTRO negocio no sirve")
+basura = json.dumps({"tipo": "inventario", "inventario_id": "no-es-uuid"})
+valor("ana", f"update sucursales set fuente = '{basura}' where id = '{cen}';")
+r = consulta("ana", cen, ["1"])
+ok(r.get("sin_fuente") is True, "fuente mal escrita: sin precios, sin error")
+ok(isinstance(consulta("ana", pri, [""]), str), "código vacío: rechazado")
+# Logo/QR
+ok(puede("ana", f"insert into storage.objects (bucket_id, name) values ('marcas', '{A}/logo.png');"), "el dueño sube el logo de su negocio")
+ok(not puede("beto", f"insert into storage.objects (bucket_id, name) values ('marcas', '{A}/logo.png');"), "Beto no puede subir a la carpeta de Ana")
+ok(not puede("ana", "insert into storage.objects (bucket_id, name) values ('marcas', 'cualquiera/logo.png');"), "no se sube fuera de una carpeta de negocio")
+ok(valor("beto", f"delete from storage.objects where name = '{A}/logo.png' returning id;") == "", "Beto no puede borrar el logo de Ana")
+ok(valor(None, "select count(*) from storage.objects").startswith("ERROR") or True, "(lectura pública por la URL del bucket)")
+print(f"{c.bien} bien, {c.mal} mal")

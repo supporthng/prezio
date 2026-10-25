@@ -4,7 +4,18 @@ import { EntradaMarco } from "@/components/EntradaMarco";
 import { usuarioActual } from "@/lib/supabase/server";
 import { variablesFaltantes } from "@/lib/supabase/config";
 
-export default async function Inicio() {
+type Props = { searchParams: Promise<{ code?: string; error_description?: string; error_code?: string }> };
+
+export default async function Inicio({ searchParams }: Props) {
+  // Enlaces de los correos de Supabase que caen en la página de inicio (Site URL): se completan aquí.
+  const { code, error_description: errorDesc, error_code: errorCodigo } = await searchParams;
+  if (code) redirect(`/auth/confirm?code=${encodeURIComponent(code)}`);
+  if (errorDesc || errorCodigo) {
+    const vencido = errorCodigo === "otp_expired" || /expired|invalid/i.test(errorDesc ?? "");
+    redirect(`/entrar?error=${encodeURIComponent(vencido
+      ? "El enlace del correo venció o ya se usó. Entra con tu clave o pide uno nuevo en «¿Olvidaste tu clave?»."
+      : "No se pudo completar desde el correo. Intenta de nuevo.")}`);
+  }
   const faltan = variablesFaltantes();
   if (faltan.length) {
     return (

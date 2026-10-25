@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Figtree } from "next/font/google";
 import "./globals.css";
+import "./pantalla.css";
 
 const fuente = Figtree({ subsets: ["latin"], variable: "--fuente", display: "swap" });
 

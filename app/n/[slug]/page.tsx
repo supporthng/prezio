@@ -3,7 +3,8 @@ import { Barra } from "@/components/Barra";
 import { Aviso } from "@/components/Aviso";
 import { supabaseServidor } from "@/lib/supabase/server";
 import { ROLES, sitio } from "@/lib/util";
-import { crearSucursal, invitar, quitarMiembro, renombrarSucursal } from "./actions";
+import { SubNav } from "@/components/SubNav";
+import { cambiarFuente, crearSucursal, invitar, quitarMiembro, renombrarSucursal } from "./actions";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -11,7 +12,7 @@ type Props = {
 };
 
 type Negocio = { id: string; nombre: string; slug: string; plan: string; prueba_hasta: string; moneda: string };
-type Sucursal = { id: string; nombre: string; codigo: string; es_principal: boolean; activa: boolean };
+type Sucursal = { id: string; nombre: string; codigo: string; es_principal: boolean; activa: boolean; fuente: { tipo?: string; inventario_id?: string } };
 type Miembro = { user_id: string; rol: string; sucursal_id: string | null };
 type Perfil = { id: string; nombre: string; correo: string };
 type Invitacion = { id: string; correo: string; rol: string; token: string; expira: string; aceptada: string | null };
@@ -37,14 +38,16 @@ export default async function PanelNegocio({ params, searchParams }: Props) {
   const negocio = fila as Negocio | null;
   if (!negocio) notFound();
 
-  const [{ data: sucursales }, { data: miembros }, { data: perfiles }, { data: invitaciones }] = await Promise.all([
-    supabase.from("sucursales").select("id, nombre, codigo, es_principal, activa").eq("negocio_id", negocio.id)
+  const [{ data: sucursales }, { data: miembros }, { data: perfiles }, { data: invitaciones }, { data: inventarios }] = await Promise.all([
+    supabase.from("sucursales").select("id, nombre, codigo, es_principal, activa, fuente").eq("negocio_id", negocio.id)
       .order("es_principal", { ascending: false }).order("nombre"),
     supabase.from("miembros").select("user_id, rol, sucursal_id").eq("negocio_id", negocio.id),
     supabase.from("perfiles").select("id, nombre, correo"),
     supabase.from("invitaciones").select("id, correo, rol, token, expira, aceptada").eq("negocio_id", negocio.id)
       .is("aceptada", null).gt("expira", new Date().toISOString()).order("creada", { ascending: false }),
+    supabase.from("inventarios").select("id, nombre").eq("negocio_id", negocio.id).order("nombre"),
   ]);
+  const losInventarios = (inventarios ?? []) as { id: string; nombre: string }[];
   const lasSucursales = (sucursales ?? []) as Sucursal[];
   const losMiembros = (miembros ?? []) as Miembro[];
   const quien = new Map(((perfiles ?? []) as Perfil[]).map((p) => [p.id, p]));
@@ -68,8 +71,15 @@ export default async function PanelNegocio({ params, searchParams }: Props) {
           )}
         </div>
         <p className="quieto">Tu rol: {ROLES[miRol] ?? miRol}</p>
+        <SubNav slug={negocio.slug} activa="resumen" />
 
-        <section id="sucursales" className="tarjeta" style={{ marginTop: 24 }}>
+        {losInventarios.length === 0 && administra && (
+          <p className="aviso bien">
+            Siguiente paso: carga tus precios en <a href={`/n/${negocio.slug}/inventarios`}>Inventarios</a> y elige aquí de
+            qué inventario toma los precios cada sucursal.
+          </p>
+        )}
+        <section id="sucursales" className="tarjeta">
           <h2>Sucursales</h2>
           <ul className="lista">
             {lasSucursales.map((s) => (
@@ -88,6 +98,27 @@ export default async function PanelNegocio({ params, searchParams }: Props) {
                   </form>
                 ) : (
                   <span>{s.nombre}</span>
+                )}
+                {(administra || (miRol === "encargado" && losMiembros.find((m) => m.user_id === auth.user!.id)?.sucursal_id === s.id)) ? (
+                  <form action={cambiarFuente} className="fila" style={{ flex: "1 1 260px" }}>
+                    <input type="hidden" name="slug" value={negocio.slug} />
+                    <input type="hidden" name="sucursal" value={s.id} />
+                    <div className="campo" style={{ marginBottom: 0 }}>
+                      <label className="pequeno quieto" htmlFor={`f-${s.id}`}>Precios desde</label>
+                      <select id={`f-${s.id}`} name="fuente"
+                        defaultValue={s.fuente?.tipo === "inventario" ? s.fuente.inventario_id : ""}>
+                        <option value="">{s.es_principal ? "— elige un inventario —" : "Igual que la Principal"}</option>
+                        {losInventarios.map((i) => <option key={i.id} value={i.id}>Inventario: {i.nombre}</option>)}
+                      </select>
+                    </div>
+                    <button className="boton secundario" type="submit">Usar</button>
+                  </form>
+                ) : (
+                  <span className="pequeno quieto">
+                    {s.fuente?.tipo === "inventario"
+                      ? `Precios: ${losInventarios.find((i) => i.id === s.fuente.inventario_id)?.nombre ?? "—"}`
+                      : s.es_principal ? "Sin inventario" : "Igual que la Principal"}
+                  </span>
                 )}
               </li>
             ))}
@@ -193,12 +224,6 @@ export default async function PanelNegocio({ params, searchParams }: Props) {
           )}
         </section>
 
-        <section className="tarjeta" style={{ marginTop: 24 }}>
-          <h2>Próximamente en tu panel</h2>
-          <p className="quieto" style={{ marginBottom: 0 }}>
-            Inventarios desde Excel, fuente de precios por sucursal, apariencia de la pantalla y el verificador en línea.
-          </p>
-        </section>
       </main>
     </>
   );

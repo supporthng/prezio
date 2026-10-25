@@ -67,3 +67,16 @@ export async function crearSucursal(datos: FormData) {
   revalidatePath(`/n/${slug}`);
   redirect(`/n/${slug}?bien=${encodeURIComponent(`Sucursal «${nombre}» creada.`)}#sucursales`);
 }
+
+export async function cambiarFuente(datos: FormData) {
+  const slug = campo(datos, "slug");
+  const inventario = campo(datos, "fuente");
+  const supabase = await supabaseServidor();
+  const { error } = await supabase
+    .from("sucursales")
+    .update({ fuente: inventario ? { tipo: "inventario", inventario_id: inventario } : {} })
+    .eq("id", campo(datos, "sucursal"));
+  if (error) redirect(`/n/${slug}?error=${encodeURIComponent(mensajeError(error))}#sucursales`);
+  revalidatePath(`/n/${slug}`);
+  redirect(`/n/${slug}?bien=${encodeURIComponent("Fuente de precios guardada.")}#sucursales`);
+}

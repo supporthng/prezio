@@ -4,7 +4,7 @@ import { SUPABASE_KEY, SUPABASE_URL, variablesFaltantes } from "./config";
 
 type CookieNueva = { name: string; value: string; options: CookieOptions };
 
-const PRIVADAS = ["/negocios", "/n/"];
+const PRIVADAS = ["/negocios", "/n/", "/v/"];
 
 /** Renueva la sesión en cada pedido y manda a /entrar a quien entra sin sesión a una página privada. */
 export async function actualizarSesion(request: NextRequest) {
