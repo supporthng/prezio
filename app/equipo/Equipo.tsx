@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Pantalla, type EstadoPantalla } from "@/components/Pantalla";
 import { Autorizar } from "./Autorizar";
+import { appNativa, TEXTO_ACTUALIZACION, type AppNativa } from "@/lib/app";
+import { claveCorrecta } from "@/lib/salida";
 import { normalizar } from "@/lib/apariencia";
 import { variantes } from "@/lib/codigos";
 import {
@@ -27,6 +29,11 @@ export function Equipo({ sitio }: { sitio: string }) {
   const [enLinea, setEnLinea] = useState(true);
   const [aviso, setAviso] = useState("");
   const [autorizar, setAutorizar] = useState(false);
+  const [nativa, setNativa] = useState<{ app: AppNativa; version: string } | null>(null);
+  const [avisoApp, setAvisoApp] = useState("");
+  const [pidiendoSalida, setPidiendoSalida] = useState(false);
+  const [claveSalida, setClaveSalida] = useState("");
+  const [errorSalida, setErrorSalida] = useState("");
   const [menu, setMenu] = useState<null | { productos: number; pendientes: number; sincronizado: string | null }>(null);
 
   const clave = useRef("");
@@ -38,6 +45,7 @@ export function Equipo({ sitio }: { sitio: string }) {
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
   const vez = useRef(0);
   const dialogo = useRef<HTMLDialogElement>(null);
+  const textoApp = useRef(APP_EQUIPO);
 
   const cambiarFase = (f: Fase) => { faseRef.current = f; setFase(f); };
 
@@ -74,7 +82,7 @@ export function Equipo({ sitio }: { sitio: string }) {
     try {
       const pendientes = await contarPendientes().catch(() => 0);
       const nuevo = await llamar<InfoEquipo>("equipo_estado", {
-        p_clave: clave.current, p_app: APP_EQUIPO, p_productos: productos.current.size,
+        p_clave: clave.current, p_app: textoApp.current, p_productos: productos.current.size,
         p_pendientes: pendientes, p_version: version.current,
       });
       setEnLinea(true);
@@ -154,6 +162,41 @@ export function Equipo({ sitio }: { sitio: string }) {
       listo.active?.postMessage({ tipo: "guardar", urls: ["/equipo", "/manifest.webmanifest", ...propios] });
     }).catch(() => {});
   }, []);
+
+  // ¿Corre dentro de la app Prezio de Android o Windows? (Windows avisa cuando su puente está listo.)
+  useEffect(() => {
+    const detectar = async () => {
+      const app = appNativa();
+      if (!app) return;
+      const version = await app.version();
+      textoApp.current = `${app.plataforma} ${version} · ${APP_EQUIPO}`;
+      setNativa({ app, version });
+    };
+    void detectar();
+    window.addEventListener("pywebviewready", detectar);
+    let ocultar: ReturnType<typeof setTimeout> | undefined;
+    (window as unknown as { __prezioActualizacion?: (e: string) => void }).__prezioActualizacion = (e: string) => {
+      setAvisoApp(TEXTO_ACTUALIZACION[e] ?? "");
+      if (ocultar) clearTimeout(ocultar);
+      ocultar = setTimeout(() => setAvisoApp(""), e === "instalando" || e === "descargando" ? 120000 : 8000);
+    };
+    return () => window.removeEventListener("pywebviewready", detectar);
+  }, []);
+
+  async function salirDeLaApp(e: React.FormEvent) {
+    e.preventDefault();
+    const s = info?.salida;
+    if (!s || !nativa) return;
+    setErrorSalida("");
+    if (await claveCorrecta(claveSalida, s).catch(() => false)) {
+      setClaveSalida(""); setPidiendoSalida(false);
+      dialogo.current?.close();
+      nativa.app.salir();
+    } else {
+      setErrorSalida("Clave incorrecta.");
+      setClaveSalida("");
+    }
+  }
 
   // ---------------------------------------------------------------- lector
   const enfocar = useCallback(() => {
@@ -264,7 +307,8 @@ export function Equipo({ sitio }: { sitio: string }) {
           {enLinea ? "ⓘ" : <span className="equipo-sin-red" aria-label="Sin internet">⚠</span>}
         </button>
       </div>
-      <dialog ref={dialogo} className="equipo-menu" onClose={() => { setMenu(null); entrada.current?.focus({ preventScroll: true }); }}
+      {avisoApp && <p className="equipo-aviso-app" role="status">{avisoApp}</p>}
+      <dialog ref={dialogo} className="equipo-menu" onClose={() => { setMenu(null); setPidiendoSalida(false); setClaveSalida(""); entrada.current?.focus({ preventScroll: true }); }}
         onClick={(e) => e.stopPropagation()}>
         {menu && info && (
           <>
@@ -276,13 +320,39 @@ export function Equipo({ sitio }: { sitio: string }) {
               <dt>Internet</dt><dd>{enLinea ? "Conectado" : "Sin conexión: sigue funcionando con los precios guardados"}</dd>
               <dt>Última revisión</dt><dd>{formatoFecha(menu.sincronizado)}</dd>
               <dt>Consultas por subir</dt><dd>{menu.pendientes.toLocaleString("es-DO")}</dd>
+              {nativa && <><dt>App</dt><dd>Prezio para {nativa.app.plataforma === "android" ? "Android" : "Windows"} {nativa.version}</dd></>}
             </dl>
             <div className="fila">
               <button className="boton" type="button" onClick={async () => { await sincronizar(); await abrirMenu(); }}>Buscar precios nuevos</button>
               <button className="boton secundario" type="button"
                 onClick={() => { void document.documentElement.requestFullscreen?.().catch(() => {}); }}>Pantalla completa</button>
+              {nativa && (
+                <button className="boton secundario" type="button" onClick={() => nativa.app.buscarActualizacion()}>Actualizar la app</button>
+              )}
               <button className="boton secundario" type="button" onClick={() => dialogo.current?.close()}>Cerrar</button>
             </div>
+            {nativa && (
+              pidiendoSalida ? (
+                info.salida ? (
+                  <form className="fila equipo-salida" onSubmit={salirDeLaApp}>
+                    <div className="campo" style={{ marginBottom: 0 }}>
+                      <label htmlFor="clave-salida">Clave de salida</label>
+                      <input id="clave-salida" type="password" inputMode="numeric" autoComplete="off" autoFocus
+                        value={claveSalida} onChange={(e) => setClaveSalida(e.target.value)} />
+                    </div>
+                    <button className="boton" type="submit" disabled={!claveSalida}>Salir</button>
+                    {errorSalida && <p className="error-campo" role="alert" style={{ flexBasis: "100%" }}>{errorSalida}</p>}
+                  </form>
+                ) : (
+                  <p className="aviso error" style={{ marginBottom: 12 }}>
+                    Este negocio no tiene clave de salida. Ponla en Prezio › Equipos y toca «Buscar precios nuevos».
+                  </p>
+                )
+              ) : (
+                <button className="boton secundario peligro" type="button" style={{ marginBottom: 12 }}
+                  onClick={() => { setPidiendoSalida(true); setErrorSalida(""); }}>Salir de la app</button>
+              )
+            )}
             <p className="quieto pequeno" style={{ marginBottom: 0 }}>
               Para cambiar la sucursal o desvincular este equipo, entra a Prezio › Equipos.
             </p>

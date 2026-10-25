@@ -11,7 +11,9 @@ export type InfoEquipo = {
   sucursal: { id: string; nombre: string; codigo: string };
   version: string;
   hora: string;
+  salida?: Salida | null;
 };
+export type Salida = { sal: string; iter: number; hash: string };
 export type Catalogo = { version: string; productos: [string, string, number | string][] };
 export type ConsultaPendiente = { codigo: string; encontrado: boolean; nombre?: string; precio?: number; hora: string };
 

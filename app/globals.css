@@ -264,3 +264,6 @@ input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible
 .equipo-autorizar input, .equipo-autorizar select { width: 100%; }
 .equipo-autorizar .fila { margin-top: 20px; }
 .equipo-error { margin: 14px 0 0; padding: 10px 12px; border-radius: 10px; background: #fef3f2; color: #b42318; font-weight: 600; }
+.equipo-salida { margin-bottom: 12px; }
+.equipo-aviso-app { position: fixed; z-index: 30; left: 50%; top: 16px; transform: translateX(-50%); margin: 0; max-width: calc(100vw - 32px);
+  background: #102a43; color: #fff; padding: 10px 16px; border-radius: 10px; font-weight: 600; box-shadow: 0 10px 30px rgba(16, 42, 67, .3); }

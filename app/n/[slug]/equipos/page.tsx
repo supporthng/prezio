@@ -5,6 +5,10 @@ import { SubNav } from "@/components/SubNav";
 import { cargarNegocio } from "@/lib/negocio";
 import { sitio } from "@/lib/util";
 import { cambiarEquipo, quitarEquipo, vincularEquipo } from "./actions";
+import { ClaveSalida } from "./ClaveSalida";
+import apps from "@/public/apps.json";
+
+type App = { version: string; url: string; fecha: string };
 
 export const metadata = { title: "Equipos" };
 
@@ -48,6 +52,14 @@ export default async function Equipos({ params, searchParams }: Props) {
     if (typeof data === "string") versiones.set(s.id, data);
   }));
   const direccion = `${sitio() || ""}/equipo`;
+  const { data: sal } = administra
+    ? await supabase.from("negocio_salida").select("cambiada").eq("negocio_id", negocio.id).maybeSingle()
+    : { data: null };
+  const salidaPuesta = (sal as { cambiada: string } | null)?.cambiada ?? null;
+  const descargas: { clave: string; nombre: string; detalle: string; app: App }[] = [
+    { clave: "android", nombre: "Android", detalle: "Tabletas y teléfonos Android 5 o más nuevo (APK).", app: apps.android },
+    { clave: "windows", nombre: "Windows", detalle: "PC o pantalla con Windows 10 u 11 (instalador).", app: apps.windows },
+  ];
 
   return (
     <>
@@ -143,6 +155,27 @@ export default async function Equipos({ params, searchParams }: Props) {
                 </ul>
               )}
             </section>
+            <section className="tarjeta" aria-labelledby="t-apps" style={{ marginTop: 20 }}>
+              <h2 id="t-apps">Apps Prezio</h2>
+              <p className="quieto" style={{ marginTop: 0 }}>
+                Abren el verificador a pantalla completa, arrancan solas al encender el equipo, no dejan salir sin la
+                clave y se actualizan solas. Sin la app también funciona desde el navegador.
+              </p>
+              <ul className="lista">
+                {descargas.map((d) => (
+                  <li key={d.clave}>
+                    <div style={{ flex: "1 1 240px" }}>
+                      <p style={{ margin: "0 0 2px", fontWeight: 650 }}>{d.nombre}{d.app.version && <span className="quieto"> · versión {d.app.version}</span>}</p>
+                      <p className="quieto pequeno" style={{ margin: 0 }}>{d.detalle}{d.app.fecha && ` Publicada ${new Date(d.app.fecha).toLocaleDateString("es-DO")}.`}</p>
+                    </div>
+                    {d.app.url
+                      ? <a className="boton" href={d.app.url}>Descargar</a>
+                      : <span className="quieto pequeno">Todavía no se ha publicado</span>}
+                  </li>
+                ))}
+              </ul>
+            </section>
+            {administra && <ClaveSalida negocioId={negocio.id} puesta={salidaPuesta} />}
             <p className="quieto pequeno">
               ¿Prefieres probar sin vincular? El <Link href={`/v/${slug}`}>verificador en línea</Link> funciona con tu cuenta,
               pero necesita internet en cada consulta.

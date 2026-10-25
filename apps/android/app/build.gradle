@@ -1,0 +1,50 @@
+plugins {
+    id 'com.android.application'
+}
+
+// Firma: GitHub Actions deja la llave en ANDROID_KEYSTORE_PATH (desde el secreto ANDROID_KEYSTORE_B64).
+// Con la MISMA llave siempre, cada APK nuevo se instala encima del anterior sin borrar los precios guardados.
+def keystorePath = System.getenv("ANDROID_KEYSTORE_PATH")
+def sitio = System.getenv("PREZIO_SITIO") ?: "https://prezio-jade.vercel.app"
+def descargas = System.getenv("PREZIO_DESCARGAS") ?: "https://github.com/supporthng/prezio/releases/download/"
+def codigo = (System.getenv("VERSION_CODE") ?: "1").toInteger()
+
+android {
+    namespace 'com.prezio.verificador'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.prezio.verificador'
+        minSdk 21
+        targetSdk 34
+        versionCode codigo
+        versionName "1.0.${codigo}"
+        buildConfigField "String", "SITIO", "\"${sitio}\""
+        buildConfigField "String", "ORIGEN_DESCARGAS", "\"${descargas}\""
+    }
+
+    buildFeatures { buildConfig true }
+
+    signingConfigs {
+        release {
+            if (keystorePath) {
+                storeFile file(keystorePath)
+                storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias(System.getenv("ANDROID_KEY_ALIAS") ?: "prezio")
+                keyPassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (keystorePath) { signingConfig signingConfigs.release }
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
