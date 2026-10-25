@@ -20,6 +20,7 @@ def sql(quien, consulta):
     return False, (errores[-1] if errores else lineas[-1] if lineas else "")
 def ok(c, m):
     global bien, mal
+    c = bool(c)
     bien += c; mal += not c
     print(("✅ " if c else "❌ ") + m)
 def puede(quien, q): return sql(quien, q)[0]

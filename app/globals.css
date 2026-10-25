@@ -234,3 +234,17 @@ input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible
 .equipo-menu dd { margin: 0; font-weight: 600; }
 .equipo-menu .fila { margin-bottom: 14px; }
 .equipo-sin-red { color: #b42318; font-weight: 800; }
+
+/* ---------- fuentes automáticas */
+.error-campo { color: var(--error); font-size: .9rem; margin: 8px 0 0; }
+.origen { display: inline-block; font-size: .8rem; font-weight: 650; padding: 2px 8px; border-radius: 999px;
+  background: var(--superficie); color: var(--tinta-2); white-space: nowrap; }
+.origen.google { background: #e8f3ec; color: #1f6b43; }
+.origen.conector { background: #e8eef7; color: #24487a; }
+.origen-estado { display: block; margin-top: 4px; }
+.origen-estado.error { color: var(--error); }
+.clave-una-vez { border: 2px solid var(--etiqueta-borde); background: #fffbea; border-radius: var(--radio); padding: 16px; margin-bottom: 16px; }
+.clave-texto { font-size: .95rem; padding: 8px 10px; background: var(--papel); border: 1px solid var(--linea); border-radius: 8px;
+  word-break: break-all; flex: 1 1 260px; user-select: all; }
+.ajustes-fuente > summary { cursor: pointer; color: var(--tinta-2); font-size: .9rem; }
+.ajustes-fuente form { margin-top: 10px; }

@@ -1,0 +1,2 @@
+pyodbc>=5.1,<6
+pyinstaller>=6.0,<7

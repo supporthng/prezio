@@ -40,12 +40,32 @@ y pone verificadores en sus sucursales, que funcionan aun sin internet.
 - Se puede instalar como app (pantalla completa) desde el navegador: `public/manifest.webmanifest` y `public/sw.js`.
 - Requiere ejecutar **`supabase/migrations/0003_equipos.sql`**.
 
+## Etapa 3 · parte 2: inventarios que se llenan solos
+
+En **Inventarios**, además de cargar Excel, un inventario puede llenarse solo:
+
+- **Desde Google**: una hoja de Google, una hoja «publicada en la web» o un Excel/CSV guardado en Drive,
+  compartido como «Cualquier persona con el enlace · Lector». Se revisa la hoja, se eligen las columnas (se
+  recuerdan por su nombre, así que mover columnas no rompe nada) y cada cuánto se actualiza (15 min a 1 día).
+  También hay **Actualizar ahora**. Si la hoja falla o llega vacía, se anota el error y se quedan los precios
+  anteriores.
+  - Lo hace una tarea de Supabase cada 15 minutos (`pg_cron` + `pg_net`) que llama a `/api/tareas/google`
+    con una clave interna que solo conoce la base. **Vercel no necesita ninguna clave secreta.**
+- **Conector de SQL Server** (`conector/prezio_conector.py`, compilado como `PrezioConector.exe` por
+  `.github/workflows/conector.yml`): en el panel se crea el conector y se copia su clave (se ve una sola vez);
+  en la PC del sistema se abre el programa, se pega la clave, se elige servidor, base, tabla y columnas.
+  Envía solo cuando cambian los precios, en partes, y el panel muestra si está conectado y su último error.
+  Habla solo con `/api/conector` de Prezio; si se pierde la PC, se quita el conector y su clave deja de servir.
+- Los equipos sin internet reciben los precios nuevos en su próxima revisión, como con Excel.
+- Requiere ejecutar **`supabase/migrations/0004_fuentes_automaticas.sql`**. Si al final dice que no pudo
+  programar la tarea, activa `pg_cron` y `pg_net` en Supabase › Database › Extensions y ejecútalo otra vez.
+
 ## Puesta en marcha
 
 ### 1. Supabase (proyecto nuevo, solo para Prezio)
 
 1. En [supabase.com](https://supabase.com) crea un proyecto **nuevo** (no uses el del sistema actual).
-2. **SQL Editor** › ejecuta, en orden, `supabase/migrations/0001_base.sql`, `0002_precios_y_apariencia.sql` y `0003_equipos.sql`.
+2. **SQL Editor** › ejecuta, en orden, `supabase/migrations/0001_base.sql`, `0002_precios_y_apariencia.sql`, `0003_equipos.sql` y `0004_fuentes_automaticas.sql`.
 3. **Authentication › URL Configuration**:
    - *Site URL*: la dirección de Vercel (por ejemplo `https://prezio.vercel.app`).
    - *Redirect URLs*: agrega `https://prezio.vercel.app/**` (y `http://localhost:3000/**` si trabajas en tu PC).
@@ -73,8 +93,8 @@ y pone verificadores en sus sucursales, que funcionan aun sin internet.
 - El navegador y el servidor usan solo la clave **pública**; lo que cada usuario puede ver lo deciden las reglas
   de la base de datos (RLS), no la app.
 - El plan y la suscripción no los puede cambiar un cliente (solo Prezio con la clave de servidor).
-- `supabase/tests/aislamiento.py` (49 pruebas), `precios.py` (17) y `equipos.py` (50) prueban en PostgreSQL que los negocios no se ven
-  entre sí, los permisos por rol, la consulta de precios por sucursal, los permisos del logo/QR y los equipos (vincular, mover, quitar, subir consultas).
+- `supabase/tests/aislamiento.py` (49 pruebas), `precios.py` (17), `equipos.py` (50) y `fuentes.py` (45) prueban en PostgreSQL que los negocios no se ven
+  entre sí, los permisos por rol, la consulta de precios por sucursal, los permisos del logo/QR y los equipos (vincular, mover, quitar, subir consultas) y las fuentes automáticas (Google, conector, cargas por partes).
 
 ## Trabajar en tu PC (opcional)
 
