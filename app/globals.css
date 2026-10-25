@@ -483,3 +483,11 @@ input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible
 .plat-buscar, .plat-plan { display: flex; gap: 8px; align-items: center; flex-wrap: nowrap; }
 .plat-buscar input { width: min(320px, 60vw); min-width: 0; }
 .plat-plan select { width: auto; }
+
+/* ---------- código del negocio (Resumen) */
+.codigo-negocio { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; margin: 4px 0 18px; padding: 12px 16px;
+  border: 1px dashed var(--linea); border-radius: 12px; background: var(--papel); }
+.codigo-negocio > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.codigo-negocio-etq { font-size: .8rem; color: var(--gris); font-weight: 600; }
+.codigo-negocio code { font-size: 1.35rem; font-weight: 700; letter-spacing: .02em; overflow-wrap: anywhere; color: var(--tinta); background: none; padding: 0; }
+.codigo-negocio p { flex-basis: 100%; margin: 0; }

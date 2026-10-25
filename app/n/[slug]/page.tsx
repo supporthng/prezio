@@ -5,6 +5,7 @@ import { supabaseServidor } from "@/lib/supabase/server";
 import { ROLES, sitio } from "@/lib/util";
 import { PERMISOS, resumenPermisos } from "@/lib/permisos";
 import { SubNav } from "@/components/SubNav";
+import { CodigoNegocio } from "@/components/CodigoNegocio";
 import { Reporte, type Resumen } from "./Reporte";
 import { invitar, quitarMiembro } from "./actions";
 
@@ -86,6 +87,7 @@ export default async function PanelNegocio({ params, searchParams }: Props) {
           )}
         </div>
         <p className="quieto">Tus permisos: {resumenPermisos(miRol, misPermisos, miAlcance, nombreSucursal)}</p>
+        <CodigoNegocio codigo={negocio.slug} />
         <SubNav slug={negocio.slug} activa="resumen" />
 
         {losInventarios.length === 0 && puede("inventarios") && (
