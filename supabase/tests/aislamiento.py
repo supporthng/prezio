@@ -1,26 +1,8 @@
-import subprocess, json
-U = {"ana": "00000000-0000-0000-0000-00000000000a", "beto": "00000000-0000-0000-0000-00000000000b",
-     "carla": "00000000-0000-0000-0000-00000000000c", "dani": "00000000-0000-0000-0000-00000000000d",
-     "eva": "00000000-0000-0000-0000-00000000000e"}
-MAIL = {"ana": "ana@a.com", "beto": "beto@b.com", "carla": "carla@a.com", "dani": "dani@a.com", "eva": "eva@x.com"}
-bien = mal = 0
-def sql(quien, consulta):
-    pre = ""
-    if quien:
-        pre = (f"set role authenticated; select set_config('request.jwt.claim.sub', '{U[quien]}', false), "
-               f"set_config('request.jwt.claims', '{json.dumps({'sub': U[quien], 'email': MAIL[quien]})}', false) \\g /dev/null\n")
-    elif quien is None:
-        pre = "set role anon;\n"
-    p = subprocess.run(["su", "postgres", "-c", "psql -h /var/lib/postgresql -p 5499 -d prezio -At -q -v ON_ERROR_STOP=1"],
-                       input=pre + consulta, capture_output=True, text=True)
-    return p.returncode == 0, (p.stdout.strip() if p.returncode == 0 else p.stderr.strip().splitlines()[-1] if p.stderr.strip() else "")
-def ok(c, m):
-    global bien, mal
-    bien += c; mal += not c
-    print(("✅ " if c else "❌ ") + m)
-def puede(quien, q): return sql(quien, q)[0]
-def valor(quien, q):
-    r, v = sql(quien, q); return v if r else "ERROR: " + v
+"""Etapa 1: negocios separados entre sí (RLS), roles e invitaciones. Correr primero, en una base recién creada."""
+import json, os, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _comun import *   # noqa: F401,F403  (sql, valor, puede, ok, U, MAIL) — misma conexión en local y en GitHub
+import _comun as c
 
 A = valor("ana", "select public.crear_negocio('Supermercado Abarrotao');")
 B = valor("beto", "select public.crear_negocio('Farmacia Beto');")
@@ -80,11 +62,11 @@ ok(puede("ana", f"select public.quitar_miembro('{A}', '{U['carla']}');") and val
 for i in range(4): valor("eva", f"select public.crear_negocio('Negocio {i}');")
 ok(valor("eva", "select public.crear_negocio('Quinto');") != "" and not puede("eva", "select public.crear_negocio('Sexto');"), "máximo 5 negocios por cuenta")
 ok(valor("ana", "select public.crear_negocio('Ñandú Ácido');").startswith("ERROR") is False and valor("ana", "select slug from negocios where nombre = 'Ñandú Ácido'") == "nandu-acido", "slug sin acentos")
-print(f"{bien} bien, {mal} mal")
+print(f"{c.bien} bien, {c.mal} mal")
 # Perfiles
 ok(valor("ana", "select count(*) from perfiles") == "2", "Ana ve su perfil y el de Dani (comparten negocio), no los demás")
 ok(valor("beto", "select correo from perfiles") == "beto@b.com", "Beto solo ve su propio perfil")
 ok(puede("ana", "update perfiles set nombre = 'Ana Pérez' where id = auth.uid();") and valor("ana", "select nombre from perfiles where id = auth.uid()") == "Ana Pérez", "cada uno cambia su nombre")
 ok(valor("ana", f"update perfiles set nombre = 'x' where id = '{U['dani']}' returning id;") == "", "no se cambia el nombre de otro")
 ok(not puede("ana", "update perfiles set correo = 'x@x.com' where id = auth.uid();"), "el correo no se cambia desde la app")
-print(f"{bien} bien, {mal} mal")
+print(f"{c.bien} bien, {c.mal} mal")
