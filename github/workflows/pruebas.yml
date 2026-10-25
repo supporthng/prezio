@@ -1,0 +1,63 @@
+name: Pruebas
+# Antes de que Vercel publique: prueba la base de datos (permisos entre negocios, precios, equipos, fuentes,
+# clave de salida, reportes) en un PostgreSQL limpio, y revisa y compila la web con las herramientas reales.
+on:
+  push:
+    branches: [main]
+    paths-ignore: ["public/apps.json", "apps/**", "conector/**"]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  base-de-datos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_PASSWORD: pruebas }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGPASSWORD: pruebas
+      PREZIO_PSQL: psql postgresql://postgres:pruebas@localhost:5432/prezio
+    steps:
+      - uses: actions/checkout@v4
+      - name: "Crear la base y ejecutar las migraciones (dos veces: deben poder repetirse)"
+        run: |
+          psql postgresql://postgres:pruebas@localhost:5432/postgres -q -v ON_ERROR_STOP=1 -f supabase/tests/stub.sql
+          for i in 1 2; do
+            for f in supabase/migrations/*.sql; do
+              psql "postgresql://postgres:pruebas@localhost:5432/prezio" -q -v ON_ERROR_STOP=1 -f "$f"
+            done
+          done
+          psql "postgresql://postgres:pruebas@localhost:5432/prezio" -q -v ON_ERROR_STOP=1 -f supabase/tests/usuarios.sql
+      - name: Pruebas
+        run: |
+          fallas=0
+          for t in aislamiento precios equipos fuentes salida reporte; do
+            echo "::group::$t"
+            python3 supabase/tests/$t.py | tee /tmp/$t.txt
+            echo "::endgroup::"
+            tail -1 /tmp/$t.txt | grep -q ", 0 mal" || { echo "::error::Fallan pruebas en $t: $(tail -1 /tmp/$t.txt)"; fallas=1; }
+          done
+          exit $fallas
+
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - run: npm install --no-audit --no-fund
+      - name: Compilar como en Vercel (también revisa los tipos)
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://ejemplo.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_prueba
+          NEXT_PUBLIC_SITE_URL: https://prezio-jade.vercel.app
+        run: npm run build
+      - name: Revisar tipos de todo el proyecto
+        run: npm run typecheck
