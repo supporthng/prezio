@@ -1,0 +1,75 @@
+name: App Android
+# Compila Prezio.apk (verificador tipo quiosco que abre /equipo), lo publica en Releases › «android»
+# y anota la versión en public/apps.json: los equipos con la app la ven y se actualizan solos.
+# Firma: secretos ANDROID_KEYSTORE_B64 y ANDROID_KEYSTORE_PASSWORD (Settings › Secrets and variables › Actions).
+# Sin ellos se genera un APK de PRUEBA (no se publica ni se puede actualizar encima).
+# Opcional: variable PREZIO_SITIO (Settings › Variables) si Prezio usa otro dominio.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["apps/android/**", ".github/workflows/app-android.yml"]
+permissions:
+  contents: write
+concurrency: { group: apps-json, cancel-in-progress: false }
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: "8.9" }
+      - name: Llave de firma
+        env:
+          KS: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KS" ]; then
+            echo "$KS" | base64 -d > "$RUNNER_TEMP/firma.jks"
+            echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/firma.jks" >> "$GITHUB_ENV"
+          else
+            echo "::warning::Falta el secreto ANDROID_KEYSTORE_B64: se genera un APK de PRUEBA."
+          fi
+      - name: Compilar
+        working-directory: apps/android
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          VERSION_CODE: ${{ github.run_number }}
+          PREZIO_SITIO: ${{ vars.PREZIO_SITIO }}
+          PREZIO_DESCARGAS: https://github.com/${{ github.repository }}/releases/download/
+        run: |
+          [ -n "$PREZIO_SITIO" ] || unset PREZIO_SITIO
+          if [ -n "$ANDROID_KEYSTORE_PATH" ]; then
+            gradle --no-daemon assembleRelease
+            cp app/build/outputs/apk/release/app-release.apk ../../Prezio.apk
+          else
+            gradle --no-daemon assembleDebug
+            cp app/build/outputs/apk/debug/app-debug.apk ../../Prezio-PRUEBA.apk
+          fi
+      - uses: actions/upload-artifact@v4
+        with: { name: Prezio-Android, path: "Prezio*.apk" }
+      - name: Publicar y anotar la versión
+        if: env.ANDROID_KEYSTORE_PATH != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view android >/dev/null 2>&1 || gh release create android --title "Prezio para Android" --notes "Se descarga desde Prezio › Equipos." --latest=false
+          gh release upload android Prezio.apk --clobber
+          URL="https://github.com/${{ github.repository }}/releases/download/android/Prezio.apk"
+          for intento in 1 2 3; do
+            git pull --rebase --quiet origin main
+            python3 - "$URL" "${{ github.run_number }}" <<'PY'
+          import json, sys, datetime
+          p = "public/apps.json"
+          d = json.load(open(p))
+          d["android"] = {"version": f"1.0.{sys.argv[2]}", "codigo": int(sys.argv[2]), "url": sys.argv[1],
+                          "fecha": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")}
+          open(p, "w", encoding="utf-8").write(json.dumps(d, indent=2, ensure_ascii=False) + "\n")
+          PY
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -qam "App Android 1.0.${{ github.run_number }} publicada" && git push --quiet origin HEAD:main && break
+            sleep 5
+          done
