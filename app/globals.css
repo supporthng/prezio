@@ -1,0 +1,140 @@
+/* Prezio · estilos base. Tinta azul pizarra + el amarillo de la etiqueta de góndola como único acento. */
+:root {
+  --tinta: #102a43;
+  --tinta-2: #243b53;
+  --gris: #5b6b7c;
+  --linea: #dde3ea;
+  --superficie: #f2f5f8;
+  --papel: #ffffff;
+  --etiqueta: #ffd23f;
+  --etiqueta-borde: #e6b800;
+  --error: #b42318;
+  --error-fondo: #fef3f2;
+  --bien: #1f7a4d;
+  --bien-fondo: #ecfdf3;
+  --radio: 10px;
+  --sombra-foco: 0 0 0 3px rgba(16, 42, 67, 0.25);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --tinta: #e8eef5;
+    --tinta-2: #c9d4e0;
+    --gris: #9aabbd;
+    --linea: #2a3a4c;
+    --superficie: #15212e;
+    --papel: #0d1722;
+    --error: #ff8a7a;
+    --error-fondo: #2a1514;
+    --bien: #6fd3a0;
+    --bien-fondo: #10261b;
+    --sombra-foco: 0 0 0 3px rgba(255, 210, 63, 0.35);
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--papel);
+  color: var(--tinta);
+  font-family: var(--fuente), system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; }
+h1, h2, h3 { line-height: 1.15; letter-spacing: -0.02em; margin: 0 0 0.5em; }
+h1 { font-size: clamp(1.6rem, 3vw, 2.1rem); font-weight: 700; }
+h2 { font-size: 1.2rem; font-weight: 650; }
+p { margin: 0 0 1em; }
+.quieto { color: var(--gris); }
+.pequeno { font-size: 0.875rem; }
+
+/* ---------- formularios */
+label { display: block; font-weight: 600; font-size: 0.9rem; margin: 0 0 6px; }
+input, select {
+  width: 100%;
+  font: inherit;
+  color: var(--tinta);
+  background: var(--papel);
+  border: 1px solid var(--linea);
+  border-radius: var(--radio);
+  padding: 11px 12px;
+  min-height: 46px;
+}
+input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible {
+  outline: none;
+  box-shadow: var(--sombra-foco);
+}
+.campo { margin-bottom: 16px; }
+.boton {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  font: inherit; font-weight: 650;
+  border-radius: var(--radio);
+  padding: 11px 18px;
+  border: 1px solid var(--tinta);
+  background: var(--tinta);
+  color: var(--papel);
+  cursor: pointer;
+  text-decoration: none;
+}
+.boton.secundario { background: transparent; color: var(--tinta); border-color: var(--linea); }
+.boton.ancho { width: 100%; }
+.boton:hover { filter: brightness(1.08); }
+.aviso { border-radius: var(--radio); padding: 12px 14px; margin-bottom: 16px; font-size: 0.95rem; }
+.aviso.error { background: var(--error-fondo); color: var(--error); }
+.aviso.bien { background: var(--bien-fondo); color: var(--bien); }
+
+/* ---------- entrada (páginas de cuenta) */
+.entrada { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.entrada-marca {
+  background: #102a43; color: #f2f5f8;
+  padding: clamp(24px, 5vw, 56px);
+  display: flex; flex-direction: column; justify-content: space-between; gap: 32px;
+}
+.entrada-marca .lema { font-size: 1.05rem; max-width: 30ch; color: #c9d4e0; }
+.entrada-form { padding: clamp(24px, 6vw, 72px); display: flex; align-items: center; }
+.entrada-form > div { width: 100%; max-width: 380px; }
+@media (max-width: 760px) {
+  .entrada { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  .entrada-marca { min-height: auto; gap: 12px; padding: 20px 16px; }
+  .entrada-marca .lema { font-size: 0.95rem; margin: 0; }
+  .entrada-form { align-items: flex-start; padding: 28px 16px; }
+  .entrada-marca .muestra { display: none; }
+}
+
+/* La etiqueta de góndola: el elemento característico de la marca. */
+.muestra {
+  align-self: flex-start;
+  background: var(--etiqueta);
+  color: #102a43;
+  border-radius: 6px;
+  padding: 18px 24px 16px;
+  box-shadow: 0 1px 0 var(--etiqueta-borde);
+  transform: rotate(-2deg);
+}
+.muestra .producto { font-weight: 600; font-size: 0.95rem; }
+.muestra .precio { font-weight: 800; font-size: clamp(2.6rem, 6vw, 4.2rem); letter-spacing: -0.04em; line-height: 1; }
+.muestra .precio small { font-size: 0.4em; font-weight: 700; vertical-align: 0.9em; margin-right: 4px; }
+.muestra .codigo { font-size: 0.8rem; letter-spacing: 0.08em; margin-top: 8px; opacity: 0.75; }
+
+/* ---------- panel */
+.barra {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 14px clamp(16px, 4vw, 32px);
+  border-bottom: 1px solid var(--linea);
+}
+.barra nav { display: flex; align-items: center; gap: 12px; }
+.contenido { max-width: 980px; margin: 0 auto; padding: clamp(20px, 4vw, 40px) 16px 64px; }
+.tarjeta { border: 1px solid var(--linea); border-radius: 14px; padding: 20px; background: var(--papel); }
+.rejilla { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.lista { list-style: none; margin: 0; padding: 0; }
+.lista li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--linea); }
+.lista li:last-child { border-bottom: 0; }
+.chip { display: inline-block; font-size: 0.78rem; font-weight: 650; padding: 3px 10px; border-radius: 999px; background: var(--superficie); color: var(--tinta-2); white-space: nowrap; }
+.chip.etiqueta { background: var(--etiqueta); color: #102a43; }
+.negocio-enlace { display: block; text-decoration: none; }
+.negocio-enlace:hover .tarjeta { border-color: var(--tinta-2); }
+.fila { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+.fila > .campo { flex: 1 1 180px; }
+.copiar { font-family: ui-monospace, monospace; font-size: 0.85rem; word-break: break-all; background: var(--superficie); padding: 10px 12px; border-radius: var(--radio); }
