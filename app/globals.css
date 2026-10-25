@@ -193,6 +193,12 @@ input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible
   color: #3d4b5c; font-size: 17px; display: inline-flex; align-items: center; justify-content: center;
   cursor: pointer; text-decoration: none; padding: 0;
 }
+.verificador-cerrado { position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 12px; background: #102a43; color: #f0f4f8; font-family: system-ui, sans-serif; text-align: center; }
+.verificador-cerrado p { margin: 0; font-size: 1.6rem; font-weight: 700; }
+.verificador-cerrado span { opacity: .75; }
+.verificador-cerrado button { margin-top: 8px; padding: 10px 20px; border-radius: 10px; border: 1px solid #486581;
+  background: transparent; color: inherit; font-size: 1rem; cursor: pointer; }
 .verificador-error { position: fixed; z-index: 20; left: 50%; transform: translateX(-50%); bottom: 16px; margin: 0;
   background: #b42318; color: #fff; padding: 10px 16px; border-radius: 10px; font-weight: 600; }
 

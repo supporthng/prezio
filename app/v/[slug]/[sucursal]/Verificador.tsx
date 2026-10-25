@@ -14,6 +14,7 @@ type Respuesta = { encontrado: boolean; codigo: string; nombre?: string; precio?
 export function Verificador({ sucursalId, sucursal, negocio, slug, apariencia, moneda }: Props) {
   const [estado, setEstado] = useState<EstadoPantalla>({ tipo: "espera" });
   const [error, setError] = useState("");
+  const [cerrado, setCerrado] = useState(false);
   const entrada = useRef<HTMLInputElement>(null);
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
   const vez = useRef(0);
@@ -30,6 +31,15 @@ export function Verificador({ sucursalId, sucursal, negocio, slug, apariencia, m
     if (temporizador.current) clearTimeout(temporizador.current);
     temporizador.current = setTimeout(() => setEstado({ tipo: "espera" }), segundos * 1000);
   };
+
+  /** Cierra el verificador sin pasar por el panel: sale de pantalla completa y cierra la ventana.
+   *  Si el navegador no deja cerrarla (pestaña abierta a mano), queda una pantalla de «cerrado». */
+  function cerrar() {
+    if (temporizador.current) clearTimeout(temporizador.current);
+    if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
+    window.close();
+    setTimeout(() => setCerrado(true), 250);
+  }
 
   async function consultar(leido: string) {
     const codigo = leido.trim();
@@ -71,10 +81,19 @@ export function Verificador({ sucursalId, sucursal, negocio, slug, apariencia, m
       </Pantalla>
       {error && <p className="verificador-error" role="alert">{error}</p>}
       <div className="verificador-esquina">
+        <button type="button" title="Cerrar" aria-label="Cerrar el verificador"
+          onClick={(e) => { e.stopPropagation(); cerrar(); }}>✕</button>
         <button type="button" title="Pantalla completa" aria-label="Pantalla completa"
           onClick={(e) => { e.stopPropagation(); void document.documentElement.requestFullscreen?.().catch(() => {}); }}>⛶</button>
         <Link href={`/n/${slug}`} title="Volver al panel" aria-label="Volver al panel">⚙</Link>
       </div>
+      {cerrado && (
+        <div className="verificador-cerrado" role="dialog" aria-label="Verificador cerrado">
+          <p>Verificador cerrado</p>
+          <span>Ya puedes cerrar esta ventana.</span>
+          <button type="button" onClick={(e) => { e.stopPropagation(); setCerrado(false); enfocar(); }}>Volver a abrir</button>
+        </div>
+      )}
     </div>
   );
 }
