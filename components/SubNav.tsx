@@ -4,6 +4,7 @@ const SECCIONES = [
   { clave: "resumen", texto: "Resumen", ruta: "" },
   { clave: "inventarios", texto: "Inventarios", ruta: "/inventarios" },
   { clave: "apariencia", texto: "Apariencia", ruta: "/apariencia" },
+  { clave: "equipos", texto: "Equipos", ruta: "/equipos" },
 ] as const;
 
 /** Pestañas del panel de un negocio. */

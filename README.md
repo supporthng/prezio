@@ -28,12 +28,24 @@ y pone verificadores en sus sucursales, que funcionan aun sin internet.
   la consulta.
 - Requiere ejecutar **`supabase/migrations/0002_precios_y_apariencia.sql`** en Supabase › SQL Editor.
 
+## Etapa 3 · parte 1: equipos sin internet
+
+- **Equipo** (`/equipo`): la tableta, el teléfono o la PC del verificador abre esa dirección y muestra un código
+  de 8 cifras. En **Prezio › Equipos** se escribe el código y se elige la sucursal. El equipo guarda los precios
+  de su sucursal en el propio equipo y sigue consultando sin internet; al volver la conexión sube las consultas.
+- Revisa precios nuevos cada 5 minutos (o con «Buscar precios nuevos» en su menú ⓘ) y solo descarga si cambiaron.
+- Desde el panel se ve si cada equipo está conectado, al día y con consultas por subir; se renombra, se cambia
+  de sucursal o se desvincula. El encargado maneja solo los de su sucursal.
+- El equipo no inicia sesión: tiene su propia clave al azar y en la base solo queda su huella (SHA-256).
+- Se puede instalar como app (pantalla completa) desde el navegador: `public/manifest.webmanifest` y `public/sw.js`.
+- Requiere ejecutar **`supabase/migrations/0003_equipos.sql`**.
+
 ## Puesta en marcha
 
 ### 1. Supabase (proyecto nuevo, solo para Prezio)
 
 1. En [supabase.com](https://supabase.com) crea un proyecto **nuevo** (no uses el del sistema actual).
-2. **SQL Editor** › ejecuta, en orden, `supabase/migrations/0001_base.sql` y `0002_precios_y_apariencia.sql`.
+2. **SQL Editor** › ejecuta, en orden, `supabase/migrations/0001_base.sql`, `0002_precios_y_apariencia.sql` y `0003_equipos.sql`.
 3. **Authentication › URL Configuration**:
    - *Site URL*: la dirección de Vercel (por ejemplo `https://prezio.vercel.app`).
    - *Redirect URLs*: agrega `https://prezio.vercel.app/**` (y `http://localhost:3000/**` si trabajas en tu PC).
@@ -61,8 +73,8 @@ y pone verificadores en sus sucursales, que funcionan aun sin internet.
 - El navegador y el servidor usan solo la clave **pública**; lo que cada usuario puede ver lo deciden las reglas
   de la base de datos (RLS), no la app.
 - El plan y la suscripción no los puede cambiar un cliente (solo Prezio con la clave de servidor).
-- `supabase/tests/aislamiento.py` (49 pruebas) y `precios.py` (17) prueban en PostgreSQL que los negocios no se ven
-  entre sí, los permisos por rol, la consulta de precios por sucursal y los permisos del logo/QR.
+- `supabase/tests/aislamiento.py` (49 pruebas), `precios.py` (17) y `equipos.py` (50) prueban en PostgreSQL que los negocios no se ven
+  entre sí, los permisos por rol, la consulta de precios por sucursal, los permisos del logo/QR y los equipos (vincular, mover, quitar, subir consultas).
 
 ## Trabajar en tu PC (opcional)
 

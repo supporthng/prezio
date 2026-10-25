@@ -13,7 +13,11 @@ def sql(quien, consulta):
         pre = "set role anon;\n"
     p = subprocess.run(["su", "postgres", "-c", "psql -h /var/lib/postgresql -p 5499 -d prezio -At -q -v ON_ERROR_STOP=1"],
                        input=pre + consulta, capture_output=True, text=True)
-    return p.returncode == 0, (p.stdout.strip() if p.returncode == 0 else p.stderr.strip().splitlines()[-1] if p.stderr.strip() else "")
+    if p.returncode == 0:
+        return True, p.stdout.strip()
+    lineas = p.stderr.strip().splitlines()
+    errores = [l for l in lineas if "ERROR:" in l]
+    return False, (errores[-1] if errores else lineas[-1] if lineas else "")
 def ok(c, m):
     global bien, mal
     bien += c; mal += not c
