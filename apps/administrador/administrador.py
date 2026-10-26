@@ -863,6 +863,46 @@ class Api:
         except Exception as e:
             return {"error": "No se pudo completar el permiso de Google: " + mensaje(e)}
 
+    def google_elegir(self):
+        """Selector de Google Drive: Google no lo deja usar dentro de esta ventana (bloquea sus cookies), así que se abre
+        la página /google-elegir en el NAVEGADOR del equipo y esa página devuelve el archivo elegido a una dirección
+        local de un solo uso. Devuelve {id, nombre, mime, token} o {cancelado} o {error}."""
+        import http.server
+        import secrets
+        clave = secrets.token_urlsafe(16)
+        recibido: dict = {}
+
+        class Receptor(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):
+                q = {k: v[0] for k, v in urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query).items()}
+                bien = q.get("s") == clave and (q.get("id") or q.get("cancelado"))
+                if bien:
+                    recibido.update(q)
+                cuerpo = ("<!doctype html><meta charset=utf-8><title>Prezio</title><body style='font-family:system-ui;text-align:center;"
+                          "padding:15vh 20px;color:#102a43'><h1>" + ("Listo" if bien and q.get("id") else "Cancelado")
+                          + "</h1><p>Ya puedes cerrar esta pestaña y volver a Prezio.</p></body>").encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(cuerpo)))
+                self.end_headers()
+                self.wfile.write(cuerpo)
+
+            def log_message(self, *a):
+                pass
+
+        servidor = http.server.HTTPServer(("127.0.0.1", 0), Receptor)
+        servidor.timeout = 1
+        try:
+            webbrowser.open(f"{self._prezio.sitio}/google-elegir?" + urllib.parse.urlencode({"p": servidor.server_address[1], "s": clave}))
+            limite = time.time() + 300
+            while time.time() < limite and not recibido:
+                servidor.handle_request()
+        finally:
+            servidor.server_close()
+        if recibido.get("id") and recibido.get("token"):
+            return {"ok": True, "id": recibido["id"], "nombre": recibido.get("nombre", ""), "mime": recibido.get("mime", ""), "token": recibido["token"]}
+        return {"cancelado": True}
+
     def google_token(self):
         """Para las páginas de Prezio (selector de archivos de Drive): solo el permiso corto, nunca la clave permanente."""
         r = self._google_flujo(False)
@@ -1081,7 +1121,7 @@ for _n in ("estado", "activar", "desactivar", "entrar", "elegir_negocio", "abrir
            "columnas", "muestra", "inventarios", "adoptar_fuente", "drive_estado", "drive_conectar", "drive_desconectar", "drive_guardar", "drive_respaldar", "guardar_fuente", "fuentes", "quitar_fuente", "enviar_ahora", "guardar_frecuencia",
            "arranque", "registro", "version_nueva", "actualizar", "abrir_enlace"):
     setattr(Api, _n, _solo(Api._desde_la_app)(getattr(Api, _n)))
-for _n in ("salir", "ir_app", "mostrar_inicio", "abrir_en_navegador", "google_token"):
+for _n in ("salir", "ir_app", "mostrar_inicio", "abrir_en_navegador", "google_token", "google_elegir"):
     setattr(Api, _n, _solo(Api._desde_prezio)(getattr(Api, _n)))
 
 

@@ -92,6 +92,15 @@ async function pedirPermiso(): Promise<string | null> {
 /** Abre el selector de Google Drive. Devuelve el archivo elegido, o null si la persona cancela. */
 export async function elegirArchivoDrive(): Promise<ArchivoDrive | null> {
   if (!driveConfigurado()) throw new Error("Falta configurar Google Drive en Prezio.");
+  // Dentro de la app Prezio Administrador (Windows) el selector de Google no funciona en la ventana incrustada
+  // (bloquea sus cookies): la app abre /google-elegir en el navegador del equipo y recibe de vuelta el archivo elegido.
+  const puente = (window as any).pywebview?.api;
+  if (typeof puente?.google_elegir === "function") {
+    const r = await puente.google_elegir();
+    if (r?.id && r?.token) return { id: String(r.id), nombre: String(r.nombre || "Archivo"), mime: String(r.mime || ""), token: String(r.token) };
+    if (r?.cancelado) return null;
+    throw new Error(r?.error || "No se pudo abrir Google Drive.");
+  }
   const aviso = revisarConfiguracionDrive();
   if (aviso) throw new Error(aviso);
   await Promise.all([cargarScript("https://accounts.google.com/gsi/client"), cargarScript("https://apis.google.com/js/api.js")]);
