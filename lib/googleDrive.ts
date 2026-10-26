@@ -60,7 +60,16 @@ function cargarScript(src: string): Promise<void> {
 }
 
 /** Pide el permiso a Google (ventana emergente). Devuelve null si la persona cierra la ventana. */
-function pedirPermiso(): Promise<string | null> {
+async function pedirPermiso(): Promise<string | null> {
+  // Dentro de la app Prezio Administrador (Windows) Google no deja iniciar sesión en la ventana incrustada:
+  // la app abre el navegador del equipo, recibe el permiso y se lo pasa a esta página.
+  const puente = (window as any).pywebview?.api;
+  if (typeof puente?.google_token === "function") {
+    const r = await puente.google_token();
+    if (r?.token) return String(r.token);
+    if (r?.cancelado) return null;
+    throw new Error(r?.error || "No se pudo conectar con Google Drive.");
+  }
   return new Promise((ok, mal) => {
     const g = (window as any).google;
     const cliente = g.accounts.oauth2.initTokenClient({
@@ -91,10 +100,11 @@ export async function elegirArchivoDrive(): Promise<ArchivoDrive | null> {
   await new Promise<void>((ok) => (window as any).gapi.load("picker", { callback: ok }));
   const g = (window as any).google;
   return new Promise<ArchivoDrive | null>((ok) => {
-    const mias = new g.picker.DocsView(g.picker.ViewId.DOCS)
-      .setIncludeFolders(true).setSelectFolderEnabled(false).setMimeTypes(MIMES);
-    const compartidas = new g.picker.DocsView(g.picker.ViewId.DOCS)
-      .setIncludeFolders(true).setSelectFolderEnabled(false).setOwnedByMe(false).setMimeTypes(MIMES);
+    // Sin carpetas: Google muestra una lista plana con solo los Excel (y hojas de Google), de cualquier lugar del Drive.
+    const vista = () => new g.picker.DocsView(g.picker.ViewId.DOCS)
+      .setIncludeFolders(false).setMimeTypes(MIMES).setMode(g.picker.DocsViewMode.LIST);
+    const mias = vista();
+    const compartidas = vista().setOwnedByMe(false);
     const selector = new g.picker.PickerBuilder()
       .setAppId(APP_ID)
       .setDeveloperKey(API_KEY)

@@ -39,6 +39,14 @@ import red  # noqa: E402
 # La compilación (GitHub Actions) reemplaza estos dos valores.
 SITIO = "https://prezio-jade.vercel.app"
 VERSION = "2.0.0"
+# Agente de usuario de la ventana: el de Edge más «PrezioAdministrador/versión» al final. Así el servidor sabe que la página
+# va dentro de la app (menú lateral sin parpadeo) y Google y demás sitios la siguen viendo como un navegador normal.
+AGENTE_VENTANA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                  f"Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0 PrezioAdministrador/{VERSION}")
+# Google Drive: ID de cliente «Aplicación de escritorio» (Google Cloud › Credenciales). Los pone la compilación de GitHub
+# desde los secretos GOOGLE_DESKTOP_CLIENT_ID y GOOGLE_DESKTOP_CLIENT_SECRET; Google no considera secreto el de una app de escritorio.
+GOOGLE_CLIENT_ID = ""
+GOOGLE_CLIENT_SECRET = ""
 TAREA = pc.TAREA
 DATOS = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / ".prezio")) / "Prezio" / "Administrador"
 SESION = DATOS / "sesion.json"
@@ -754,6 +762,64 @@ class Api:
             return {"ok": True}
         return {"error": "Solo se pueden abrir páginas de Prezio."}
 
+    def google_token(self):
+        """Permiso de Google Drive (solo «drive.file») pedido en el NAVEGADOR del equipo, porque Google no deja iniciar
+        sesión dentro de una ventana incrustada. Flujo de app de escritorio con PKCE y una dirección local de un solo uso.
+        Devuelve {token} o {cancelado} o {error}. El permiso dura una hora y no se guarda."""
+        if not GOOGLE_CLIENT_ID:
+            return {"error": "Esta versión de la app no trae la conexión con Google Drive. Actualiza la app o usa el panel en el navegador."}
+        import base64
+        import hashlib
+        import http.server
+        import secrets
+        verificador = secrets.token_urlsafe(64)
+        desafio = base64.urlsafe_b64encode(hashlib.sha256(verificador.encode()).digest()).rstrip(b"=").decode()
+        estado = secrets.token_urlsafe(16)
+        recibido: dict = {}
+
+        class Receptor(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):
+                q = {k: v[0] for k, v in urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query).items()}
+                listo = q.get("state") == estado and ("code" in q or "error" in q)
+                if listo:
+                    recibido.update(q)
+                cuerpo = ("<!doctype html><meta charset=utf-8><title>Prezio</title><body style='font-family:system-ui;text-align:center;"
+                          "padding:15vh 20px;color:#102a43'><h1>" + ("Listo" if listo and "code" in q else "No se dio el permiso")
+                          + "</h1><p>Ya puedes cerrar esta pestaña y volver a Prezio.</p></body>").encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(cuerpo)))
+                self.end_headers()
+                self.wfile.write(cuerpo)
+
+            def log_message(self, *a):
+                pass
+
+        servidor = http.server.HTTPServer(("127.0.0.1", 0), Receptor)
+        servidor.timeout = 1
+        redireccion = f"http://127.0.0.1:{servidor.server_address[1]}"
+        try:
+            webbrowser.open("https://accounts.google.com/o/oauth2/v2/auth?" + urllib.parse.urlencode({
+                "client_id": GOOGLE_CLIENT_ID, "redirect_uri": redireccion, "response_type": "code",
+                "scope": "https://www.googleapis.com/auth/drive.file", "code_challenge": desafio,
+                "code_challenge_method": "S256", "state": estado}))
+            limite = time.time() + 180
+            while time.time() < limite and not recibido:
+                servidor.handle_request()
+        finally:
+            servidor.server_close()
+        if not recibido or "error" in recibido:
+            return {"cancelado": True}
+        try:
+            datos = urllib.parse.urlencode({
+                "client_id": GOOGLE_CLIENT_ID, "client_secret": GOOGLE_CLIENT_SECRET, "code": recibido["code"],
+                "code_verifier": verificador, "redirect_uri": redireccion, "grant_type": "authorization_code"}).encode()
+            with urllib.request.urlopen(urllib.request.Request("https://oauth2.googleapis.com/token", data=datos), timeout=30) as r:
+                token = json.loads(r.read().decode("utf-8")).get("access_token")
+            return {"ok": True, "token": token} if token else {"error": "Google no entregó el permiso. Intenta de nuevo."}
+        except Exception as e:
+            return {"error": "No se pudo completar el permiso de Google: " + mensaje(e)}
+
     def abrir_enlace(self, url):
         if str(url).startswith("https://"):
             webbrowser.open(str(url))
@@ -779,7 +845,7 @@ for _n in ("estado", "activar", "desactivar", "entrar", "elegir_negocio", "abrir
            "columnas", "muestra", "inventarios", "adoptar_fuente", "guardar_fuente", "fuentes", "quitar_fuente", "enviar_ahora", "guardar_frecuencia",
            "arranque", "registro", "version_nueva", "actualizar", "abrir_enlace"):
     setattr(Api, _n, _solo(Api._desde_la_app)(getattr(Api, _n)))
-for _n in ("salir", "ir_app", "mostrar_inicio", "abrir_en_navegador"):
+for _n in ("salir", "ir_app", "mostrar_inicio", "abrir_en_navegador", "google_token"):
     setattr(Api, _n, _solo(Api._desde_prezio)(getattr(Api, _n)))
 
 
@@ -924,7 +990,7 @@ def main():
     # El agente de usuario lleva «PrezioAdministrador/versión»: así el servidor sabe, desde la primera respuesta, que la página
     # va dentro de la app y dibuja el menú lateral ya puesto (sin parpadeo al cambiar de sección).
     webview.start(gui="edgechromium", private_mode=False, storage_path=str(DATOS / "web"),
-                  user_agent=f"PrezioAdministrador/{VERSION}")
+                  user_agent=AGENTE_VENTANA)
 
 
 if __name__ == "__main__":

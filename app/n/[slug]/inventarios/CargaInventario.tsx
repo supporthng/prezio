@@ -128,6 +128,13 @@ export function CargaInventario({ negocioId, inventarios, moneda }: Props) {
           {archivo ? "Toca para elegir otro" : "o arrástralo aquí"}
         </span>
       </label>
+      {!driveConfigurado() && (
+        <p className="quieto pequeno" style={{ margin: "12px 0 0" }}>
+          Google Drive todavía no está conectado a Prezio. Quien administra Prezio debe agregar en Vercel las variables
+          <code> NEXT_PUBLIC_GOOGLE_CLIENT_ID</code>, <code>NEXT_PUBLIC_GOOGLE_API_KEY</code> y <code>NEXT_PUBLIC_GOOGLE_APP_ID</code> y volver a publicar.
+          Mientras tanto puedes pegar el enlace del archivo.
+        </p>
+      )}
       {driveConfigurado() && (
         <p style={{ margin: "12px 0 0" }}>
           <button className="boton secundario" type="button" onClick={elegirDeDrive} disabled={trabajando}>
