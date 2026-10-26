@@ -238,6 +238,7 @@
     </nav>
     <div class="pie">
       <div id="pie-equipo"></div>
+      <button type="button" id="b-buscar-act">Buscar actualización</button><br>
       <button type="button" id="b-salir">Salir</button>
     </div>
   </aside>
@@ -823,39 +824,46 @@ $("#b-registro").onclick = async () => { const r = await api("registro"); $("#re
   await refrescar();
   const desdePanel = (location.hash || "").slice(1);
   if (["base", "copia", "drive", "inicio"].includes(desdePanel) && E && E.sesion && E.sesion.negocio) ir(desdePanel);
-  // Al abrir: si hay versión nueva publicada, se instala sola y la app se vuelve a abrir.
+  buscarActualizacion(false);
+})();
+// manual = true: la persona pulsó «Buscar actualización» y siempre debe ver una respuesta.
+async function buscarActualizacion(manual) {
+  const caja = $("#actualizando");
+  const abrir = (texto, detalle, girando) => {
+    caja.hidden = false; $("#act-girando").hidden = !girando; $("#act-texto").textContent = texto;
+    $("#act-detalle").textContent = detalle || ""; $("#act-acciones").hidden = true; $("#act-seguir").hidden = true;
+  };
+  if (manual) abrir("Buscando actualizaciones…", "", true);
   const v = await api("version_nueva");
-  if (v.fallo) {
-    // El intento anterior no llegó a instalarse: no se repite solo. Se dice por qué y se deja elegir.
-    $("#actualizando").hidden = false;
-    $("#act-girando").hidden = true;
-    $("#act-texto").textContent = `No se pudo instalar la versión ${v.fallo.version}`;
-    $("#act-detalle").textContent = (v.fallo.motivo || "Windows no terminó la instalación.") +
-      " · Puedes reintentar, o descargar el instalador y ejecutarlo a mano (una sola vez basta).";
-    $("#act-acciones").hidden = false; $("#act-seguir").hidden = false;
-    $("#act-reintentar").onclick = async () => {
-      $("#act-acciones").hidden = true; $("#act-seguir").hidden = true; $("#act-girando").hidden = false;
-      $("#act-texto").textContent = `Actualizando Prezio Administrador a la versión ${v.version}…`;
-      $("#act-detalle").textContent = "Si Windows pregunta, toca «Sí». La app se cierra y se vuelve a abrir sola en unos segundos.";
-      const r2 = await api("actualizar");
-      if (r2.error) { $("#act-texto").textContent = r2.error; $("#act-girando").hidden = true; $("#act-seguir").hidden = false; }
-    };
-    $("#act-descargar").onclick = () => api("abrir_enlace", v.url);
-  } else if (v.version) {
-    $("#actualizando").hidden = false;
-    $("#act-texto").textContent = `Actualizando Prezio Administrador a la versión ${v.version}…`;
+  if (v.error) {
+    if (manual) { abrir("No se pudo buscar la actualización", v.error, false); $("#act-seguir").hidden = false; $("#act-seguir").textContent = "Cerrar"; }
+    return;
+  }
+  $("#act-seguir").textContent = "Seguir con esta versión";
+  const instalar = async () => {
+    abrir(`Actualizando Prezio Administrador a la versión ${v.version}…`, "", true);
     const r = await api("actualizar");
     if (r.error) {
-      $("#act-texto").textContent = r.error;
-      $("#act-detalle").textContent = "Puedes seguir trabajando; se intentará de nuevo la próxima vez que abras la app.";
-      $("#act-girando").hidden = true; $("#act-seguir").hidden = false;
+      abrir(r.error, "Puedes seguir trabajando; puedes volver a intentarlo con «Buscar actualización».", false); $("#act-seguir").hidden = false;
     } else if (r.version) {
       $("#act-detalle").textContent = "Si Windows pregunta, toca «Sí». La app se cierra y se vuelve a abrir sola en unos segundos.";
-    } else {
-      $("#actualizando").hidden = true;
-    }
+    } else { caja.hidden = true; }
+  };
+  if (v.fallo) {
+    // El intento anterior no llegó a instalarse: no se repite solo. Se dice por qué y se deja elegir.
+    abrir(`No se pudo instalar la versión ${v.fallo.version}`, (v.fallo.motivo || "Windows no terminó la instalación.") +
+      " · Puedes reintentar, o descargar el instalador y ejecutarlo a mano (una sola vez basta).", false);
+    $("#act-acciones").hidden = false; $("#act-seguir").hidden = false;
+    $("#act-reintentar").onclick = instalar;
+    $("#act-descargar").onclick = () => api("abrir_enlace", v.url);
+  } else if (v.version) {
+    await instalar();
+  } else if (manual) {
+    abrir("Ya tienes la última versión", `Prezio Administrador ${E ? E.version : ""} está al día.`, false);
+    $("#act-seguir").hidden = false; $("#act-seguir").textContent = "Cerrar";
   }
-})();
+}
+$("#b-buscar-act").onclick = () => buscarActualizacion(true);
 $("#act-seguir").onclick = () => { $("#actualizando").hidden = true; };
 </script>
 </body>
