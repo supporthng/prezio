@@ -11,9 +11,26 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
-const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_API_KEY ?? "";
-const APP_ID = process.env.NEXT_PUBLIC_GOOGLE_APP_ID ?? "";
+// .trim(): un espacio o salto de línea pegado de más en Vercel hace que Google rechace la clave.
+const CLIENT_ID = (process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "").trim();
+const API_KEY = (process.env.NEXT_PUBLIC_GOOGLE_API_KEY ?? "").trim();
+const APP_ID = (process.env.NEXT_PUBLIC_GOOGLE_APP_ID ?? "").trim();
+
+/** Revisa que los tres valores tengan la forma correcta, para decir cuál está mal antes de que Google responda
+ *  con un error genérico («la clave de desarrollador no es válida»). Devuelve el aviso, o "" si todo se ve bien. */
+export function revisarConfiguracionDrive(): string {
+  const forma = (v: string) => `Empieza con «${v.slice(0, 4)}…», termina en «…${v.slice(-3)}» y mide ${v.length} caracteres.`;
+  if (!/^AIza[0-9A-Za-z_-]{35}$/.test(API_KEY)) {
+    return `NEXT_PUBLIC_GOOGLE_API_KEY no parece una clave de API de Google (debe empezar con «AIza» y medir 39 caracteres, sin comillas ni espacios). ${forma(API_KEY)}`;
+  }
+  if (!/^[0-9]+-[0-9a-z]+\.apps\.googleusercontent\.com$/.test(CLIENT_ID)) {
+    return `NEXT_PUBLIC_GOOGLE_CLIENT_ID no parece un ID de cliente (debe terminar en «.apps.googleusercontent.com»). ${forma(CLIENT_ID)}`;
+  }
+  if (!/^[0-9]{6,20}$/.test(APP_ID)) {
+    return `NEXT_PUBLIC_GOOGLE_APP_ID debe ser solo el número del proyecto (unos 12 dígitos, sin letras). ${forma(APP_ID)}`;
+  }
+  return "";
+}
 
 export const driveConfigurado = (): boolean => Boolean(CLIENT_ID && API_KEY && APP_ID);
 
@@ -66,6 +83,8 @@ function pedirPermiso(): Promise<string | null> {
 /** Abre el selector de Google Drive. Devuelve el archivo elegido, o null si la persona cancela. */
 export async function elegirArchivoDrive(): Promise<ArchivoDrive | null> {
   if (!driveConfigurado()) throw new Error("Falta configurar Google Drive en Prezio.");
+  const aviso = revisarConfiguracionDrive();
+  if (aviso) throw new Error(aviso);
   await Promise.all([cargarScript("https://accounts.google.com/gsi/client"), cargarScript("https://apis.google.com/js/api.js")]);
   const token = await pedirPermiso();
   if (!token) return null;
