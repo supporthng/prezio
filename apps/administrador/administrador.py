@@ -52,6 +52,7 @@ DATOS = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / ".prezio")) / "Pre
 SESION = DATOS / "sesion.json"
 PENDIENTE = pc.CARPETA / "actualizacion.json"       # el intento de actualización que se lanzó (para saber si terminó)
 LOG_INSTALACION = pc.CARPETA / "instalacion.log"    # lo que dijo el instalador
+DRIVE = pc.CARPETA / "drive.json"                  # conexión con Google Drive (la clave permanente va cifrada) y opciones del respaldo
 ARRANQUE = pc.CARPETA / "arranque.json"          # lo que dejó el paso con permiso de administrador (tarea de Windows)
 ACTIVACION = pc.CARPETA / "activacion.json"     # de la PC (todas las cuentas de Windows): la licencia del negocio
 USUARIO_VALIDO = r"^[a-z0-9][a-z0-9._-]{2,29}$"
@@ -157,6 +158,8 @@ class Api:
         self._ses: dict | None = None
         self._cx: dict | None = None          # servidor autorizado en el asistente (clave ya cifrada)
         self._ocupado = threading.Lock()
+        self._respaldando = threading.Lock()    # un solo respaldo a la vez (manual o automático)
+        self._drive_acc: dict | None = None     # permiso corto de Drive en uso: {"tok", "vence"}
         self._ultimo_envio: dict = {}
         self._cargar_sesion()
 
@@ -291,7 +294,7 @@ class Api:
 
     def ir_app(self, seccion="inicio"):
         """Desde el panel: volver a la pantalla de la app (Inicio, Base de datos o Copia automática)."""
-        seccion = seccion if seccion in ("inicio", "base", "copia") else "inicio"
+        seccion = seccion if seccion in ("inicio", "base", "copia", "drive") else "inicio"
         self._navegar((self._inicio or "interfaz.html") + "#" + seccion)
         return {"ok": True}
 
@@ -798,7 +801,7 @@ class Api:
             return {"ok": True}
         return {"error": "Solo se pueden abrir páginas de Prezio."}
 
-    def google_token(self):
+    def _google_flujo(self, permanente: bool = False):
         """Permiso de Google Drive (solo «drive.file») pedido en el NAVEGADOR del equipo, porque Google no deja iniciar
         sesión dentro de una ventana incrustada. Flujo de app de escritorio con PKCE y una dirección local de un solo uso.
         Devuelve {token} o {cancelado} o {error}. El permiso dura una hora y no se guarda."""
@@ -838,7 +841,9 @@ class Api:
             webbrowser.open("https://accounts.google.com/o/oauth2/v2/auth?" + urllib.parse.urlencode({
                 "client_id": GOOGLE_CLIENT_ID, "redirect_uri": redireccion, "response_type": "code",
                 "scope": "https://www.googleapis.com/auth/drive.file", "code_challenge": desafio,
-                "code_challenge_method": "S256", "state": estado}))
+                "code_challenge_method": "S256", "state": estado,
+                # permanente: Google entrega además una clave de renovación para respaldar sin volver a pedir permiso
+                **({"access_type": "offline", "prompt": "consent"} if permanente else {})}))
             limite = time.time() + 180
             while time.time() < limite and not recibido:
                 servidor.handle_request()
@@ -851,10 +856,205 @@ class Api:
                 "client_id": GOOGLE_CLIENT_ID, "client_secret": GOOGLE_CLIENT_SECRET, "code": recibido["code"],
                 "code_verifier": verificador, "redirect_uri": redireccion, "grant_type": "authorization_code"}).encode()
             with urllib.request.urlopen(urllib.request.Request("https://oauth2.googleapis.com/token", data=datos), timeout=30) as r:
-                token = json.loads(r.read().decode("utf-8")).get("access_token")
-            return {"ok": True, "token": token} if token else {"error": "Google no entregó el permiso. Intenta de nuevo."}
+                respuesta = json.loads(r.read().decode("utf-8"))
+            token = respuesta.get("access_token")
+            return ({"ok": True, "token": token, "renovar": respuesta.get("refresh_token"), "dura": respuesta.get("expires_in")}
+                    if token else {"error": "Google no entregó el permiso. Intenta de nuevo."})
         except Exception as e:
             return {"error": "No se pudo completar el permiso de Google: " + mensaje(e)}
+
+    def google_token(self):
+        """Para las páginas de Prezio (selector de archivos de Drive): solo el permiso corto, nunca la clave permanente."""
+        r = self._google_flujo(False)
+        return {k: v for k, v in r.items() if k != "renovar"}
+
+    # ---- respaldo en Google Drive (clave permanente guardada cifrada en esta PC; Prezio no la ve)
+    def _drive_cfg(self) -> dict:
+        return pc.leer_json(DRIVE, {}) or {}
+
+    def _drive_guardar(self, d: dict) -> None:
+        pc.guardar_json(DRIVE, d)
+
+    def _drive_acceso(self) -> str:
+        """Permiso corto de Drive, renovado con la clave permanente cuando hace falta."""
+        if self._drive_acc and self._drive_acc["vence"] - time.time() > 120:
+            return self._drive_acc["tok"]
+        d = self._drive_cfg()
+        if not d.get("renovar"):
+            raise ErrorApp("Conecta primero Google Drive.")
+        try:
+            datos = urllib.parse.urlencode({"client_id": GOOGLE_CLIENT_ID, "client_secret": GOOGLE_CLIENT_SECRET,
+                                            "refresh_token": cifrado.revelar(d["renovar"]), "grant_type": "refresh_token"}).encode()
+            with urllib.request.urlopen(urllib.request.Request("https://oauth2.googleapis.com/token", data=datos), timeout=30) as r:
+                respuesta = json.loads(r.read().decode("utf-8"))
+        except urllib.error.HTTPError as e:
+            if e.code in (400, 401):
+                raise ErrorApp("Google ya no acepta la conexión (se quitó el acceso o venció). Vuelve a conectar Google Drive.")
+            raise ErrorApp(f"Google no respondió ({e.code}). Intenta de nuevo.")
+        except (urllib.error.URLError, OSError):
+            raise ErrorApp("No hay conexión con Google. Revisa el internet.")
+        self._drive_acc = {"tok": respuesta["access_token"], "vence": time.time() + int(respuesta.get("expires_in") or 3000)}
+        return self._drive_acc["tok"]
+
+    def drive_estado(self):
+        d = self._drive_cfg()
+        return {"ok": True, "configurado": bool(GOOGLE_CLIENT_ID), "conectado": bool(d.get("renovar")), "cuenta": d.get("cuenta") or "",
+                "auto": bool(d.get("auto")), "cada_horas": int(d.get("cada_horas") or 24), "guardar": int(d.get("guardar") or 14),
+                "ultimo": d.get("ultimo") or None, "carpeta": CARPETA_DRIVE}
+
+    def drive_conectar(self):
+        """Pide el permiso en el navegador y guarda la clave permanente, cifrada para esta cuenta de Windows."""
+        if not GOOGLE_CLIENT_ID:
+            return {"error": "Esta versión de la app no trae la conexión con Google Drive. Actualiza la app."}
+        r = self._google_flujo(True)
+        if r.get("cancelado"):
+            return {"cancelado": True}
+        if r.get("error"):
+            return r
+        if not r.get("renovar"):
+            return {"error": "Google no dio el permiso permanente. Entra a myaccount.google.com/permissions, quita «Prezio» y vuelve a conectar."}
+        d = self._drive_cfg()
+        d.update(renovar=cifrado.proteger(r["renovar"], equipo=False), carpeta_id="")
+        self._drive_acc = {"tok": r["token"], "vence": time.time() + int(r.get("dura") or 3000)}
+        try:
+            u = drive_pedir("GET", "https://www.googleapis.com/drive/v3/about?fields=user(emailAddress)", r["token"])[0]
+            d["cuenta"] = ((u or {}).get("user") or {}).get("emailAddress") or "Cuenta de Google"
+        except Exception:
+            d["cuenta"] = "Cuenta de Google"
+        self._drive_guardar(d)
+        return self.drive_estado()
+
+    def drive_desconectar(self):
+        d = self._drive_cfg()
+        try:
+            if d.get("renovar"):
+                urllib.request.urlopen(urllib.request.Request(
+                    "https://oauth2.googleapis.com/revoke", data=urllib.parse.urlencode({"token": cifrado.revelar(d["renovar"])}).encode()), timeout=15)
+        except Exception:
+            pass   # si Google no responde igual se olvida la conexión en esta PC
+        self._drive_acc = None
+        try:
+            DRIVE.unlink()
+        except OSError:
+            pass
+        return self.drive_estado()
+
+    def drive_guardar(self, opciones):
+        d = self._drive_cfg()
+        try:
+            cada, guardar = int(opciones.get("cada_horas") or 24), int(opciones.get("guardar") or 14)
+        except (TypeError, ValueError):
+            return {"error": "Elige los valores de la lista."}
+        d.update(auto=bool(opciones.get("auto")), cada_horas=max(1, min(168, cada)), guardar=max(1, min(90, guardar)))
+        self._drive_guardar(d)
+        return self.drive_estado()
+
+    def _datos_respaldo(self) -> dict:
+        """El mismo respaldo completo que se descarga en la web (formato prezio-respaldo-1), sin claves."""
+        n = self._negocio()
+        if not self._prezio.rpc("administra", {"p_negocio": n["id"]}, self._token()):
+            raise ErrorApp("El respaldo completo lo hace el dueño o quien tenga todas las casillas.")
+        t, nid = self._prezio.tabla, n["id"]
+        neg = (t("GET", f"negocios?select=nombre,slug,moneda,apariencia&id=eq.{nid}", self._token()) or [{}])[0]
+        sucursales = t("GET", f"sucursales?select=id,codigo,nombre,es_principal,activa,fuente&negocio_id=eq.{nid}&order=nombre", self._token()) or []
+        inventarios = t("GET", f"inventarios?select=id,nombre,origen,actualizado&negocio_id=eq.{nid}&order=nombre", self._token()) or []
+        for inv in inventarios:
+            productos, desde = [], 0
+            while True:      # la base entrega máximo 1000 por pedido
+                pagina = t("GET", f"productos?select=codigo,nombre,precio&inventario_id=eq.{inv['id']}&order=codigo&limit=1000&offset={desde}",
+                           self._token()) or []
+                productos += [{**p, "precio": float(p["precio"])} for p in pagina]
+                if len(pagina) < 1000:
+                    break
+                desde += 1000
+            inv["productos"] = productos
+        equipos = t("GET", f"equipos?select=nombre,sucursal_id,creado,visto,app&negocio_id=eq.{nid}&order=creado", self._token()) or []
+        return {"formato": "prezio-respaldo-1", "creado": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                "negocio": {"nombre": neg.get("nombre") or n.get("nombre"), "slug": neg.get("slug") or n.get("slug"),
+                            "moneda": neg.get("moneda"), "apariencia": neg.get("apariencia")},
+                "sucursales": sucursales, "inventarios": inventarios, "equipos": equipos}
+
+    def _carpeta_drive(self, token: str, d: dict) -> str:
+        """La carpeta «Prezio respaldos»: la guardada si sigue ahí, si no la busca y, si no existe, la crea."""
+        if d.get("carpeta_id"):
+            try:
+                f = drive_pedir("GET", f"https://www.googleapis.com/drive/v3/files/{d['carpeta_id']}?fields=id,trashed", token)[0]
+                if f and not f.get("trashed"):
+                    return d["carpeta_id"]
+            except ErrorApp:
+                pass
+        q = urllib.parse.quote(f"name = '{CARPETA_DRIVE}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false")
+        halladas = (drive_pedir("GET", f"https://www.googleapis.com/drive/v3/files?q={q}&fields=files(id)&pageSize=1", token)[0] or {}).get("files") or []
+        if halladas:
+            return halladas[0]["id"]
+        return drive_pedir("POST", "https://www.googleapis.com/drive/v3/files?fields=id", token,
+                           {"name": CARPETA_DRIVE, "mimeType": "application/vnd.google-apps.folder"})[0]["id"]
+
+    def _respaldar(self, auto: bool = False):
+        if not self._respaldando.acquire(blocking=False):
+            return {"error": "Ya se está respaldando. Espera un momento."}
+        d = self._drive_cfg()
+        try:
+            if not d.get("renovar"):
+                return {"error": "Conecta primero Google Drive."}
+            token = self._drive_acceso()
+            datos = self._datos_respaldo()
+            contenido = json.dumps(datos, ensure_ascii=False, indent=1).encode("utf-8")
+            productos = sum(len(i.get("productos") or []) for i in datos["inventarios"])
+            carpeta = self._carpeta_drive(token, d)
+            nombre = f"respaldo-{nombre_archivo(datos['negocio']['nombre'] or 'prezio')}-{time.strftime('%Y-%m-%d_%H%M')}.json"
+            # Subida en un solo envío con permiso de reanudar (sirve para archivos grandes).
+            _, cab = drive_pedir("POST", "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name,webViewLink",
+                                 token, {"name": nombre, "parents": [carpeta], "mimeType": "application/json"},
+                                 {"X-Upload-Content-Type": "application/json"})
+            archivo = drive_pedir("PUT", cab.get("Location") or "", token, contenido, {"Content-Type": "application/json"}, segundos=600)[0] or {}
+            # Se guardan solo las últimas copias; las más viejas (de Prezio) se borran.
+            conservar = max(1, int(d.get("guardar") or 14))
+            q = urllib.parse.quote(f"'{carpeta}' in parents and trashed = false and name contains 'respaldo-'")
+            lista = (drive_pedir("GET", f"https://www.googleapis.com/drive/v3/files?q={q}&orderBy=createdTime%20desc&pageSize=200&fields=files(id)",
+                                 token)[0] or {}).get("files") or []
+            borradas = 0
+            for viejo in lista[conservar:]:
+                try:
+                    drive_pedir("DELETE", f"https://www.googleapis.com/drive/v3/files/{viejo['id']}", token)
+                    borradas += 1
+                except ErrorApp:
+                    pass
+            resultado = {"hora": time.time(), "ok": True, "auto": auto, "nombre": archivo.get("name") or nombre,
+                         "enlace": archivo.get("webViewLink") or "", "productos": productos, "kb": round(len(contenido) / 1024), "borradas": borradas}
+            d = self._drive_cfg()
+            d.update(carpeta_id=carpeta, ultimo=resultado)
+            self._drive_guardar(d)
+            anotar_actualizacion(f"respaldo en Drive: {resultado['nombre']} ({productos} productos, {resultado['kb']} KB)")
+            return {"ok": True, **resultado}
+        except Exception as e:
+            motivo = mensaje(e) if not isinstance(e, (urllib.error.URLError, OSError)) else "No hay conexión con Google. Revisa el internet."
+            d = self._drive_cfg()
+            if d.get("renovar"):
+                d["ultimo"] = {"hora": time.time(), "ok": False, "auto": auto, "error": motivo}
+                self._drive_guardar(d)
+            anotar_actualizacion(f"respaldo en Drive falló: {motivo}")
+            return {"error": motivo}
+        finally:
+            self._respaldando.release()
+
+    def drive_respaldar(self):
+        return self._respaldar(False)
+
+    def _vigilar_respaldo(self):
+        """Respaldo automático: mientras la app está abierta y con la sesión puesta, respalda cuando toca
+        (al abrir si ya pasó el tiempo, y luego cada tantas horas). Si falla, reintenta en una hora."""
+        time.sleep(90)
+        while True:
+            try:
+                d = self._drive_cfg()
+                ultimo = d.get("ultimo") or {}
+                espera = (int(d.get("cada_horas") or 24) * 3600) if ultimo.get("ok", True) else 3600
+                if d.get("renovar") and d.get("auto") and self._ses and self._ses.get("negocio") and time.time() - float(ultimo.get("hora") or 0) >= espera:
+                    self._respaldar(True)
+            except Exception as e:
+                anotar_actualizacion(f"vigilante del respaldo: {mensaje(e)}")
+            time.sleep(300)
 
     def abrir_enlace(self, url):
         if str(url).startswith("https://"):
@@ -878,7 +1078,7 @@ def _solo(permitido):
 
 
 for _n in ("estado", "activar", "desactivar", "entrar", "elegir_negocio", "abrir_panel", "buscar_servidores", "autorizar", "tablas",
-           "columnas", "muestra", "inventarios", "adoptar_fuente", "guardar_fuente", "fuentes", "quitar_fuente", "enviar_ahora", "guardar_frecuencia",
+           "columnas", "muestra", "inventarios", "adoptar_fuente", "drive_estado", "drive_conectar", "drive_desconectar", "drive_guardar", "drive_respaldar", "guardar_fuente", "fuentes", "quitar_fuente", "enviar_ahora", "guardar_frecuencia",
            "arranque", "registro", "version_nueva", "actualizar", "abrir_enlace"):
     setattr(Api, _n, _solo(Api._desde_la_app)(getattr(Api, _n)))
 for _n in ("salir", "ir_app", "mostrar_inicio", "abrir_en_navegador", "google_token"):
@@ -891,6 +1091,39 @@ def anotar_actualizacion(texto: str) -> None:
         pc.log.info("Actualización: %s", texto)
     except Exception:
         pass
+
+
+CARPETA_DRIVE = "Prezio respaldos"
+
+
+def nombre_archivo(texto: str) -> str:
+    import re
+    import unicodedata
+    s = "".join(c for c in unicodedata.normalize("NFKD", texto) if not unicodedata.combining(c))
+    return re.sub(r"[^A-Za-z0-9]+", "-", s).strip("-")[:60] or "prezio"
+
+
+def drive_pedir(metodo: str, url: str, token: str, cuerpo=None, cabeceras: dict | None = None, segundos: int = 60):
+    """Una llamada a Google Drive. Devuelve (respuesta en JSON o None, cabeceras). Los errores salen con un mensaje claro."""
+    h = {"Authorization": f"Bearer {token}", **(cabeceras or {})}
+    datos = cuerpo
+    if cuerpo is not None and not isinstance(cuerpo, (bytes, bytearray)):
+        datos = json.dumps(cuerpo).encode("utf-8")
+        h.setdefault("Content-Type", "application/json; charset=UTF-8")
+    try:
+        with urllib.request.urlopen(urllib.request.Request(url, data=datos, method=metodo, headers=h), timeout=segundos) as r:
+            crudo, cab = r.read(), dict(r.headers)
+    except urllib.error.HTTPError as e:
+        try:
+            detalle = json.loads(e.read().decode("utf-8")).get("error", {}).get("message", "")
+        except Exception:
+            detalle = ""
+        if e.code == 401:
+            raise ErrorApp("Google rechazó el permiso. Vuelve a conectar Google Drive.")
+        if e.code == 403 and "quota" in detalle.lower():
+            raise ErrorApp("Tu Google Drive no tiene espacio libre.")
+        raise ErrorApp(f"Google Drive respondió {e.code}" + (f": {detalle}" if detalle else "."))
+    return (json.loads(crudo.decode("utf-8")) if crudo else None), cab
 
 
 def version_publicada(sitio: str, abrir=urllib.request.urlopen) -> dict | None:
@@ -1022,6 +1255,7 @@ def main():
             except Exception:
                 pass
     ventana.events.loaded += al_cargar
+    threading.Thread(target=api._vigilar_respaldo, daemon=True).start()
     DATOS.mkdir(parents=True, exist_ok=True)
     # El agente de usuario lleva «PrezioAdministrador/versión»: así el servidor sabe, desde la primera respuesta, que la página
     # va dentro de la app y dibuja el menú lateral ya puesto (sin parpadeo al cambiar de sección).

@@ -68,6 +68,9 @@ export function MenuLateralApp({ negocio, desdeServidor = false }: { negocio: { 
         <button type="button" onClick={() => void apiApp()?.ir_app?.("copia")}>
           <svg {...icono}><path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5" /></svg>Copia automática
         </button>
+        <button type="button" onClick={() => void apiApp()?.ir_app?.("drive")}>
+          <svg {...icono}><path d="M7 18a4 4 0 0 1-.6-7.96A5.5 5.5 0 0 1 17 8.5a4.5 4.5 0 0 1 .5 9z" /><path d="M12 12v6M9.5 15.5 12 12l2.5 3.5" /></svg>Google Drive
+        </button>
         <span className="menu-app-grupo">Panel del negocio</span>
         {PANEL.map((p) => (
           <Link key={p.clave} href={p.clave ? `${base}/${p.clave}` : base} aria-current={activa === p.clave ? "page" : undefined}>
