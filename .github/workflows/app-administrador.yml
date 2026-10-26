@@ -22,10 +22,11 @@ jobs:
         env:
           SITIO: ${{ vars.PREZIO_SITIO }}
         run: |
-          $version = "1.0.${{ github.run_number }}"
+          $version = "2.0.${{ github.run_number }}"   # 2.0.N: siempre mayor que la 2.0.0 que ya traen las PCs
           $f = "apps/administrador/administrador.py"
           $t = Get-Content $f -Raw -Encoding utf8
-          $t = $t -replace 'VERSION = "1\.0\.0"', "VERSION = `"$version`""
+          $t = $t -replace '(?m)^VERSION = "[^"]*"', "VERSION = `"$version`""
+          if (-not $t.Contains("VERSION = `"$version`"")) { throw "No se pudo poner la versión $version en administrador.py" }
           if ($env:SITIO) { $t = $t -replace 'SITIO = "[^"]*"', "SITIO = `"$($env:SITIO.TrimEnd('/'))`"" }
           Set-Content $f $t -Encoding utf8 -NoNewline
           Select-String -Path $f -Pattern '^(SITIO|VERSION) ='
