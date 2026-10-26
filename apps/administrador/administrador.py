@@ -1474,6 +1474,11 @@ def main():
     DATOS.mkdir(parents=True, exist_ok=True)
     # El agente de usuario lleva «PrezioAdministrador/versión»: así el servidor sabe, desde la primera respuesta, que la página
     # va dentro de la app y dibuja el menú lateral ya puesto (sin parpadeo al cambiar de sección).
+    # Sin esto la ventana ignora los enlaces de descarga (CSV de inventarios, respaldo del negocio, instaladores de las apps).
+    try:
+        webview.settings["ALLOW_DOWNLOADS"] = True
+    except Exception:
+        pass
     webview.start(gui="edgechromium", private_mode=False, storage_path=str(DATOS / "web"),
                   user_agent=AGENTE_VENTANA)
 
