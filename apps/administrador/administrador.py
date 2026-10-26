@@ -921,7 +921,10 @@ def main():
                 pass
     ventana.events.loaded += al_cargar
     DATOS.mkdir(parents=True, exist_ok=True)
-    webview.start(gui="edgechromium", private_mode=False, storage_path=str(DATOS / "web"))
+    # El agente de usuario lleva «PrezioAdministrador/versión»: así el servidor sabe, desde la primera respuesta, que la página
+    # va dentro de la app y dibuja el menú lateral ya puesto (sin parpadeo al cambiar de sección).
+    webview.start(gui="edgechromium", private_mode=False, storage_path=str(DATOS / "web"),
+                  user_agent=f"PrezioAdministrador/{VERSION}")
 
 
 if __name__ == "__main__":

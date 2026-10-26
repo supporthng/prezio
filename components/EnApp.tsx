@@ -34,8 +34,9 @@ const PANEL = [
 /** En la app, el mismo menú lateral de la pantalla de la app (Inicio, Base de datos, Copia automática y las secciones
  *  del panel) siempre a la vista mientras se navega por el panel, en la misma ventana. Los enlaces que se abren en
  *  otra pestaña (p. ej. «Probar» el verificador) van al navegador, para que la ventana nunca quede sin salida. */
-export function MenuLateralApp({ negocio }: { negocio: { nombre: string; slug: string } }) {
-  const en = useEnApp();
+export function MenuLateralApp({ negocio, desdeServidor = false }: { negocio: { nombre: string; slug: string }; desdeServidor?: boolean }) {
+  const detectada = useEnApp();
+  const en = desdeServidor || detectada;   // desdeServidor: la app se identificó al pedir la página, no hay que esperar
   const ruta = usePathname() ?? "";
   useEffect(() => {
     if (!en) return;
