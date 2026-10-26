@@ -930,6 +930,8 @@ class Api:
                 respuesta = json.loads(r.read().decode("utf-8"))
         except urllib.error.HTTPError as e:
             if e.code in (400, 401):
+                d["vencida"] = True          # la pantalla avisa y ofrece reconectar; el respaldo en la PC sigue funcionando
+                self._drive_guardar(d)
                 raise ErrorApp("Google ya no acepta la conexión (se quitó el acceso o venció). Vuelve a conectar Google Drive.")
             raise ErrorApp(f"Google no respondió ({e.code}). Intenta de nuevo.")
         except (urllib.error.URLError, OSError):
@@ -939,7 +941,7 @@ class Api:
 
     def drive_estado(self):
         d = self._drive_cfg()
-        return {"ok": True, "configurado": bool(GOOGLE_CLIENT_ID), "conectado": bool(d.get("renovar")), "cuenta": d.get("cuenta") or "",
+        return {"ok": True, "configurado": bool(GOOGLE_CLIENT_ID), "conectado": bool(d.get("renovar")), "vencida": bool(d.get("vencida")), "cuenta": d.get("cuenta") or "",
                 "auto": bool(d.get("auto")), "cada_horas": int(d.get("cada_horas") or 24), "guardar": int(d.get("guardar") or 14),
                 "ultimo": d.get("ultimo") or None, "carpeta": CARPETA_DRIVE,
                 "a_local": bool(d.get("a_local", True)), "a_drive": bool(d.get("a_drive", True)), "local_ruta": str(self._carpeta_local(d))}
@@ -956,7 +958,7 @@ class Api:
         if not r.get("renovar"):
             return {"error": "Google no dio el permiso permanente. Entra a myaccount.google.com/permissions, quita «Prezio» y vuelve a conectar."}
         d = self._drive_cfg()
-        d.update(renovar=cifrado.proteger(r["renovar"], equipo=False), carpeta_id="")
+        d.update(renovar=cifrado.proteger(r["renovar"], equipo=False), carpeta_id="", vencida=False)
         self._drive_acc = {"tok": r["token"], "vence": time.time() + int(r.get("dura") or 3000)}
         try:
             u = drive_pedir("GET", "https://www.googleapis.com/drive/v3/about?fields=user(emailAddress)", r["token"])[0]

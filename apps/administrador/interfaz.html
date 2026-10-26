@@ -536,7 +536,10 @@ $$("[data-ir]").forEach((b) => b.onclick = () => ir(b.dataset.ir));
 // ============================================================ Google Drive y respaldo en la nube
 function pintarDrive(x) {
   if (!x || x.error) { aviso($("#d-aviso"), x || { error: "No se pudo leer el estado." }); return; }
-  $("#d-sin").hidden = x.conectado; $("#d-con").hidden = !x.conectado;
+  $("#d-sin").hidden = x.conectado && !x.vencida; $("#d-con").hidden = !x.conectado;
+  $("#d-conectar").textContent = x.vencida ? "Reconectar Google Drive" : "Conectar Google Drive";
+  if (x.vencida) { $("#d-aviso").hidden = false; $("#d-aviso").className = "aviso error";
+    $("#d-aviso").textContent = "Google ya no acepta la conexión (se quitó el acceso desde tu cuenta de Google o pasó mucho tiempo sin usarla). Los respaldos en la PC siguen funcionando; reconecta para volver a usar Drive."; }
   $("#d-conectar").hidden = !x.configurado;
   $("#d-sin-txt").textContent = x.configurado ? "Aún no hay una cuenta conectada." : "Esta versión de la app no trae la conexión con Google Drive. Instala la última versión.";
   $("#d-cuenta").textContent = x.cuenta || "";
