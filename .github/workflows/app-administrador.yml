@@ -21,6 +21,8 @@ jobs:
         shell: pwsh
         env:
           SITIO: ${{ vars.PREZIO_SITIO }}
+          GOOGLE_ID: ${{ secrets.GOOGLE_DESKTOP_CLIENT_ID }}
+          GOOGLE_SECRETO: ${{ secrets.GOOGLE_DESKTOP_CLIENT_SECRET }}
         run: |
           $version = "2.0.${{ github.run_number }}"   # 2.0.N: siempre mayor que la 2.0.0 que ya traen las PCs
           $f = "apps/administrador/administrador.py"
@@ -28,6 +30,12 @@ jobs:
           $t = $t -replace '(?m)^VERSION = "[^"]*"', "VERSION = `"$version`""
           if (-not $t.Contains("VERSION = `"$version`"")) { throw "No se pudo poner la versión $version en administrador.py" }
           if ($env:SITIO) { $t = $t -replace 'SITIO = "[^"]*"', "SITIO = `"$($env:SITIO.TrimEnd('/'))`"" }
+          $gid = "$($env:GOOGLE_ID)".Trim(); $gsec = "$($env:GOOGLE_SECRETO)".Trim()
+          if ($gid -and $gsec) {
+            $t = $t.Replace('GOOGLE_CLIENT_ID = ""', "GOOGLE_CLIENT_ID = `"$gid`"").Replace('GOOGLE_CLIENT_SECRET = ""', "GOOGLE_CLIENT_SECRET = `"$gsec`"")
+            if (-not $t.Contains("GOOGLE_CLIENT_ID = `"$gid`"")) { throw "No se pudo poner el ID de cliente de Google en administrador.py" }
+            Write-Host "Google Drive: claves puestas en la app (ID empieza con $($gid.Substring(0, [Math]::Min(12, $gid.Length))), secreto de $($gsec.Length) caracteres)."
+          } else { Write-Warning "Faltan los secretos GOOGLE_DESKTOP_CLIENT_ID y GOOGLE_DESKTOP_CLIENT_SECRET: la app no podrá conectar Google Drive." }
           Set-Content $f $t -Encoding utf8 -NoNewline
           Select-String -Path $f -Pattern '^(SITIO|VERSION) ='
           "VERSION_APP=$version" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
