@@ -748,7 +748,7 @@ def _solo(permitido):
 
 
 for _n in ("estado", "activar", "desactivar", "entrar", "elegir_negocio", "abrir_panel", "buscar_servidores", "autorizar", "tablas",
-           "columnas", "muestra", "inventarios", "guardar_fuente", "fuentes", "quitar_fuente", "enviar_ahora", "guardar_frecuencia",
+           "columnas", "muestra", "inventarios", "adoptar_fuente", "guardar_fuente", "fuentes", "quitar_fuente", "enviar_ahora", "guardar_frecuencia",
            "arranque", "registro", "version_nueva", "actualizar", "abrir_enlace"):
     setattr(Api, _n, _solo(Api._desde_la_app)(getattr(Api, _n)))
 for _n in ("salir", "ir_app", "mostrar_inicio"):
