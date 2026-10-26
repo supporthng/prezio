@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FRECUENCIAS, type ColumnasGuardadas } from "@/lib/fuentes";
+import { FRECUENCIAS, NO_COMPARTIDA, type ColumnasGuardadas } from "@/lib/fuentes";
+import {
+  compartirPorEnlace, driveConfigurado, elegirArchivoDrive, enlaceDeArchivo, nombreSinExtension, type ArchivoDrive,
+} from "@/lib/googleDrive";
 import { crearGoogle, revisarGoogle, type Revision } from "./fuentes";
 
 type Props = { negocioId: string; slug: string; nombresUsados: string[] };
@@ -16,18 +19,52 @@ export function FuenteGoogle({ negocioId, slug, nombresUsados }: Props) {
   const [nombre, setNombre] = useState("");
   const [cada, setCada] = useState(60);
   const [estado, setEstado] = useState<{ tipo: "error" | "bien" | "trabajando"; texto: string } | null>(null);
+  const [elegido, setElegido] = useState<ArchivoDrive | null>(null);
+  const elegidoRef = useRef<ArchivoDrive | null>(null);   // lo mismo que «elegido», para leerlo dentro de revisar()
+  const [sinCompartir, setSinCompartir] = useState(false);
   const trabajando = estado?.tipo === "trabajando";
   const repetido = nombresUsados.some((n) => n.trim().toLowerCase() === nombre.trim().toLowerCase());
 
-  async function revisar() {
+  async function revisar(enlace: string = url, nombreSugerido = "") {
     setEstado({ tipo: "trabajando", texto: "Leyendo la hoja en Google…" });
     setRevision(null);
-    const r = await revisarGoogle(url);
-    if (!r.ok) { setEstado({ tipo: "error", texto: r.error }); return; }
+    setSinCompartir(false);
+    const r = await revisarGoogle(enlace);
+    if (!r.ok) {
+      // Elegido desde Drive pero sin compartir por enlace: se ofrece compartirlo con un toque.
+      if (r.error === NO_COMPARTIDA && elegidoRef.current) { setSinCompartir(true); setEstado(null); return; }
+      setEstado({ tipo: "error", texto: r.error });
+      return;
+    }
     setRevision(r);
     setColumnas(r.columnas);
-    setNombre((n) => n || "Hoja de Google");
+    setNombre((n) => n || nombreSugerido || "Hoja de Google");
     setEstado(null);
+  }
+
+  /** Elegir el archivo en Google Drive: se llena el enlace y se revisa de una vez. */
+  async function elegirDeDrive() {
+    setEstado({ tipo: "trabajando", texto: "Abriendo Google Drive…" });
+    try {
+      const a = await elegirArchivoDrive();
+      if (!a) { setEstado(null); return; }
+      elegidoRef.current = a;
+      setElegido(a);
+      const enlace = enlaceDeArchivo(a);
+      setUrl(enlace);
+      setNombre("");
+      await revisar(enlace, nombreSinExtension(a.nombre));
+    } catch (e) {
+      setEstado({ tipo: "error", texto: e instanceof Error ? e.message : "No se pudo abrir Google Drive." });
+    }
+  }
+
+  async function compartirYRevisar() {
+    if (!elegido) return;
+    setEstado({ tipo: "trabajando", texto: "Compartiendo el archivo por enlace…" });
+    const error = await compartirPorEnlace(elegido);
+    if (error) { setEstado({ tipo: "error", texto: error }); return; }
+    await revisar(enlaceDeArchivo(elegido), nombreSinExtension(elegido.nombre));
   }
 
   async function crear() {
@@ -53,16 +90,31 @@ export function FuenteGoogle({ negocioId, slug, nombresUsados }: Props) {
     <section className="tarjeta" aria-labelledby="t-google" style={{ marginTop: 20 }}>
       <h2 id="t-google">Inventario desde Google</h2>
       <p className="quieto" style={{ marginTop: 0 }}>
-        Una hoja de Google o un Excel guardado en Google Drive que se actualiza solo. En Google toca
-        <strong> Compartir › Acceso general › Cualquier persona con el enlace</strong> y copia el enlace.
+        Una hoja de Google o un Excel guardado en Google Drive que se actualiza solo. Elígelo desde Google Drive o,
+        en Google, toca <strong>Compartir › Acceso general › Cualquier persona con el enlace</strong> y pega el enlace.
       </p>
+      {driveConfigurado() && (
+        <p style={{ margin: "0 0 14px" }}>
+          <button className="boton" type="button" onClick={elegirDeDrive} disabled={trabajando}>Elegir de Google Drive</button>
+          <span className="quieto pequeno" style={{ marginLeft: 10 }}>o pega el enlace abajo</span>
+        </p>
+      )}
+      {sinCompartir && elegido && (
+        <div className="aviso" role="status" style={{ marginBottom: 14 }}>
+          <p style={{ margin: "0 0 10px" }}>
+            «{elegido.nombre}» es privado. Para que Prezio lo actualice solo, debe quedar como
+            <strong> «Cualquier persona con el enlace · Lector»</strong>. Solo se comparte para leer, no para editar.
+          </p>
+          <button className="boton" type="button" onClick={compartirYRevisar} disabled={trabajando}>Compartir por enlace y continuar</button>
+        </div>
+      )}
       <div className="fila">
         <div className="campo" style={{ marginBottom: 0, flex: "3 1 320px" }}>
           <label htmlFor="g-url">Enlace de la hoja</label>
-          <input id="g-url" type="url" value={url} onChange={(e) => { setUrl(e.target.value); setRevision(null); }}
+          <input id="g-url" type="url" value={url} onChange={(e) => { setUrl(e.target.value); setRevision(null); setSinCompartir(false); elegidoRef.current = null; setElegido(null); }}
             placeholder="https://docs.google.com/spreadsheets/d/…" autoComplete="off" />
         </div>
-        <button className="boton secundario" type="button" onClick={revisar} disabled={!url.trim() || trabajando}>Revisar la hoja</button>
+        <button className="boton secundario" type="button" onClick={() => void revisar()} disabled={!url.trim() || trabajando}>Revisar la hoja</button>
       </div>
 
       {revision && columnas && (

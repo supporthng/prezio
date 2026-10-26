@@ -16,7 +16,7 @@ export const FRECUENCIAS = [
   { min: 1440, texto: "una vez al día" },
 ] as const;
 
-const NO_COMPARTIDA = "Google no dejó leer la hoja. Compártela: Compartir › Acceso general › «Cualquier persona con el enlace» · Lector.";
+export const NO_COMPARTIDA = "Google no dejó leer la hoja. Compártela: Compartir › Acceso general › «Cualquier persona con el enlace» · Lector.";
 
 /** Convierte el enlace que pega el cliente en la dirección de descarga. Solo direcciones de Google. */
 export function enlaceGoogle(texto: string): string {

@@ -460,17 +460,85 @@ class Api:
         except Exception as e:
             return {"error": mensaje(e)}
 
+    @staticmethod
+    def _conexion_publica(m: dict) -> dict:
+        """Lo que se guarda en Prezio de una conexión para que TODAS las PCs la vean: servidor, base, tabla y
+        columnas. La clave de la base NUNCA va aquí: se queda cifrada en cada PC."""
+        cx = m.get("conexion") or {}
+        return {"motor": cx.get("motor"), "host": cx.get("host"), "puerto": cx.get("puerto"),
+                "instancia": cx.get("instancia") or "", "auth": cx.get("auth") or "sql", "usuario": cx.get("usuario") or "",
+                "ruta": cx.get("ruta") or "", "base": m.get("base") or cx.get("base") or "", "tabla": m.get("tabla"),
+                "codigo": m.get("codigo"), "nombre": m.get("nombre"), "precio": m.get("precio")}
+
     def inventarios(self):
         try:
             n = self._negocio()
-            filas = self._prezio.tabla("GET", f"inventarios?select=id,nombre,origen,estado&negocio_id=eq.{n['id']}&order=nombre", self._token()) or []
+            token = self._token()
+            filas = self._prezio.tabla("GET", f"inventarios?select=id,nombre,origen,estado&negocio_id=eq.{n['id']}&order=nombre", token) or []
             cfg = self._cfg()
             mio = (cfg.get("conector") or {}).get("id")
             locales = cfg.get("inventarios") or {}
-            return {"ok": True, "inventarios": [{
-                "id": i["id"], "nombre": i["nombre"], "origen": (i.get("origen") or {}).get("tipo") or "manual",
-                "de_esta_pc": (i.get("origen") or {}).get("conector_id") == mio and i["id"] in locales,
-                "estado": i.get("estado") or {}} for i in filas]}
+            lista = []
+            for i in filas:
+                o = i.get("origen") or {}
+                de_esta = o.get("conector_id") == mio and i["id"] in locales
+                # Conexiones hechas antes de esta versión: se publican (sin clave) para que las vea cualquier PC.
+                if de_esta and o.get("tipo") == "conector" and not o.get("conexion") and self._puede("inventarios"):
+                    try:
+                        o = {**o, "conexion": self._conexion_publica(locales[i["id"]]), "configurada_en": platform.node()}
+                        self._prezio.tabla("PATCH", f"inventarios?id=eq.{i['id']}&negocio_id=eq.{n['id']}", token, {"origen": o})
+                    except Exception:
+                        pass
+                c = o.get("conexion") or {}
+                lista.append({
+                    "id": i["id"], "nombre": i["nombre"], "origen": o.get("tipo") or "manual", "de_esta_pc": de_esta,
+                    "estado": i.get("estado") or {}, "equipo": o.get("configurada_en") or "",
+                    "conexion": ({"servidor": motores.nombre({**c, "base": c.get("base")}), "motor": c.get("motor"), "tabla": c.get("tabla"),
+                                  "columnas": [c.get("codigo"), c.get("nombre"), c.get("precio")],
+                                  "pide_clave": c.get("auth") != "windows"} if c.get("motor") in motores.MOTORES else None)})
+            return {"ok": True, "inventarios": lista}
+        except Exception as e:
+            return {"error": mensaje(e)}
+
+    def adoptar_fuente(self, d):
+        """Seguir enviando desde ESTA PC una base ya conectada en otra: solo hace falta la clave de la base
+        (el servidor, la tabla y las columnas ya están guardados en Prezio)."""
+        try:
+            if not self._puede("inventarios"):
+                return {"error": "Necesitas la casilla «Inventarios» para conectar una base de datos."}
+            n = self._negocio()
+            token = self._token()
+            iid = str(d.get("inventario_id") or "")
+            filas = self._prezio.tabla("GET", f"inventarios?select=id,nombre,origen&id=eq.{iid}&negocio_id=eq.{n['id']}", token) or []
+            if not filas:
+                return {"error": "No encontré ese inventario."}
+            inv = filas[0]
+            origen = inv.get("origen") or {}
+            c = origen.get("conexion") or {}
+            if origen.get("tipo") != "conector" or c.get("motor") not in motores.MOTORES:
+                return {"error": "Esa base se conectó con una versión anterior: ábrela una vez en la PC donde se creó, o conéctala de nuevo aquí."}
+            clave = str(d.get("clave") or "")
+            cx = {"motor": c["motor"], "host": c.get("host") or "", "puerto": c.get("puerto"), "instancia": c.get("instancia") or "",
+                  "auth": c.get("auth") or "sql", "usuario": c.get("usuario") or "", "ruta": c.get("ruta") or "",
+                  "clave": cifrado.proteger(clave) if clave else ""}
+            if cx["auth"] == "sql" and not clave:
+                return {"error": "Escribe la clave de la base de datos."}
+            base = c.get("base") or cx.get("ruta") or ""
+            mapeo = {k: str(c.get(k) or "") for k in ("tabla", "codigo", "nombre", "precio")}
+            prueba = pc.productos_de(motores.leer({**cx, "base": base}, {**mapeo, "base": base}, limite=50))
+            if not prueba:
+                return {"error": "Se conectó, pero esa tabla no devuelve productos con código, nombre y precio."}
+            cfg = self._cfg()
+            con = self._conector(cfg)
+            r = self._prezio.tabla("PATCH", f"inventarios?id=eq.{iid}&negocio_id=eq.{n['id']}", token,
+                                   {"origen": {**origen, "conector_id": con["id"], "configurada_en": platform.node()}})
+            if not r:
+                return {"error": "No se pudo cambiar la PC que envía (¿tienes la casilla «Inventarios»?)."}
+            cfg.setdefault("inventarios", {})[iid] = {**mapeo, "base": base, "conexion": {**cx, "base": base}, "titulo": inv["nombre"]}
+            cfg.setdefault("cada_min", 10)
+            self._guardar_cfg(cfg)
+            threading.Thread(target=self._enviar_fondo, daemon=True).start()
+            return {"ok": True, "mensaje": f"Listo: «{inv['nombre']}» ahora se envía desde esta PC. Enviando los precios…"}
         except Exception as e:
             return {"error": mensaje(e)}
 
@@ -505,7 +573,9 @@ class Api:
             token = self._token()
             con = self._conector(cfg)
             n = self._negocio()
-            origen = {"tipo": "conector", "conector_id": con["id"]}
+            entrada = {**mapeo, "base": base, "conexion": {**cx, "base": base}}
+            origen = {"tipo": "conector", "conector_id": con["id"], "conexion": self._conexion_publica(entrada),
+                      "configurada_en": platform.node()}
             iid = str(d.get("inventario_id") or "")
             if iid:
                 r = self._prezio.tabla("PATCH", f"inventarios?id=eq.{iid}&negocio_id=eq.{n['id']}", token, {"origen": origen})
@@ -516,7 +586,7 @@ class Api:
                 nombre_inv = str(d.get("nuevo_nombre") or "").strip()[:60] or f"Base de datos · {base or mapeo['tabla']}"[:60]
                 r = self._prezio.tabla("POST", "inventarios", token, {"negocio_id": n["id"], "nombre": nombre_inv, "origen": origen})
                 iid = r[0]["id"]
-            cfg.setdefault("inventarios", {})[iid] = {**mapeo, "base": base, "conexion": {**cx, "base": base}, "titulo": nombre_inv}
+            cfg.setdefault("inventarios", {})[iid] = {**entrada, "titulo": nombre_inv}
             cfg.setdefault("cada_min", 10)
             self._guardar_cfg(cfg)
             aviso = ""

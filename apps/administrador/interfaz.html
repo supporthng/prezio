@@ -274,12 +274,15 @@
       <p class="quieto">Conecta el sistema de facturación: los precios se copian solos a Prezio. Las claves de la base se quedan en esta PC.</p>
 
       <div class="tarjeta" id="t-fuentes" hidden>
-        <h2>Lo que esta PC envía</h2>
+        <h2>Bases conectadas del negocio</h2>
+        <p class="quieto pequeno">Se ven igual en cualquier PC con esta app. Solo la clave de la base se queda en cada PC.</p>
         <div id="lista-fuentes"></div>
+        <p class="aviso" id="fuentes-aviso" role="status" hidden></p>
+        <button class="boton" type="button" id="b-nueva-base">Conectar otra base de datos</button>
       </div>
 
-      <div class="tarjeta">
-        <h2>Conectar una base de datos</h2>
+      <div class="tarjeta" id="t-asistente">
+        <h2 id="t-asistente-titulo">Conectar una base de datos</h2>
         <ol class="pasos" id="pasos"><li>Servidor</li><li>Autorizar</li><li>Tabla y columnas</li><li>Inventario</li></ol>
 
         <!-- paso 1 -->
@@ -445,6 +448,7 @@ async function refrescar() {
   $("#saludo").textContent = s.nombre ? `Hola, ${s.nombre.split(" ")[0]}` : `Hola`;
   $("#pie-equipo").textContent = `${E.equipo} · versión ${E.version}`;
   $("#r-fuentes").textContent = E.conector.fuentes;
+  api("inventarios").then((x) => { if (x.inventarios) $("#r-fuentes").textContent = x.inventarios.filter((i) => i.origen === "conector").length; });
   $("#r-cada").textContent = E.conector.cada_min;
   $("#r-inicio").textContent = E.conector.inicio ? "Sí" : "No";
 }
@@ -509,21 +513,50 @@ $$("[data-panel]").forEach((b) => b.onclick = async () => {
 });
 
 // ============================================================ base de datos: lo configurado
+let asistenteAbierto = false;
+const horaIso = (t) => t ? new Date(t).toLocaleString("es-DO", { dateStyle: "short", timeStyle: "short" }) : "todavía no";
+function mostrarAsistente(si) { $("#t-asistente").hidden = !si; }
 async function cargarFuentes() {
-  const r = await api("fuentes");
-  $("#t-fuentes").hidden = !(r.fuentes && r.fuentes.length);
-  $("#lista-fuentes").innerHTML = (r.fuentes || []).map((f) => `
-    <div class="fuente">
-      <div><h3>${esc(f.nombre)}</h3><span class="quieto pequeno">${esc(f.origen)} · tabla ${esc(f.tabla)}</span></div>
-      <div class="acciones"><span class="chip ${f.productos ? "bien" : ""}">${f.productos ? f.productos.toLocaleString("es-DO") + " productos" : "sin enviar"}</span>
-        <button class="boton peligro" type="button" data-quitar="${esc(f.id)}">Dejar de enviar</button></div>
-      <span class="quieto pequeno">Último envío: ${hora(f.hora)} · columnas ${esc(f.columnas.join(", "))}</span>
-    </div>`).join("");
+  const [inv, loc] = await Promise.all([api("inventarios"), api("fuentes")]);
+  const locales = Object.fromEntries((loc.fuentes || []).map((f) => [f.id, f]));
+  const lista = (inv.inventarios || []).filter((i) => i.origen === "conector");
+  $("#t-fuentes").hidden = !lista.length;
+  $("#b-nueva-base").hidden = asistenteAbierto;
+  mostrarAsistente(!lista.length || asistenteAbierto);
+  $("#t-asistente-titulo").textContent = lista.length ? "Conectar otra base de datos" : "Conectar una base de datos";
+  $("#lista-fuentes").innerHTML = lista.map((i) => {
+    const c = i.conexion, e = i.estado || {}, l = locales[i.id];
+    const donde = i.de_esta_pc ? "Se envía desde esta PC" : i.equipo ? `Configurada en ${esc(i.equipo)}` : "Ninguna PC la envía todavía";
+    const detalle = c ? `${esc(c.servidor)} · tabla ${esc(c.tabla)} · columnas ${esc(c.columnas.join(", "))}` : "Conectada con una versión anterior de la app";
+    const ultimo = i.de_esta_pc && l && l.hora ? hora(l.hora) : horaIso(e.ultimo);
+    let accion;
+    if (i.de_esta_pc) accion = `<button class="boton peligro" type="button" data-quitar="${esc(i.id)}">Dejar de enviar</button>`;
+    else if (c) accion = `<form class="fila" data-adoptar="${esc(i.id)}">
+        ${c.pide_clave ? `<div class="campo" style="flex: 0 1 260px; margin-bottom: 0"><input type="password" data-clave autocomplete="new-password" placeholder="Clave de la base" aria-label="Clave de la base de datos de ${esc(i.nombre)}"></div>` : ""}
+        <button class="boton secundario" type="submit">Enviar desde esta PC</button></form>`;
+    else accion = `<span class="quieto pequeno">Ábrela una vez en la PC donde se creó para verla aquí.</span>`;
+    return `<div class="fuente">
+      <div><h3>${esc(i.nombre)}</h3><span class="quieto pequeno">${detalle}</span></div>
+      <div class="acciones"><span class="chip ${e.error ? "error" : e.productos ? "bien" : ""}">${e.error ? "con error" : e.productos ? Number(e.productos).toLocaleString("es-DO") + " productos" : "sin enviar"}</span></div>
+      <span class="quieto pequeno">${donde} · Último envío: ${ultimo}${e.error ? " · " + esc(e.error) : ""}</span>
+      <div style="margin-top: 8px">${accion}</div>
+    </div>`;
+  }).join("");
   $$("[data-quitar]").forEach((b) => b.onclick = async () => {
     if (!confirmar(b)) return;
     await api("quitar_fuente", b.dataset.quitar); cargarFuentes();
   });
+  $$("[data-adoptar]").forEach((f) => f.onsubmit = async (ev) => {
+    ev.preventDefault();
+    const b = f.querySelector("button"); ocupado(b, true, "Conectando…");
+    const clave = f.querySelector("[data-clave]");
+    const r = await api("adoptar_fuente", { inventario_id: f.dataset.adoptar, clave: clave ? clave.value : "" });
+    ocupado(b, false);
+    aviso($("#fuentes-aviso"), r, r.mensaje);
+    if (!r.error) { cargarFuentes(); setTimeout(cargarFuentes, 6000); setTimeout(cargarFuentes, 20000); }
+  });
 }
+$("#b-nueva-base").onclick = () => { asistenteAbierto = true; paso(1); cargarFuentes(); $("#t-asistente").scrollIntoView({ behavior: "smooth" }); };
 function confirmar(b) {
   if (b.dataset.seguro) return true;
   b.dataset.seguro = "1"; b.textContent = "¿Seguro? Toca otra vez";
@@ -672,8 +705,11 @@ $("#b-guardar").onclick = async () => {
   const r = await api("guardar_fuente", { base: W.base, mapeo: mapeo(), inventario_id: existente ? $("#d-existente").value : "",
     nuevo_nombre: existente ? "" : $("#d-nombre").value, principal: $("#d-principal").checked });
   ocupado(b, false);
-  aviso($("#d-aviso"), r, r.mensaje);
-  if (!r.error) { cargarFuentes(); setTimeout(cargarFuentes, 6000); setTimeout(cargarFuentes, 20000); }
+  if (r.error) { aviso($("#d-aviso"), r); return; }
+  $("#d-aviso").hidden = true;
+  asistenteAbierto = false; paso(1);
+  aviso($("#fuentes-aviso"), r, r.mensaje);
+  cargarFuentes(); setTimeout(cargarFuentes, 6000); setTimeout(cargarFuentes, 20000);
 };
 
 // ============================================================ copia automática

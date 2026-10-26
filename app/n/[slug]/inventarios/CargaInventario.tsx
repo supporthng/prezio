@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseNavegador } from "@/lib/supabase/browser";
 import { detectarColumnas, leerArchivo, productos, type Columnas, type Filas } from "@/lib/hoja";
+import { descargarDeDrive, driveConfigurado, elegirArchivoDrive } from "@/lib/googleDrive";
 
 type Inventario = { id: string; nombre: string; usos: string[] };
 type Props = { negocioId: string; inventarios: Inventario[]; moneda: string };
@@ -30,7 +31,7 @@ export function CargaInventario({ negocioId, inventarios, moneda }: Props) {
   const destinoListo = destino === "existente" ? Boolean(inventarioId) : nombreNuevo.trim().length > 0 && !nombreRepetido;
   const trabajando = estado?.tipo === "trabajando";
 
-  async function elegirArchivo(f: File | undefined) {
+  async function elegirArchivo(f: { name: string; arrayBuffer(): Promise<ArrayBuffer> } | undefined) {
     setEstado(null);
     if (!f) return;
     try {
@@ -45,6 +46,19 @@ export function CargaInventario({ negocioId, inventarios, moneda }: Props) {
     } catch (e) {
       setFilas([]); setCol(null); setArchivo("");
       setEstado({ tipo: "error", texto: e instanceof Error ? e.message : "No se pudo leer el archivo." });
+    }
+  }
+
+  /** Elegir el Excel desde Google Drive (selector de Google) y leerlo igual que uno subido. */
+  async function elegirDeDrive() {
+    setEstado({ tipo: "trabajando", texto: "Abriendo Google Drive…" });
+    try {
+      const a = await elegirArchivoDrive();
+      if (!a) { setEstado(null); return; }
+      setEstado({ tipo: "trabajando", texto: `Descargando «${a.nombre}» de Google Drive…` });
+      await elegirArchivo(await descargarDeDrive(a));
+    } catch (e) {
+      setEstado({ tipo: "error", texto: e instanceof Error ? e.message : "No se pudo abrir Google Drive." });
     }
   }
 
@@ -114,6 +128,14 @@ export function CargaInventario({ negocioId, inventarios, moneda }: Props) {
           {archivo ? "Toca para elegir otro" : "o arrástralo aquí"}
         </span>
       </label>
+      {driveConfigurado() && (
+        <p style={{ margin: "12px 0 0" }}>
+          <button className="boton secundario" type="button" onClick={elegirDeDrive} disabled={trabajando}>
+            Elegir de Google Drive
+          </button>
+          <span className="quieto pequeno" style={{ marginLeft: 10 }}>Un Excel o una hoja de tu Drive, sin compartirla.</span>
+        </p>
+      )}
 
       {col && resultado && (
         <>
