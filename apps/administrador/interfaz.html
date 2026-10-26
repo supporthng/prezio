@@ -155,6 +155,10 @@
     <span class="girando grande-g" id="act-girando"></span>
     <h2 id="act-texto">Buscando actualizaciones…</h2>
     <p class="quieto" id="act-detalle"></p>
+    <p class="acciones-act" id="act-acciones" hidden style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+      <button class="boton" type="button" id="act-reintentar">Reintentar</button>
+      <button class="boton secundario" type="button" id="act-descargar">Descargar el instalador</button>
+    </p>
     <button class="boton" type="button" id="act-seguir" hidden>Seguir con esta versión</button>
   </div>
 </div>
@@ -743,7 +747,23 @@ $("#b-registro").onclick = async () => { const r = await api("registro"); $("#re
   if (["base", "copia", "inicio"].includes(desdePanel) && E && E.sesion && E.sesion.negocio) ir(desdePanel);
   // Al abrir: si hay versión nueva publicada, se instala sola y la app se vuelve a abrir.
   const v = await api("version_nueva");
-  if (v.version) {
+  if (v.fallo) {
+    // El intento anterior no llegó a instalarse: no se repite solo. Se dice por qué y se deja elegir.
+    $("#actualizando").hidden = false;
+    $("#act-girando").hidden = true;
+    $("#act-texto").textContent = `No se pudo instalar la versión ${v.fallo.version}`;
+    $("#act-detalle").textContent = (v.fallo.motivo || "Windows no terminó la instalación.") +
+      " · Puedes reintentar, o descargar el instalador y ejecutarlo a mano (una sola vez basta).";
+    $("#act-acciones").hidden = false; $("#act-seguir").hidden = false;
+    $("#act-reintentar").onclick = async () => {
+      $("#act-acciones").hidden = true; $("#act-seguir").hidden = true; $("#act-girando").hidden = false;
+      $("#act-texto").textContent = `Actualizando Prezio Administrador a la versión ${v.version}…`;
+      $("#act-detalle").textContent = "Si Windows pregunta, toca «Sí». La app se cierra y se vuelve a abrir sola en unos segundos.";
+      const r2 = await api("actualizar");
+      if (r2.error) { $("#act-texto").textContent = r2.error; $("#act-girando").hidden = true; $("#act-seguir").hidden = false; }
+    };
+    $("#act-descargar").onclick = () => api("abrir_enlace", v.url);
+  } else if (v.version) {
     $("#actualizando").hidden = false;
     $("#act-texto").textContent = `Actualizando Prezio Administrador a la versión ${v.version}…`;
     const r = await api("actualizar");

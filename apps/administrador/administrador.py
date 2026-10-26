@@ -50,6 +50,8 @@ GOOGLE_CLIENT_SECRET = ""
 TAREA = pc.TAREA
 DATOS = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / ".prezio")) / "Prezio" / "Administrador"
 SESION = DATOS / "sesion.json"
+PENDIENTE = pc.CARPETA / "actualizacion.json"       # el intento de actualización que se lanzó (para saber si terminó)
+LOG_INSTALACION = pc.CARPETA / "instalacion.log"    # lo que dijo el instalador
 ARRANQUE = pc.CARPETA / "arranque.json"          # lo que dejó el paso con permiso de administrador (tarea de Windows)
 ACTIVACION = pc.CARPETA / "activacion.json"     # de la PC (todas las cuentas de Windows): la licencia del negocio
 USUARIO_VALIDO = r"^[a-z0-9][a-z0-9._-]{2,29}$"
@@ -720,9 +722,33 @@ class Api:
         return {"ok": True, "lineas": lineas}
 
     # ---- actualizaciones
+    @staticmethod
+    def _motivo_instalacion() -> str:
+        """Lo más útil del registro del instalador: las líneas que hablan de un error; si no hay, las últimas."""
+        try:
+            lineas = [l.strip() for l in LOG_INSTALACION.read_text(encoding="utf-8", errors="replace").splitlines() if l.strip()]
+        except OSError:
+            return "El instalador no llegó a escribir su registro: Windows no lo ejecutó (¿se canceló el permiso de administrador o lo bloqueó el antivirus?)."
+        clave = ("error", "fail", "falló", "exception", "excepci", "denied", "denegado", "status code", "exit code", "locked", "bloquead")
+        malas = [l for l in lineas if any(k in l.lower() for k in clave)]
+        return " | ".join((malas or lineas)[-4:])[:420]
+
     def version_nueva(self):
-        """Al abrir: ¿hay una versión más nueva publicada? (la ventana la instala sola)."""
+        """Al abrir: ¿hay una versión más nueva publicada? Si el intento anterior no terminó, NO se repite en bucle:
+        se devuelve el motivo para que la persona lo vea (o reintente a propósito)."""
         info = version_publicada(self._prezio.sitio)
+        pendiente = pc.leer_json(PENDIENTE, None)
+        if pendiente:
+            if not _version_mayor(pendiente.get("version"), VERSION):
+                anotar_actualizacion(f"actualizada a {VERSION}")
+                try:
+                    PENDIENTE.unlink()
+                except OSError:
+                    pass
+            elif info:
+                motivo = self._motivo_instalacion()
+                anotar_actualizacion(f"el intento anterior ({pendiente.get('version')}) no se instaló: {motivo}")
+                return {"ok": True, **info, "fallo": {"version": pendiente.get("version"), "motivo": motivo}}
         return {"ok": True, **info} if info else {"ok": True, "version": None}
 
     def actualizar(self):
@@ -735,10 +761,20 @@ class Api:
             if os.name != "nt":
                 return {"error": "Solo en Windows."}
             import ctypes
+            # Se anota el intento y el instalador deja su registro: si al volver a abrir la versión no cambió, se sabe por qué.
+            try:
+                LOG_INSTALACION.unlink()
+            except OSError:
+                pass
+            pc.guardar_json(PENDIENTE, {"version": info["version"], "desde": VERSION, "hora": time.time()})
             # Pide permiso de administrador (la app está instalada para toda la PC).
             r = ctypes.windll.shell32.ShellExecuteW(None, "runas", ruta,
-                                                    "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS", None, 0)
+                                                    f'/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS /LOG="{LOG_INSTALACION}"', None, 0)
             if r <= 32:
+                try:
+                    PENDIENTE.unlink()
+                except OSError:
+                    pass
                 return {"error": "Windows no dio permiso para instalar la actualización. Se seguirá usando esta versión."}
             anotar_actualizacion(f"instalando {info['version']} (desde la ventana)")
 
