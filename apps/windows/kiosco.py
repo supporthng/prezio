@@ -264,14 +264,14 @@ class Kiosco:
             if nueva and version_mayor(nueva, VERSION):
                 anotar(f"hay versión nueva {nueva} (esta es {VERSION})")
                 if not self._instalar_desde(str(info.get("url") or "")) and avisar:
-                    self._avisar("error")
+                    self._avisar("error", "dirección de descarga no permitida")
             elif avisar:
                 self._avisar("al_dia")
             return True
         except Exception as exc:
             anotar(f"no se pudo revisar apps.json ({exc})")
             if avisar:
-                self._avisar("error")
+                self._avisar("error", f"no se pudo leer apps.json: {exc}")
             return False
 
     def revisar_cada_rato(self):
@@ -283,9 +283,11 @@ class Kiosco:
                 time.sleep(60)
             time.sleep(CADA_REVISION_S)
 
-    def _avisar(self, estado):
+    def _avisar(self, estado, detalle=""):
+        """Avisa a la pantalla; en un error manda también el motivo (para saber qué falló)."""
         try:
-            self._ventana.evaluate_js(f"window.__prezioActualizacion && window.__prezioActualizacion('{estado}')")
+            motivo = json.dumps(str(detalle)[:140])
+            self._ventana.evaluate_js(f"window.__prezioActualizacion && window.__prezioActualizacion('{estado}', {motivo})")
         except Exception:
             pass
 
@@ -316,7 +318,7 @@ class Kiosco:
         except Exception as exc:
             anotar(f"error al actualizar: {exc}")
             self._actualizando = False
-            self._avisar("error")
+            self._avisar("error", exc)
 
     def recargar(self):
         if self._ventana:

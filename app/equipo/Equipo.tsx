@@ -184,8 +184,8 @@ export function Equipo({ sitio }: { sitio: string }) {
     void detectar();
     window.addEventListener("pywebviewready", detectar);
     let ocultar: ReturnType<typeof setTimeout> | undefined;
-    (window as unknown as { __prezioActualizacion?: (e: string) => void }).__prezioActualizacion = (e: string) => {
-      setAvisoApp(TEXTO_ACTUALIZACION[e] ?? "");
+    (window as unknown as { __prezioActualizacion?: (e: string, motivo?: string) => void }).__prezioActualizacion = (e: string, motivo?: string) => {
+      setAvisoApp((TEXTO_ACTUALIZACION[e] ?? "") + (e === "error" && motivo ? ` (${motivo})` : ""));
       if (ocultar) clearTimeout(ocultar);
       ocultar = setTimeout(() => setAvisoApp(""), e === "instalando" || e === "descargando" ? 120000 : 8000);
     };
