@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { EnlacesApp, SoloWeb } from "./EnApp";
+import { SoloWeb } from "./EnApp";
 import { supabaseServidor } from "@/lib/supabase/server";
 import { estadoLicencia, fechaCorta, type DatosLicencia } from "@/lib/licencia";
 
@@ -45,7 +45,6 @@ export async function SubNav({ slug, activa }: { slug: string; activa: string })
           {s.texto}
         </Link>
       ))}
-      <EnlacesApp />
       <SoloWeb><Link href={`/v/${slug}`} className="subnav-verificador" target="_blank">Abrir verificador ›</Link></SoloWeb>
     </nav>
     </>

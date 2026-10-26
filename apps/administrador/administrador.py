@@ -42,6 +42,7 @@ VERSION = "2.0.0"
 TAREA = pc.TAREA
 DATOS = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / ".prezio")) / "Prezio" / "Administrador"
 SESION = DATOS / "sesion.json"
+ARRANQUE = pc.CARPETA / "arranque.json"          # lo que dejó el paso con permiso de administrador (tarea de Windows)
 ACTIVACION = pc.CARPETA / "activacion.json"     # de la PC (todas las cuentas de Windows): la licencia del negocio
 USUARIO_VALIDO = r"^[a-z0-9][a-z0-9._-]{2,29}$"
 # Solo se instalan actualizaciones publicadas en las descargas de Prezio.
@@ -660,11 +661,23 @@ class Api:
         self._guardar_cfg(cfg)
         return {"ok": True, "cada_min": cfg["cada_min"]}
 
-    def _tarea_instalada(self):
+    @staticmethod
+    def _consulta_tarea() -> bool:
         if os.name != "nt":
             return False
-        r = subprocess.run(["schtasks", "/Query", "/TN", TAREA], capture_output=True, text=True, creationflags=0x08000000)
-        return r.returncode == 0
+        try:
+            r = subprocess.run(["schtasks", "/Query", "/TN", TAREA], capture_output=True, text=True, errors="replace",
+                               creationflags=0x08000000)
+            return r.returncode == 0
+        except OSError:
+            return False
+
+    def _tarea_instalada(self):
+        """Windows a veces no deja a una cuenta normal consultar una tarea creada como SYSTEM: en ese caso
+        vale lo que dejó anotado el paso con permiso de administrador."""
+        if self._consulta_tarea():
+            return True
+        return bool((pc.leer_json(ARRANQUE, {}) or {}).get("instalada"))
 
     def arranque(self, activar):
         """Crear o quitar la tarea de Windows (pide permiso de administrador con la ventana de Windows)."""
@@ -674,14 +687,22 @@ class Api:
         frozen = getattr(sys, "frozen", False)
         argumentos = ("--instalar" if activar else "--desinstalar") if frozen \
             else f'"{Path(__file__).resolve()}" ' + ("--instalar" if activar else "--desinstalar")
+        inicio = time.time()
         r = ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, argumentos, None, 0)
         if r <= 32:
             return {"error": "Windows no dio permiso de administrador."}
-        for _ in range(20):
+        accion = "instalar" if activar else "desinstalar"
+        for _ in range(80):          # hasta 40 s: el programa con permiso tarda en abrir y crear la tarea
             time.sleep(0.5)
-            if self._tarea_instalada() == bool(activar):
+            res = pc.leer_json(ARRANQUE, {}) or {}
+            if res.get("accion") == accion and float(res.get("hora") or 0) >= inicio - 1:
+                if res.get("ok"):
+                    return {"ok": True, "inicio": bool(activar)}
+                detalle = " ".join(str(res.get("salida") or "").split())[:200]
+                return {"error": f"Windows no pudo {'crear' if activar else 'quitar'} la tarea" + (f": {detalle}" if detalle else ".")}
+            if self._consulta_tarea() == bool(activar):
                 return {"ok": True, "inicio": bool(activar)}
-        return {"error": "No se pudo confirmar el cambio. Vuelve a intentarlo."}
+        return {"error": "Windows no respondió a tiempo. Si apareció la ventana de permiso, acéptala y vuelve a intentarlo."}
 
     def registro(self):
         try:
@@ -726,6 +747,13 @@ class Api:
             anotar_actualizacion(f"error al actualizar: {e}")
             return {"error": "No se pudo descargar la actualización: " + mensaje(e)}
 
+    def abrir_en_navegador(self, url):
+        """Desde el panel: abrir una página de Prezio (p. ej. el verificador) en el navegador, sin dejar la ventana sin salida."""
+        if str(url).startswith(self._prezio.sitio + "/"):
+            webbrowser.open(str(url))
+            return {"ok": True}
+        return {"error": "Solo se pueden abrir páginas de Prezio."}
+
     def abrir_enlace(self, url):
         if str(url).startswith("https://"):
             webbrowser.open(str(url))
@@ -751,7 +779,7 @@ for _n in ("estado", "activar", "desactivar", "entrar", "elegir_negocio", "abrir
            "columnas", "muestra", "inventarios", "adoptar_fuente", "guardar_fuente", "fuentes", "quitar_fuente", "enviar_ahora", "guardar_frecuencia",
            "arranque", "registro", "version_nueva", "actualizar", "abrir_enlace"):
     setattr(Api, _n, _solo(Api._desde_la_app)(getattr(Api, _n)))
-for _n in ("salir", "ir_app", "mostrar_inicio"):
+for _n in ("salir", "ir_app", "mostrar_inicio", "abrir_en_navegador"):
     setattr(Api, _n, _solo(Api._desde_prezio)(getattr(Api, _n)))
 
 
@@ -826,14 +854,39 @@ def _version_mayor(a, b):
 
 
 # ---------------------------------------------------------------- arranque
+def _anotar_arranque(accion: str, codigo: int, salida: str, instalada: bool) -> None:
+    """Deja dicho cómo salió (la app normal lo lee para confirmar el cambio o mostrar el motivo)."""
+    try:
+        pc.guardar_json(ARRANQUE, {"accion": accion, "hora": time.time(), "ok": codigo == 0, "codigo": codigo,
+                                   "salida": (salida or "")[:400], "instalada": instalada})
+    except Exception:
+        pass
+
+
 def instalar_tarea():
     destino = f'"{sys.executable}" --servicio' if getattr(sys, "frozen", False) \
         else f'"{sys.executable}" "{Path(__file__).resolve()}" --servicio'
-    r = subprocess.run(["schtasks", "/Create", "/F", "/TN", TAREA, "/SC", "ONSTART", "/RU", "SYSTEM", "/RL", "HIGHEST",
-                        "/TR", destino], capture_output=True, text=True)
-    if r.returncode == 0:
-        subprocess.run(["schtasks", "/Run", "/TN", TAREA], capture_output=True)
-    return r.returncode
+    try:
+        r = subprocess.run(["schtasks", "/Create", "/F", "/TN", TAREA, "/SC", "ONSTART", "/RU", "SYSTEM", "/RL", "HIGHEST",
+                            "/TR", destino], capture_output=True, text=True, errors="replace", creationflags=0x08000000)
+        codigo, salida = r.returncode, (r.stdout or "") + " " + (r.stderr or "")
+        if codigo == 0:
+            subprocess.run(["schtasks", "/Run", "/TN", TAREA], capture_output=True, creationflags=0x08000000)
+    except Exception as e:
+        codigo, salida = 1, str(e)
+    _anotar_arranque("instalar", codigo, salida, codigo == 0)
+    return codigo
+
+
+def quitar_tarea():
+    try:
+        r = subprocess.run(["schtasks", "/Delete", "/F", "/TN", TAREA], capture_output=True, text=True, errors="replace",
+                           creationflags=0x08000000)
+        codigo, salida = r.returncode, (r.stdout or "") + " " + (r.stderr or "")
+    except Exception as e:
+        codigo, salida = 1, str(e)
+    _anotar_arranque("desinstalar", codigo, salida, False)
+    return codigo
 
 
 def main():
@@ -851,7 +904,7 @@ def main():
     if "--instalar" in args:
         sys.exit(instalar_tarea())
     if "--desinstalar" in args:
-        sys.exit(subprocess.run(["schtasks", "/Delete", "/F", "/TN", TAREA], capture_output=True).returncode)
+        sys.exit(quitar_tarea())
     pc.preparar_registro(consola=False)
     import webview
     webview.settings["OPEN_EXTERNAL_LINKS_IN_BROWSER"] = True   # enlaces a otros sitios: en el navegador
