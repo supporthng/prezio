@@ -227,7 +227,7 @@
       <button data-ir="inicio" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Inicio</button>
       <button data-ir="base"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>Base de datos</button>
       <button data-ir="copia"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"/></svg>Copia automática</button>
-      <button data-ir="drive"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 18a4 4 0 0 1-.6-7.96A5.5 5.5 0 0 1 17 8.5a4.5 4.5 0 0 1 .5 9z"/><path d="M12 12v6M9.5 15.5 12 12l2.5 3.5"/></svg>Google Drive</button>
+      <button data-ir="drive"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 18a4 4 0 0 1-.6-7.96A5.5 5.5 0 0 1 17 8.5a4.5 4.5 0 0 1 .5 9z"/><path d="M12 12v6M9.5 15.5 12 12l2.5 3.5"/></svg>Respaldo y Drive</button>
       <span class="grupo">Panel del negocio</span>
       <button data-panel=""><span class="punto"></span>Resumen</button>
       <button data-panel="sucursales"><span class="punto"></span>Sucursales</button>
@@ -379,10 +379,55 @@
 
     <!-- ---------------------------------------------------------- copia automática -->
     <section id="s-drive" hidden>
-      <h1>Google Drive</h1>
-      <p class="quieto">Conecta tu cuenta de Google para guardar respaldos de todo el negocio en tu propio Drive y para elegir el Excel de precios desde él. Prezio solo ve los archivos que él mismo crea o que tú eliges.</p>
+      <h1>Respaldo y Google Drive</h1>
+      <p class="quieto">Guarda copias de seguridad de todo el negocio (sucursales, inventarios con sus precios y equipos, sin claves) en una carpeta de esta PC, en tu Google Drive o en los dos. Desde aquí también puedes restaurarlas.</p>
+
       <div class="tarjeta">
-        <h2>Cuenta</h2>
+        <h2>Respaldar</h2>
+        <label class="casilla" style="margin-bottom:8px"><input type="checkbox" id="d-a-local"> En una carpeta de esta PC</label>
+        <div class="fila" id="d-fila-local">
+          <div class="campo" style="flex: 1 1 320px"><label for="d-ruta">Carpeta</label><input id="d-ruta" readonly></div>
+          <button class="boton secundario" type="button" id="d-carpeta" style="margin-bottom: 12px">Cambiar carpeta</button>
+          <button class="boton secundario" type="button" id="d-ver-carpeta" style="margin-bottom: 12px">Abrir</button>
+        </div>
+        <label class="casilla" style="margin-bottom:8px"><input type="checkbox" id="d-a-drive"> En Google Drive <span class="quieto" id="d-a-drive-nota"></span></label>
+        <div class="fila">
+          <button class="boton" type="button" id="d-ahora">Respaldar ahora</button>
+        </div>
+        <p class="aviso" id="d-aviso2" role="status" hidden></p>
+        <p class="quieto" id="d-ultimo" style="margin-top: 10px"></p>
+        <h2 style="margin-top: 18px">Respaldo automático</h2>
+        <label class="casilla" style="margin-bottom:8px"><input type="checkbox" id="d-auto"> Respaldar solo mientras la app esté abierta</label>
+        <div class="fila">
+          <div class="campo" style="flex: 0 1 200px"><label for="d-cada">Cada</label>
+            <select id="d-cada"><option value="6">6 horas</option><option value="12">12 horas</option><option value="24">día</option><option value="72">3 días</option><option value="168">semana</option></select></div>
+          <div class="campo" style="flex: 0 1 200px"><label for="d-guardar">Conservar las últimas</label>
+            <select id="d-guardar"><option value="7">7 copias</option><option value="14">14 copias</option><option value="30">30 copias</option><option value="90">90 copias</option></select></div>
+          <button class="boton secundario" type="button" id="d-guardar-b" style="margin-bottom: 12px">Guardar</button>
+        </div>
+      </div>
+
+      <div class="tarjeta">
+        <h2>Restaurar un respaldo</h2>
+        <p class="quieto">Vuelve a cargar los inventarios y precios de un respaldo en este negocio. Si un inventario ya existe, sus precios se reemplazan; si no existe, se crea. No cambia sucursales ni equipos.</p>
+        <div class="fila">
+          <button class="boton secundario" type="button" id="r-archivo">Elegir un archivo de esta PC…</button>
+          <button class="boton secundario" type="button" id="r-drive">Ver los respaldos de Google Drive</button>
+        </div>
+        <div id="r-lista-drive" hidden style="margin-top:10px"></div>
+        <p class="aviso" id="r-aviso" role="status" hidden></p>
+        <div id="r-vista" hidden style="margin-top:12px">
+          <p id="r-resumen"></p>
+          <div id="r-invs"></div>
+          <p class="aviso error" id="r-otro" hidden>Este respaldo es de otro negocio. Revisa que sea el correcto antes de restaurar.</p>
+          <p class="quieto">Los inventarios que se llenan solos (Excel, Google o conector) volverán a actualizarse con su fuente en la próxima copia.</p>
+          <div class="fila"><button class="boton" type="button" id="r-aplicar">Restaurar lo marcado</button>
+            <button class="boton secundario" type="button" id="r-cancelar">Cancelar</button></div>
+        </div>
+      </div>
+
+      <div class="tarjeta">
+        <h2>Cuenta de Google</h2>
         <div id="d-sin" hidden>
           <p class="quieto" id="d-sin-txt">Aún no hay una cuenta conectada.</p>
           <button class="boton" type="button" id="d-conectar">Conectar Google Drive</button>
@@ -395,24 +440,6 @@
           </div>
         </div>
         <p class="aviso" id="d-aviso" role="status" hidden></p>
-      </div>
-      <div class="tarjeta" id="d-respaldo" hidden>
-        <h2>Respaldo en la nube</h2>
-        <p class="quieto">Guarda en Drive, dentro de la carpeta «Prezio respaldos», un archivo con las sucursales, inventarios, precios y equipos del negocio. Sin claves ni contraseñas.</p>
-        <div class="fila">
-          <button class="boton" type="button" id="d-ahora">Respaldar ahora</button>
-        </div>
-        <p class="aviso" id="d-aviso2" role="status" hidden></p>
-        <p class="quieto" id="d-ultimo" style="margin-top: 10px"></p>
-        <h2 style="margin-top: 18px">Respaldo automático</h2>
-        <label style="display:flex;gap:8px;align-items:center;margin-bottom:10px"><input type="checkbox" id="d-auto"> Respaldar solo mientras la app esté abierta</label>
-        <div class="fila">
-          <div class="campo" style="flex: 0 1 200px"><label for="d-cada">Cada</label>
-            <select id="d-cada"><option value="6">6 horas</option><option value="12">12 horas</option><option value="24">día</option><option value="72">3 días</option><option value="168">semana</option></select></div>
-          <div class="campo" style="flex: 0 1 200px"><label for="d-guardar">Conservar las últimas</label>
-            <select id="d-guardar"><option value="7">7 copias</option><option value="14">14 copias</option><option value="30">30 copias</option><option value="90">90 copias</option></select></div>
-          <button class="boton secundario" type="button" id="d-guardar-b" style="margin-bottom: 12px">Guardar</button>
-        </div>
       </div>
     </section>
 
@@ -509,16 +536,24 @@ $$("[data-ir]").forEach((b) => b.onclick = () => ir(b.dataset.ir));
 // ============================================================ Google Drive y respaldo en la nube
 function pintarDrive(x) {
   if (!x || x.error) { aviso($("#d-aviso"), x || { error: "No se pudo leer el estado." }); return; }
-  $("#d-sin").hidden = x.conectado; $("#d-con").hidden = !x.conectado; $("#d-respaldo").hidden = !x.conectado;
+  $("#d-sin").hidden = x.conectado; $("#d-con").hidden = !x.conectado;
   $("#d-conectar").hidden = !x.configurado;
   $("#d-sin-txt").textContent = x.configurado ? "Aún no hay una cuenta conectada." : "Esta versión de la app no trae la conexión con Google Drive. Instala la última versión.";
   $("#d-cuenta").textContent = x.cuenta || "";
+  $("#d-a-local").checked = !!x.a_local; $("#d-ruta").value = x.local_ruta || "";
+  $("#d-fila-local").style.opacity = x.a_local ? "1" : ".5";
+  $("#d-a-drive").checked = !!(x.conectado && x.a_drive); $("#d-a-drive").disabled = !x.conectado;
+  $("#d-a-drive-nota").textContent = x.conectado ? `· carpeta «${x.carpeta}»` : "· conecta tu cuenta de Google más abajo";
+  $("#r-drive").disabled = !x.conectado;
   $("#d-auto").checked = !!x.auto; $("#d-cada").value = String(x.cada_horas); $("#d-guardar").value = String(x.guardar);
   const u = x.ultimo;
+  const donde = (u && u.destinos && u.destinos.length) ? ` → ${u.destinos.join(" y ")}` : "";
   $("#d-ultimo").textContent = !u ? "Todavía no se ha hecho ningún respaldo."
-    : u.ok ? `Último respaldo: ${hora(u.hora)}${u.auto ? " (automático)" : ""} · ${u.productos} productos · ${u.kb} KB`
-    : `El último intento falló (${hora(u.hora)}): ${u.error}`;
+    : u.ok ? `Último respaldo: ${hora(u.hora)}${u.auto ? " (automático)" : ""} · ${u.productos} productos · ${u.kb} KB${donde}` + (u.errores && u.errores.length ? ` · Con avisos: ${u.errores.join(" | ")}` : "")
+    : `El último intento falló (${hora(u.hora)}): ${u.error || (u.errores || []).join(" | ")}`;
 }
+const opcionesRespaldo = () => ({ a_local: $("#d-a-local").checked, a_drive: $("#d-a-drive").checked, auto: $("#d-auto").checked,
+  cada_horas: +$("#d-cada").value, guardar: +$("#d-guardar").value });
 async function cargarDrive() { $("#d-aviso").hidden = true; $("#d-aviso2").hidden = true; pintarDrive(await api("drive_estado")); }
 $("#d-conectar").onclick = async () => {
   const b = $("#d-conectar"); ocupado(b, true, "Esperando a Google en tu navegador…");
@@ -529,18 +564,58 @@ $("#d-conectar").onclick = async () => {
 };
 $("#d-quitar").onclick = async () => {
   if (!confirm("¿Desconectar Google Drive de esta PC? Los respaldos que ya están en tu Drive no se borran.")) return;
-  const r = await api("drive_desconectar"); pintarDrive(r);
+  pintarDrive(await api("drive_desconectar"));
 };
+$("#d-carpeta").onclick = async () => { const r = await api("respaldo_carpeta"); if (r.error) aviso($("#d-aviso2"), r); else if (!r.cancelado) pintarDrive(r); };
+$("#d-ver-carpeta").onclick = async () => { const r = await api("respaldo_abrir_carpeta"); if (r.error) aviso($("#d-aviso2"), r); };
 $("#d-ahora").onclick = async () => {
+  const g = await api("drive_guardar", opcionesRespaldo());   // lo marcado ahora es lo que se usa
+  if (g.error) return aviso($("#d-aviso2"), g);
   const b = $("#d-ahora"); ocupado(b, true, "Respaldando…");
   const r = await api("drive_respaldar"); ocupado(b, false);
-  aviso($("#d-aviso2"), r, r.ok ? `Listo: ${r.nombre} (${r.productos} productos).` : "");
+  aviso($("#d-aviso2"), r, r.ok ? `Listo: ${r.nombre} (${r.productos} productos) → ${(r.destinos || []).join(" y ")}.` + ((r.errores || []).length ? ` Con avisos: ${r.errores.join(" | ")}` : "") : "");
   pintarDrive(await api("drive_estado"));
 };
 $("#d-guardar-b").onclick = async () => {
-  const r = await api("drive_guardar", { auto: $("#d-auto").checked, cada_horas: +$("#d-cada").value, guardar: +$("#d-guardar").value });
+  const r = await api("drive_guardar", opcionesRespaldo());
   if (r.error) return aviso($("#d-aviso2"), r);
   pintarDrive(r); aviso($("#d-aviso2"), r, "Guardado.");
+};
+$("#d-a-local").onchange = $("#d-a-drive").onchange = () => { $("#d-fila-local").style.opacity = $("#d-a-local").checked ? "1" : ".5"; };
+
+// ---- restaurar
+function mostrarRestauracion(r) {
+  if (r.cancelado) return;
+  if (r.error) { $("#r-vista").hidden = true; return aviso($("#r-aviso"), r); }
+  $("#r-aviso").hidden = true; $("#r-lista-drive").hidden = true; $("#r-vista").hidden = false;
+  $("#r-resumen").innerHTML = `Respaldo de <b>${esc(r.negocio || "—")}</b> · ${esc(horaIso(r.creado))} · ${esc(r.origen)}`;
+  $("#r-otro").hidden = !r.otro_negocio;
+  $("#r-invs").innerHTML = r.inventarios.map((i, n) =>
+    `<label class="casilla" style="margin-bottom:8px"><input type="checkbox" data-inv="${n}" checked> ${esc(i.nombre)} <span class="quieto">· ${i.productos.toLocaleString("es-DO")} productos</span></label>`).join("");
+  $("#r-invs").dataset.nombres = JSON.stringify(r.inventarios.map((i) => i.nombre));
+}
+$("#r-archivo").onclick = async () => { const b = $("#r-archivo"); ocupado(b, true, "Leyendo…"); const r = await api("restaurar_archivo"); ocupado(b, false); mostrarRestauracion(r); };
+$("#r-drive").onclick = async () => {
+  const b = $("#r-drive"); ocupado(b, true, "Buscando…"); const r = await api("restaurar_drive_lista"); ocupado(b, false);
+  if (r.error) return aviso($("#r-aviso"), r);
+  const caja = $("#r-lista-drive"); caja.hidden = false; $("#r-aviso").hidden = true;
+  caja.innerHTML = r.archivos.length ? r.archivos.map((f) =>
+    `<div class="fila" style="align-items:center;margin:4px 0"><span style="flex:1">${esc(f.nombre)} <span class="quieto">· ${f.kb} KB · ${esc(horaIso(f.fecha))}</span></span><button class="boton secundario" type="button" data-drive="${esc(f.id)}">Elegir</button></div>`).join("")
+    : '<p class="quieto">No hay respaldos en tu Drive todavía.</p>';
+  caja.querySelectorAll("[data-drive]").forEach((x) => x.onclick = async () => {
+    ocupado(x, true, "Leyendo…"); const v = await api("restaurar_drive_elegir", x.dataset.drive); ocupado(x, false); mostrarRestauracion(v);
+  });
+};
+$("#r-cancelar").onclick = () => { $("#r-vista").hidden = true; };
+$("#r-aplicar").onclick = async () => {
+  const nombres = JSON.parse($("#r-invs").dataset.nombres || "[]");
+  const marcados = [...$$("#r-invs [data-inv]")].filter((c) => c.checked).map((c) => nombres[+c.dataset.inv]);
+  if (!marcados.length) return aviso($("#r-aviso"), { error: "Marca al menos un inventario." });
+  if (!confirm(`¿Restaurar ${marcados.length} inventario(s)? Los precios actuales de esos inventarios se reemplazan por los del respaldo.`)) return;
+  const b = $("#r-aplicar"); ocupado(b, true, "Restaurando… puede tardar");
+  const r = await api("restaurar_aplicar", marcados); ocupado(b, false);
+  aviso($("#r-aviso"), r, r.ok ? `Listo: ${r.inventarios} inventario(s) y ${r.productos.toLocaleString("es-DO")} productos restaurados.` + ((r.avisos || []).length ? ` Avisos: ${r.avisos.join(" | ")}` : "") : "");
+  if (r.ok) $("#r-vista").hidden = true;
 };
 $("#d-excel").onclick = () => api("abrir_panel", "inventarios");
 

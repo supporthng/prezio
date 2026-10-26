@@ -158,6 +158,7 @@ class Api:
         self._ses: dict | None = None
         self._cx: dict | None = None          # servidor autorizado en el asistente (clave ya cifrada)
         self._ocupado = threading.Lock()
+        self._restaurable: list = []            # el respaldo que se está viendo para restaurar (en memoria)
         self._respaldando = threading.Lock()    # un solo respaldo a la vez (manual o automático)
         self._drive_acc: dict | None = None     # permiso corto de Drive en uso: {"tok", "vence"}
         self._ultimo_envio: dict = {}
@@ -940,7 +941,8 @@ class Api:
         d = self._drive_cfg()
         return {"ok": True, "configurado": bool(GOOGLE_CLIENT_ID), "conectado": bool(d.get("renovar")), "cuenta": d.get("cuenta") or "",
                 "auto": bool(d.get("auto")), "cada_horas": int(d.get("cada_horas") or 24), "guardar": int(d.get("guardar") or 14),
-                "ultimo": d.get("ultimo") or None, "carpeta": CARPETA_DRIVE}
+                "ultimo": d.get("ultimo") or None, "carpeta": CARPETA_DRIVE,
+                "a_local": bool(d.get("a_local", True)), "a_drive": bool(d.get("a_drive", True)), "local_ruta": str(self._carpeta_local(d))}
 
     def drive_conectar(self):
         """Pide el permiso en el navegador y guarda la clave permanente, cifrada para esta cuenta de Windows."""
@@ -985,6 +987,7 @@ class Api:
             cada, guardar = int(opciones.get("cada_horas") or 24), int(opciones.get("guardar") or 14)
         except (TypeError, ValueError):
             return {"error": "Elige los valores de la lista."}
+        d.update(a_local=bool(opciones.get("a_local")), a_drive=bool(opciones.get("a_drive")))
         d.update(auto=bool(opciones.get("auto")), cada_horas=max(1, min(168, cada)), guardar=max(1, min(90, guardar)))
         self._drive_guardar(d)
         return self.drive_estado()
@@ -1030,51 +1033,223 @@ class Api:
         return drive_pedir("POST", "https://www.googleapis.com/drive/v3/files?fields=id", token,
                            {"name": CARPETA_DRIVE, "mimeType": "application/vnd.google-apps.folder"})[0]["id"]
 
+    def _carpeta_local(self, d: dict) -> Path:
+        return Path(d.get("local_ruta") or (Path.home() / "Documents" / "Prezio respaldos"))
+
+    def _guardar_local(self, d: dict, nombre: str, contenido: bytes, conservar: int) -> str:
+        """Guarda el respaldo en la carpeta elegida de esta PC (se escribe aparte y se renombra: nunca queda a medias)
+        y borra los respaldos de Prezio más viejos que las últimas copias a conservar."""
+        carpeta = self._carpeta_local(d)
+        carpeta.mkdir(parents=True, exist_ok=True)
+        destino = carpeta / nombre
+        temporal = carpeta / (nombre + ".parte")
+        temporal.write_bytes(contenido)
+        os.replace(temporal, destino)
+        propios = sorted((p for p in carpeta.glob("respaldo-*.json") if p.is_file()), key=lambda p: p.stat().st_mtime, reverse=True)
+        for viejo in propios[conservar:]:
+            try:
+                viejo.unlink()
+            except OSError:
+                pass
+        return str(destino)
+
     def _respaldar(self, auto: bool = False):
         if not self._respaldando.acquire(blocking=False):
-            return {"error": "Ya se está respaldando. Espera un momento."}
+            return {"error": "Ya hay un respaldo o una restauración en curso. Espera un momento."}
         d = self._drive_cfg()
         try:
-            if not d.get("renovar"):
-                return {"error": "Conecta primero Google Drive."}
-            token = self._drive_acceso()
+            a_local = d.get("a_local", True)
+            a_drive = bool(d.get("renovar")) and d.get("a_drive", True)
+            if not a_local and not a_drive:
+                return {"error": "Elige dónde guardar el respaldo: en esta PC, en Google Drive o en ambos."}
             datos = self._datos_respaldo()
             contenido = json.dumps(datos, ensure_ascii=False, indent=1).encode("utf-8")
             productos = sum(len(i.get("productos") or []) for i in datos["inventarios"])
-            carpeta = self._carpeta_drive(token, d)
             nombre = f"respaldo-{nombre_archivo(datos['negocio']['nombre'] or 'prezio')}-{time.strftime('%Y-%m-%d_%H%M')}.json"
-            # Subida en un solo envío con permiso de reanudar (sirve para archivos grandes).
-            _, cab = drive_pedir("POST", "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name,webViewLink",
-                                 token, {"name": nombre, "parents": [carpeta], "mimeType": "application/json"},
-                                 {"X-Upload-Content-Type": "application/json"})
-            archivo = drive_pedir("PUT", cab.get("Location") or "", token, contenido, {"Content-Type": "application/json"}, segundos=600)[0] or {}
-            # Se guardan solo las últimas copias; las más viejas (de Prezio) se borran.
             conservar = max(1, int(d.get("guardar") or 14))
-            q = urllib.parse.quote(f"'{carpeta}' in parents and trashed = false and name contains 'respaldo-'")
-            lista = (drive_pedir("GET", f"https://www.googleapis.com/drive/v3/files?q={q}&orderBy=createdTime%20desc&pageSize=200&fields=files(id)",
-                                 token)[0] or {}).get("files") or []
-            borradas = 0
-            for viejo in lista[conservar:]:
+            destinos, errores, enlace = [], [], ""
+            if a_local:
                 try:
-                    drive_pedir("DELETE", f"https://www.googleapis.com/drive/v3/files/{viejo['id']}", token)
-                    borradas += 1
-                except ErrorApp:
-                    pass
-            resultado = {"hora": time.time(), "ok": True, "auto": auto, "nombre": archivo.get("name") or nombre,
-                         "enlace": archivo.get("webViewLink") or "", "productos": productos, "kb": round(len(contenido) / 1024), "borradas": borradas}
+                    destinos.append("Esta PC · " + self._guardar_local(d, nombre, contenido, conservar))
+                except OSError as e:
+                    errores.append(f"En esta PC: {e.strerror or e} ({self._carpeta_local(d)})")
+            if a_drive:
+                try:
+                    token = self._drive_acceso()
+                    carpeta = self._carpeta_drive(token, d)
+                    # Subida con permiso de reanudar (sirve para archivos grandes).
+                    _, cab = drive_pedir("POST", "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name,webViewLink",
+                                         token, {"name": nombre, "parents": [carpeta], "mimeType": "application/json"},
+                                         {"X-Upload-Content-Type": "application/json"})
+                    archivo = drive_pedir("PUT", cab.get("Location") or "", token, contenido, {"Content-Type": "application/json"}, segundos=600)[0] or {}
+                    enlace = archivo.get("webViewLink") or ""
+                    q = urllib.parse.quote(f"'{carpeta}' in parents and trashed = false and name contains 'respaldo-'")
+                    lista = (drive_pedir("GET", f"https://www.googleapis.com/drive/v3/files?q={q}&orderBy=createdTime%20desc&pageSize=200&fields=files(id)",
+                                         token)[0] or {}).get("files") or []
+                    for viejo in lista[conservar:]:
+                        try:
+                            drive_pedir("DELETE", f"https://www.googleapis.com/drive/v3/files/{viejo['id']}", token)
+                        except ErrorApp:
+                            pass
+                    d = self._drive_cfg()
+                    d["carpeta_id"] = carpeta
+                    self._drive_guardar(d)
+                    destinos.append("Google Drive")
+                except Exception as e:
+                    errores.append("En Google Drive: " + (mensaje(e) if not isinstance(e, (urllib.error.URLError, OSError))
+                                                          else "No hay conexión con Google. Revisa el internet."))
+            resultado = {"hora": time.time(), "ok": bool(destinos), "auto": auto, "nombre": nombre, "enlace": enlace, "productos": productos,
+                         "kb": round(len(contenido) / 1024), "destinos": destinos, "errores": errores}
             d = self._drive_cfg()
-            d.update(carpeta_id=carpeta, ultimo=resultado)
+            d["ultimo"] = resultado
             self._drive_guardar(d)
-            anotar_actualizacion(f"respaldo en Drive: {resultado['nombre']} ({productos} productos, {resultado['kb']} KB)")
+            anotar_actualizacion(f"respaldo {nombre}: {', '.join(destinos) or 'sin guardar'}" + (f" · {' | '.join(errores)}" if errores else ""))
+            if not destinos:
+                return {"error": " · ".join(errores)}
             return {"ok": True, **resultado}
         except Exception as e:
-            motivo = mensaje(e) if not isinstance(e, (urllib.error.URLError, OSError)) else "No hay conexión con Google. Revisa el internet."
+            motivo = mensaje(e) if not isinstance(e, (urllib.error.URLError, OSError)) else "No hay conexión. Revisa el internet."
             d = self._drive_cfg()
-            if d.get("renovar"):
-                d["ultimo"] = {"hora": time.time(), "ok": False, "auto": auto, "error": motivo}
-                self._drive_guardar(d)
-            anotar_actualizacion(f"respaldo en Drive falló: {motivo}")
+            d["ultimo"] = {"hora": time.time(), "ok": False, "auto": auto, "error": motivo}
+            self._drive_guardar(d)
+            anotar_actualizacion(f"respaldo falló: {motivo}")
             return {"error": motivo}
+        finally:
+            self._respaldando.release()
+
+    def respaldo_carpeta(self):
+        """Elegir la carpeta de esta PC donde se guardan los respaldos."""
+        import webview
+        d = self._drive_cfg()
+        inicio = self._carpeta_local(d)
+        try:
+            inicio.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            inicio = Path.home()
+        r = self._ventana.create_file_dialog(webview.FOLDER_DIALOG, directory=str(inicio)) if self._ventana is not None else None
+        if not r:
+            return {"cancelado": True}
+        d["local_ruta"] = str(r[0] if isinstance(r, (list, tuple)) else r)
+        d["a_local"] = True
+        self._drive_guardar(d)
+        return self.drive_estado()
+
+    def respaldo_abrir_carpeta(self):
+        carpeta = self._carpeta_local(self._drive_cfg())
+        try:
+            carpeta.mkdir(parents=True, exist_ok=True)
+            if os.name == "nt":
+                os.startfile(str(carpeta))  # type: ignore[attr-defined]
+            else:
+                webbrowser.open(carpeta.as_uri())
+            return {"ok": True}
+        except OSError as e:
+            return {"error": f"No se pudo abrir la carpeta: {e.strerror or e}"}
+
+    # ---- restaurar un respaldo (precios de los inventarios)
+    def _validar_respaldo(self, d, origen: str) -> dict:
+        if not isinstance(d, dict) or d.get("formato") != "prezio-respaldo-1" or not isinstance(d.get("inventarios"), list):
+            raise ErrorApp("Ese archivo no es un respaldo de Prezio.")
+        limpios = []
+        for inv in d["inventarios"]:
+            nombre = str((inv or {}).get("nombre") or "").strip()[:80]
+            productos = [p for p in ((inv or {}).get("productos") or []) if isinstance(p, dict) and str(p.get("codigo") or "").strip()
+                         and str(p.get("nombre") or "").strip()]
+            if nombre:
+                limpios.append({"nombre": nombre, "productos": productos})
+        if not limpios:
+            raise ErrorApp("El respaldo no trae inventarios.")
+        n = self._negocio()
+        self._restaurable = limpios
+        neg = d.get("negocio") or {}
+        return {"ok": True, "origen": origen, "creado": d.get("creado"), "negocio": neg.get("nombre") or "",
+                "otro_negocio": bool(neg.get("slug")) and neg.get("slug") != n.get("slug"),
+                "inventarios": [{"nombre": i["nombre"], "productos": len(i["productos"])} for i in limpios]}
+
+    def restaurar_archivo(self):
+        """Elegir un archivo de respaldo (.json) de esta PC y ver qué trae, sin cambiar nada todavía."""
+        try:
+            self._negocio()
+            import webview
+            inicio = self._carpeta_local(self._drive_cfg())
+            r = self._ventana.create_file_dialog(webview.OPEN_DIALOG, directory=str(inicio) if inicio.exists() else str(Path.home()),
+                                                 allow_multiple=False, file_types=("Respaldo de Prezio (*.json)", "Todos los archivos (*.*)")) \
+                if self._ventana is not None else None
+            if not r:
+                return {"cancelado": True}
+            ruta = Path(r[0] if isinstance(r, (list, tuple)) else r)
+            if ruta.stat().st_size > 300 * 1024 * 1024:
+                return {"error": "El archivo es demasiado grande para ser un respaldo de Prezio."}
+            try:
+                datos = json.loads(ruta.read_text(encoding="utf-8-sig"))
+            except ValueError:
+                return {"error": "Ese archivo no es un respaldo de Prezio."}
+            return self._validar_respaldo(datos, ruta.name)
+        except Exception as e:
+            return {"error": mensaje(e)}
+
+    def restaurar_drive_lista(self):
+        try:
+            self._negocio()
+            token = self._drive_acceso()
+            carpeta = self._carpeta_drive(token, self._drive_cfg())
+            q = urllib.parse.quote(f"'{carpeta}' in parents and trashed = false and name contains 'respaldo-'")
+            lista = (drive_pedir("GET", f"https://www.googleapis.com/drive/v3/files?q={q}&orderBy=createdTime%20desc&pageSize=50&fields=files(id,name,createdTime,size)",
+                                 token)[0] or {}).get("files") or []
+            return {"ok": True, "archivos": [{"id": f["id"], "nombre": f["name"], "fecha": f.get("createdTime"), "kb": round(int(f.get("size") or 0) / 1024)} for f in lista]}
+        except Exception as e:
+            return {"error": mensaje(e)}
+
+    def restaurar_drive_elegir(self, archivo_id):
+        try:
+            self._negocio()
+            token = self._drive_acceso()
+            if not str(archivo_id or "").replace("-", "").replace("_", "").isalnum():
+                return {"error": "Archivo no válido."}
+            datos = drive_pedir("GET", f"https://www.googleapis.com/drive/v3/files/{archivo_id}?alt=media", token, segundos=300)[0]
+            return self._validar_respaldo(datos, "Google Drive")
+        except Exception as e:
+            return {"error": mensaje(e)}
+
+    def restaurar_aplicar(self, nombres):
+        """Vuelve a cargar, en el negocio abierto, los inventarios elegidos del respaldo (los reemplaza o los crea).
+        Las sucursales, la apariencia y los equipos no se tocan: los equipos y claves no se pueden recuperar."""
+        if not self._respaldando.acquire(blocking=False):
+            return {"error": "Ya hay un respaldo o una restauración en curso. Espera un momento."}
+        try:
+            import uuid
+            n = self._negocio()
+            if not self._puede("inventarios"):
+                return {"error": "Tu usuario no puede cargar inventarios."}
+            elegidos = [i for i in (getattr(self, "_restaurable", None) or []) if i["nombre"] in set(nombres or [])]
+            if not elegidos:
+                return {"error": "Elige un respaldo y marca al menos un inventario."}
+            t = self._prezio.tabla
+            hechos, productos, avisos = 0, 0, []
+            for inv in elegidos:
+                try:
+                    if not inv["productos"]:
+                        avisos.append(f"«{inv['nombre']}»: no trae productos, se dejó como estaba.")
+                        continue
+                    q = urllib.parse.quote(inv["nombre"], safe="")
+                    ya = t("GET", f"inventarios?select=id&negocio_id=eq.{n['id']}&nombre=eq.{q}", self._token()) or []
+                    inv_id = ya[0]["id"] if ya else t("POST", "inventarios", self._token(), {"negocio_id": n["id"], "nombre": inv["nombre"]})[0]["id"]
+                    lote, lista = str(uuid.uuid4()), inv["productos"]
+                    for desde in range(0, len(lista), 4000):
+                        parte = [{"codigo": str(p["codigo"]), "nombre": str(p["nombre"]), "precio": float(p.get("precio") or 0)}
+                                 for p in lista[desde:desde + 4000]]
+                        self._prezio.rpc("cargar_inventario", {"p_inventario": inv_id, "p_lote": lote, "p_productos": parte,
+                                                               "p_fin": desde + 4000 >= len(lista)}, self._token())
+                    hechos += 1
+                    productos += len(lista)
+                except Exception as e:
+                    avisos.append(f"«{inv['nombre']}»: {mensaje(e)}")
+            anotar_actualizacion(f"restauración: {hechos} inventarios, {productos} productos" + (f" · {' | '.join(avisos)}" if avisos else ""))
+            if not hechos:
+                return {"error": " · ".join(avisos) or "No se restauró nada."}
+            return {"ok": True, "inventarios": hechos, "productos": productos, "avisos": avisos}
+        except Exception as e:
+            return {"error": mensaje(e)}
         finally:
             self._respaldando.release()
 
@@ -1090,7 +1265,7 @@ class Api:
                 d = self._drive_cfg()
                 ultimo = d.get("ultimo") or {}
                 espera = (int(d.get("cada_horas") or 24) * 3600) if ultimo.get("ok", True) else 3600
-                if d.get("renovar") and d.get("auto") and self._ses and self._ses.get("negocio") and time.time() - float(ultimo.get("hora") or 0) >= espera:
+                if d.get("auto") and self._ses and self._ses.get("negocio") and time.time() - float(ultimo.get("hora") or 0) >= espera:
                     self._respaldar(True)
             except Exception as e:
                 anotar_actualizacion(f"vigilante del respaldo: {mensaje(e)}")
@@ -1118,7 +1293,7 @@ def _solo(permitido):
 
 
 for _n in ("estado", "activar", "desactivar", "entrar", "elegir_negocio", "abrir_panel", "buscar_servidores", "autorizar", "tablas",
-           "columnas", "muestra", "inventarios", "adoptar_fuente", "drive_estado", "drive_conectar", "drive_desconectar", "drive_guardar", "drive_respaldar", "guardar_fuente", "fuentes", "quitar_fuente", "enviar_ahora", "guardar_frecuencia",
+           "columnas", "muestra", "inventarios", "adoptar_fuente", "drive_estado", "drive_conectar", "drive_desconectar", "drive_guardar", "drive_respaldar", "respaldo_carpeta", "respaldo_abrir_carpeta", "restaurar_archivo", "restaurar_drive_lista", "restaurar_drive_elegir", "restaurar_aplicar", "guardar_fuente", "fuentes", "quitar_fuente", "enviar_ahora", "guardar_frecuencia",
            "arranque", "registro", "version_nueva", "actualizar", "abrir_enlace"):
     setattr(Api, _n, _solo(Api._desde_la_app)(getattr(Api, _n)))
 for _n in ("salir", "ir_app", "mostrar_inicio", "abrir_en_navegador", "google_token", "google_elegir"):
