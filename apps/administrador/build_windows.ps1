@@ -9,7 +9,7 @@ if (Test-Path ".\firebird\fbclient.dll") { $extra += @("--add-data", "firebird;f
 # Carpeta (onedir): pywebview + pythonnet funcionan mejor así. Incluye el conector, los motores y la ventana.
 & ".\.venv\Scripts\python.exe" -m PyInstaller --noconfirm --clean --windowed --name PrezioAdministrador `
     --icon prezio.ico --paths ..\..\conector `
-    --hidden-import prezio_conector --hidden-import motores --hidden-import red --hidden-import cifrado `
+    --hidden-import prezio_conector --hidden-import motores --hidden-import red --hidden-import cifrado --hidden-import certificados --collect-data certifi `
     --hidden-import pyodbc --hidden-import pymysql --hidden-import pg8000.dbapi --collect-submodules firebird `
     --add-data "interfaz.html;." --collect-all webview --collect-all clr_loader --hidden-import clr @extra administrador.py
 if (-not (Test-Path ".\dist\PrezioAdministrador\PrezioAdministrador.exe")) { throw "No se generó PrezioAdministrador.exe" }

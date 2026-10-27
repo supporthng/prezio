@@ -31,10 +31,13 @@ from pathlib import Path
 AQUI = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
 sys.path.insert(0, str(AQUI))
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "conector"))
+import certificados  # noqa: E402
 import cifrado  # noqa: E402
 import motores  # noqa: E402
 import prezio_conector as pc  # noqa: E402
 import red  # noqa: E402
+
+certificados.instalar()  # HTTPS con los certificados de Windows + los de certifi
 
 # La compilación (GitHub Actions) reemplaza estos dos valores.
 SITIO = "https://prezio-jade.vercel.app"

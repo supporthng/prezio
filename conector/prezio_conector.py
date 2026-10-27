@@ -34,6 +34,13 @@ from decimal import Decimal, InvalidOperation
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
+try:  # HTTPS con los certificados de Windows + los de certifi (si a la PC le falta alguno)
+    import certificados
+
+    certificados.instalar()
+except Exception:
+    pass
+
 VERSION = "2.0.0"
 CARPETA = Path(os.environ.get("PROGRAMDATA") or (Path.home() / ".prezio")) / "Prezio"
 CONFIG = CARPETA / "conector.json"
