@@ -22,6 +22,8 @@ export default async function Negocios({ searchParams }: Props) {
     .order("creado", { ascending: true });
   const filas = ((data ?? []) as unknown as Fila[]).filter((f) => f.negocios);
   const { data: plataforma } = await supabase.rpc("es_plataforma");
+  // Cuenta de la plataforma: directo a su panel de negocios y licencias (no hace falta esta pantalla).
+  if (plataforma && !bien) redirect("/plataforma");
   // Un solo negocio (lo normal): directo a su panel.
   if (filas.length === 1 && !plataforma && !bien) redirect(`/n/${filas[0].negocios!.slug}`);
   return (

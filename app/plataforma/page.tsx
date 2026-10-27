@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Barra } from "@/components/Barra";
 import { Aviso } from "@/components/Aviso";
@@ -136,6 +137,7 @@ export default async function Plataforma({ searchParams }: Props) {
                     <div><dt>Última consulta</dt><dd>{fecha(n.ultima_consulta)}</dd></div>
                   </dl>
                   <div className="plat-acciones">
+                    <Link className="boton secundario" href={`/n/${n.slug}`}>Abrir panel</Link>
                     <details className="plat-dueno">
                       <summary>Registrar pago</summary>
                       <form action={registrarPago} className="fila">
