@@ -441,6 +441,16 @@ public class MainActivity extends Activity {
         @JavascriptInterface public String version() { return versionApp(); }
         @JavascriptInterface public boolean bloqueoTotal() { return esDeviceOwner(); }
 
+        /** La clave del equipo también queda guardada en la app: si se borran los datos del navegador interno,
+         *  el verificador sigue vinculado. Solo se acepta una clave de 64 cifras hexadecimales. */
+        @JavascriptInterface public String claveGuardada() {
+            return getSharedPreferences("prezio", MODE_PRIVATE).getString("clave_equipo", "");
+        }
+        @JavascriptInterface public void guardarClave(String clave) {
+            if (clave == null || !clave.matches("[0-9a-f]{64}")) return;
+            getSharedPreferences("prezio", MODE_PRIVATE).edit().putString("clave_equipo", clave).apply();
+        }
+
         /** Botones de Android bloqueados (la app vuelve sola al frente si alguien sale). */
         @JavascriptInterface public boolean botonesBloqueados() { return esDeviceOwner() || puedeVolverAlFrente(); }
 

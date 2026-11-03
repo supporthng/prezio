@@ -7,10 +7,18 @@ export type AppNativa = {
   salir: () => void;
   cerrar: () => void;
   buscarActualizacion: () => void;
+  /** La clave del equipo guardada por la app ("" si no hay; undefined si la app es vieja y no sabe guardarla). */
+  claveGuardada: () => Promise<string | undefined>;
+  guardarClave: (clave: string) => Promise<void>;
 };
+const CLAVE_VALIDA = /^[0-9a-f]{64}$/;
 
-type Android = { plataforma(): string; version(): string; salir(): void; cerrar?(): void; buscarActualizacion(): void };
-type Windows = { version(): Promise<string>; salir(): Promise<unknown>; cerrar?(): Promise<unknown>; buscarActualizacion(): Promise<unknown> };
+type Android = { plataforma(): string; version(): string; salir(): void; cerrar?(): void; buscarActualizacion(): void;
+  claveGuardada?(): string; guardarClave?(c: string): void };
+type Windows = { version(): Promise<string>; salir(): Promise<unknown>; cerrar?(): Promise<unknown>; buscarActualizacion(): Promise<unknown>;
+  claveGuardada?(): Promise<string>; guardarClave?(c: string): Promise<unknown> };
+
+const limpia = (c: unknown) => (typeof c === "string" && CLAVE_VALIDA.test(c) ? c : "");
 
 export function appNativa(): AppNativa | null {
   if (typeof window === "undefined") return null;
@@ -23,6 +31,8 @@ export function appNativa(): AppNativa | null {
       salir: () => a.salir(),
       cerrar: () => { if (a.cerrar) a.cerrar(); else a.salir(); },
       buscarActualizacion: () => a.buscarActualizacion(),
+      claveGuardada: async () => { if (!a.claveGuardada) return undefined; try { return limpia(a.claveGuardada()); } catch { return undefined; } },
+      guardarClave: async (c) => { try { a.guardarClave?.(c); } catch { /* app vieja */ } },
     };
   }
   const api = w.pywebview?.api;
@@ -33,6 +43,8 @@ export function appNativa(): AppNativa | null {
       salir: () => { void api.salir(); },
       cerrar: () => { void (api.cerrar ?? api.salir)(); },
       buscarActualizacion: () => { void api.buscarActualizacion(); },
+      claveGuardada: async () => { if (typeof api.claveGuardada !== "function") return undefined; try { return limpia(await api.claveGuardada()); } catch { return undefined; } },
+      guardarClave: async (c) => { try { await api.guardarClave?.(c); } catch { /* app vieja */ } },
     };
   }
   return null;

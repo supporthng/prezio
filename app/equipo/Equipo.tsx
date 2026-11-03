@@ -13,7 +13,9 @@ import {
 } from "@/lib/equipo";
 
 type Fase = "cargando" | "vincular" | "listo";
-type Codigo = { codigo: string; expira: string };
+/** «recibido» es la hora de ESTE equipo al recibir el código: el reloj del equipo puede estar mal y no se compara con «expira». */
+type Codigo = { codigo: string; expira: string; recibido: number };
+const VIDA_CODIGO_MS = 14.5 * 60000;  // el código dura 15 minutos en Prezio: se pide otro un poco antes
 type Producto = { nombre: string; precio: number };
 
 const CADA_MIN = 5;              // revisar precios y subir consultas
@@ -47,6 +49,7 @@ export function Equipo({ sitio }: { sitio: string }) {
   const dialogo = useRef<HTMLDialogElement>(null);
   const accionClave = useRef<"menu" | "cerrar">("menu");
   const textoApp = useRef(APP_EQUIPO);
+  const codigoRef = useRef<Codigo | null>(null);
 
   const cambiarFase = (f: Fase) => { faseRef.current = f; setFase(f); };
 
@@ -57,19 +60,21 @@ export function Equipo({ sitio }: { sitio: string }) {
     version.current = c.version;
   };
 
+  const ponerCodigo = (c: Codigo | null) => { codigoRef.current = c; setCodigo(c); };
+
   const olvidar = useCallback(async () => {
     await Promise.all([borrar("info"), borrar("catalogo"), borrar("sincronizado")]).catch(() => {});
     productos.current = new Map();
     version.current = null;
     setInfo(null);
-    setCodigo(null);
+    ponerCodigo(null);
     cambiarFase("vincular");
   }, []);
 
   const pedirCodigo = useCallback(async () => {
     try {
-      const c = await llamar<Codigo>("solicitar_vinculo", { p_clave: clave.current });
-      setCodigo(c);
+      const c = await llamar<Omit<Codigo, "recibido">>("solicitar_vinculo", { p_clave: clave.current });
+      ponerCodigo({ ...c, recibido: Date.now() });
       setAviso("");
     } catch (e) {
       setAviso(e instanceof ErrorEquipo && e.tipo === "red" ? "Sin internet: conecta el equipo para vincularlo." : (e as Error).message);
@@ -95,7 +100,7 @@ export function Equipo({ sitio }: { sitio: string }) {
       await guardar("info", nuevo);
       await guardar("sincronizado", new Date().toISOString());
       setInfo(nuevo);
-      setCodigo(null);
+      ponerCodigo(null);
       cambiarFase("listo");
       // Consultas por subir, de 500 en 500.
       for (let i = 0; i < 50; i++) {
@@ -114,6 +119,8 @@ export function Equipo({ sitio }: { sitio: string }) {
         await pedirCodigo();
       } else if (tipo === "pendiente") {
         setEnLinea(true);
+        // Ya pidió un código antes (por ejemplo, la app se reinició): esta pantalla no lo tiene, pide otro.
+        if (!codigoRef.current) await pedirCodigo();
       }
     } finally {
       ocupado.current = false;
@@ -145,10 +152,11 @@ export function Equipo({ sitio }: { sitio: string }) {
     return () => { clearInterval(t); window.removeEventListener("online", alVolver); };
   }, [fase, sincronizar]);
 
-  // El código vence a los 15 minutos: se pide otro solo.
+  // El código vence a los 15 minutos: se pide otro solo. Se cuenta desde que llegó (no con el reloj del equipo,
+  // que en muchos verificadores está adelantado y hacía que el código cambiara cada segundo).
   useEffect(() => {
     if (fase !== "vincular" || !codigo) return;
-    const falta = Date.parse(codigo.expira) - Date.now() - 5000;
+    const falta = codigo.recibido + VIDA_CODIGO_MS - Date.now();
     const t = setTimeout(() => { void pedirCodigo(); }, Math.max(1000, falta));
     return () => clearTimeout(t);
   }, [fase, codigo, pedirCodigo]);
@@ -174,6 +182,23 @@ export function Equipo({ sitio }: { sitio: string }) {
       const version = await app.version();
       textoApp.current = `${app.plataforma} ${version} · ${APP_EQUIPO}`;
       setNativa({ app, version });
+      await fijarClave(app);
+    };
+    // La clave del equipo también se guarda en la app (fuera del navegador): si el navegador interno pierde
+    // sus datos (actualización, limpieza), el equipo sigue siendo el mismo y no hay que volver a vincularlo.
+    const fijarClave = async (app: AppNativa) => {
+      for (let i = 0; i < 50 && !clave.current; i++) await new Promise((r) => setTimeout(r, 100));
+      if (!clave.current) return;
+      const guardada = await app.claveGuardada();
+      if (guardada === undefined) return;                     // app vieja: no guarda la clave
+      if (guardada && guardada !== clave.current) {
+        clave.current = guardada;
+        await guardar("clave", guardada).catch(() => {});
+        ponerCodigo(null);
+        void sincronizar();
+      } else if (!guardada) {
+        await app.guardarClave(clave.current);
+      }
     };
     // La app de Windows avisa «lista» una sola vez y a veces antes de que esta pantalla escuche:
     // además del aviso, se pregunta cada medio segundo durante 30 segundos.
@@ -190,7 +215,7 @@ export function Equipo({ sitio }: { sitio: string }) {
       ocultar = setTimeout(() => setAvisoApp(""), e === "instalando" || e === "descargando" ? 120000 : 8000);
     };
     return () => { clearInterval(sondeo); window.removeEventListener("pywebviewready", detectar); };
-  }, []);
+  }, [sincronizar]);
 
   // Dentro de la app, el menú (configuración y salida) se abre solo con la clave de salida del negocio.
   async function desbloquear(e: React.FormEvent) {

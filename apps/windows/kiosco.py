@@ -33,6 +33,8 @@ ORIGEN_ACTUALIZACION = "https://github.com/supporthng/prezio/releases/download/"
 DIRECCION = SITIO + "/equipo"
 DATOS = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), "Prezio", "WebView")
 REGISTRO = os.path.join(os.path.dirname(DATOS), "actualizacion.log")
+# La clave del equipo, fuera de la carpeta del navegador interno: si esa carpeta se borra, el equipo sigue vinculado.
+CLAVE_EQUIPO = os.path.join(os.path.dirname(DATOS), "equipo.json")
 APPS_JSON = SITIO + "/apps.json"
 CADA_REVISION_S = 60 * 60
 
@@ -203,6 +205,10 @@ class BarraDeTareas:
 barra = BarraDeTareas()
 
 
+def clave_valida(c):
+    return isinstance(c, str) and len(c) == 64 and all(x in "0123456789abcdef" for x in c)
+
+
 # --------------------------------------------------------------------------- puente con la app web
 class Kiosco:
     """Lo que la página /equipo puede pedir (window.pywebview.api.*); salir, solo tras la clave de salida."""
@@ -235,6 +241,30 @@ class Kiosco:
     def cerrar(self):
         """Botón ✕: cierra la app (no hay Ajustes que abrir en Windows)."""
         return self.salir()
+
+    def claveGuardada(self):
+        """La clave del equipo que la pantalla guardó antes ("" si no hay)."""
+        try:
+            with open(CLAVE_EQUIPO, encoding="utf-8") as f:
+                c = str(json.load(f).get("clave") or "")
+            return c if clave_valida(c) else ""
+        except Exception:
+            return ""
+
+    def guardarClave(self, clave):
+        """Guarda la clave del equipo (solo si aún no hay una: no se cambia el equipo desde la página)."""
+        if not clave_valida(clave) or self.claveGuardada():
+            return False
+        try:
+            os.makedirs(os.path.dirname(CLAVE_EQUIPO), exist_ok=True)
+            temporal = CLAVE_EQUIPO + ".tmp"
+            with open(temporal, "w", encoding="utf-8") as f:
+                json.dump({"clave": clave}, f)
+            os.replace(temporal, CLAVE_EQUIPO)
+            return True
+        except Exception as exc:
+            anotar(f"no se pudo guardar la clave del equipo: {exc}")
+            return False
 
     def buscarActualizacion(self):
         """Desde el menú del equipo: revisar ahora y avisar en pantalla."""
