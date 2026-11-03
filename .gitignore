@@ -1,0 +1,23 @@
+node_modules/
+.next/
+out/
+.env
+.env.local
+.env*.local
+.vercel
+*.tsbuildinfo
+.DS_Store
+__pycache__/
+
+# Llaves de firma: nunca al repositorio
+*.jks
+*.keystore
+ANDROID_KEYSTORE*.txt
+# Compilaciones de las apps
+apps/android/.gradle/
+apps/android/app/build/
+apps/windows/.venv/
+apps/windows/build/
+apps/windows/dist/
+dist_instalador/
+apps/administrador/firebird/
