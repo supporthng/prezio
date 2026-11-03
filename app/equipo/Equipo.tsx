@@ -36,6 +36,7 @@ export function Equipo({ sitio }: { sitio: string }) {
   const [pidiendoSalida, setPidiendoSalida] = useState(false);
   const [claveSalida, setClaveSalida] = useState("");
   const [errorSalida, setErrorSalida] = useState("");
+  const [confirmarCierre, setConfirmarCierre] = useState(false);
   const [menu, setMenu] = useState<null | { productos: number; pendientes: number; sincronizado: string | null }>(null);
 
   const clave = useRef("");
@@ -269,19 +270,18 @@ export function Equipo({ sitio }: { sitio: string }) {
     }
   }
 
-  /** Botón ✕: cierra la app sin abrir configuración. Con clave de salida, la pide primero. */
+  /** Botón ✕ (solo en las apps): cierra la app sin abrir configuración. Con clave de salida, la pide primero;
+   *  sin clave, pregunta antes (un toque sin querer de un cliente no apaga el verificador). */
   function cerrarApp() {
-    if (nativa) nativa.app.cerrar();
-    else window.close();
+    nativa?.app.cerrar();
   }
   function pedirCierre() {
-    if (nativa && info?.salida) {
-      accionClave.current = "cerrar";
-      setMenu(null); setPidiendoSalida(true); setErrorSalida(""); setClaveSalida("");
-      dialogo.current?.showModal();
-      return;
-    }
-    cerrarApp();
+    if (!nativa) return;
+    accionClave.current = "cerrar";
+    setMenu(null); setErrorSalida(""); setClaveSalida("");
+    if (info?.salida) setPidiendoSalida(true);
+    else setConfirmarCierre(true);
+    dialogo.current?.showModal();
   }
   async function abrirMenu() {
     accionClave.current = "menu";
@@ -361,16 +361,28 @@ export function Equipo({ sitio }: { sitio: string }) {
           }} />
       </Pantalla>
       <div className="verificador-esquina">
-        <button type="button" title="Cerrar" aria-label="Cerrar la app"
-          onClick={(e) => { e.stopPropagation(); pedirCierre(); }}>✕</button>
+        {nativa && (
+          <button type="button" title="Cerrar" aria-label="Cerrar la app"
+            onClick={(e) => { e.stopPropagation(); pedirCierre(); }}>✕</button>
+        )}
         <button type="button" title="Información del equipo" aria-label="Información del equipo"
           onClick={(e) => { e.stopPropagation(); void abrirMenu(); }}>
           {enLinea ? "ⓘ" : <span className="equipo-sin-red" aria-label="Sin internet">⚠</span>}
         </button>
       </div>
       {avisoApp && <p className="equipo-aviso-app" role="status">{avisoApp}</p>}
-      <dialog ref={dialogo} className="equipo-menu" onClose={() => { setMenu(null); setPidiendoSalida(false); setClaveSalida(""); entrada.current?.focus({ preventScroll: true }); }}
+      <dialog ref={dialogo} className="equipo-menu" onClose={() => { setMenu(null); setPidiendoSalida(false); setConfirmarCierre(false); setClaveSalida(""); entrada.current?.focus({ preventScroll: true }); }}
         onClick={(e) => e.stopPropagation()}>
+        {confirmarCierre && (
+          <div className="equipo-candado">
+            <h2>¿Cerrar la app?</h2>
+            <p className="quieto">El verificador deja de mostrar precios hasta que se vuelva a abrir.</p>
+            <div className="fila" style={{ marginTop: 14 }}>
+              <button className="boton peligro" type="button" autoFocus onClick={() => { dialogo.current?.close(); cerrarApp(); }}>Cerrar la app</button>
+              <button className="boton secundario" type="button" onClick={() => dialogo.current?.close()}>Cancelar</button>
+            </div>
+          </div>
+        )}
         {pidiendoSalida && info?.salida && (
           <form className="equipo-candado" onSubmit={desbloquear}>
             <h2>{accionClave.current === "cerrar" ? "Cerrar la app" : "Configuración del equipo"}</h2>
