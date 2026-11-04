@@ -1,0 +1,28 @@
+const { chromium, db, comoAna } = require("./comun");
+(async () => {
+  const b = await chromium.launch(); let ok = 0, mal = 0; const t = (c, m) => { c ? ok++ : mal++; console.log((c ? '✅ ' : '❌ ') + m); };
+  const ctx = await b.newContext({ viewport: { width: 1280, height: 800 } });
+  const p = await ctx.newPage(); const errores = []; p.on('pageerror', e => errores.push(e.message));
+  await p.goto('http://localhost:8787/equipo');
+  await p.waitForSelector('.equipo-codigo'); await p.waitForFunction(() => /\d{4} \d{4}/.test(document.querySelector('.equipo-codigo').textContent));
+  const codigo = (await p.textContent('.equipo-codigo')).replace(/\s/g, '');
+  t(/^\d{8}$/.test(codigo), 'pantalla de vínculo con código ' + codigo);
+  await p.screenshot({ path: 'vincular.png' });
+  const pri = db(`select s.id from sucursales s join negocios n on n.id = s.negocio_id where n.nombre = 'Tienda Precios' and s.es_principal`);
+  comoAna(`select public.vincular_equipo('${codigo}', '${pri}', 'Caja prueba')`);
+  await p.waitForSelector('.pz', { timeout: 9000 });
+  t(true, 'tras vincular en el panel, el equipo pasa solo a la pantalla de precios');
+  await p.waitForTimeout(1500);
+  const A = db(`select id from negocios where nombre = 'Tienda Precios'`);
+  db(`update negocios set plan = 'suspendido' where id = '${A}'`);
+  await p.reload(); await p.waitForTimeout(3500);
+  t(/Servicio no disponible/.test(await p.textContent('.pz')), 'negocio suspendido: el verificador lo dice');
+  await p.keyboard.type('7501055363063'); await p.keyboard.press('Enter'); await p.waitForTimeout(400);
+  t(await p.$('.pz-etiqueta') === null, 'y no muestra precios');
+  await p.screenshot({ path: 'suspendido.png' });
+  db(`update negocios set plan = 'prueba' where id = '${A}'`);
+  await p.reload(); await p.waitForTimeout(3500);
+  await p.keyboard.type('7501055363063'); await p.keyboard.press('Enter'); await p.waitForTimeout(400);
+  t(/125/.test(await p.textContent('.pz-etiqueta').catch(() => '')), 'reactivado: vuelve a dar precios sin vincularlo de nuevo');
+  console.log(`${ok} bien, ${mal} mal`); await b.close();
+})();

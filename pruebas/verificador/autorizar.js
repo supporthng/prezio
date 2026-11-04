@@ -1,0 +1,48 @@
+const { chromium, db, comoAna } = require("./comun");
+(async () => {
+  const b = await chromium.launch(); let ok = 0, mal = 0; const t = (c, m) => { c ? ok++ : mal++; console.log((c ? '✅ ' : '❌ ') + m); };
+  const errores = [];
+  db(`insert into auth.users (id, email) values ('00000000-0000-0000-0000-00000000000f', 'veri@a.com') on conflict do nothing;
+      insert into miembros (negocio_id, user_id, rol, sucursal_id) select n.id, '00000000-0000-0000-0000-00000000000c', 'encargado', s.id from negocios n join sucursales s on s.negocio_id = n.id and s.codigo = 'centro' where n.nombre = 'Tienda Precios' on conflict (negocio_id, user_id) do update set rol = 'encargado', sucursal_id = excluded.sucursal_id;
+      insert into miembros (negocio_id, user_id, rol) select id, '00000000-0000-0000-0000-00000000000f', 'verificador' from negocios where nombre = 'Tienda Precios' on conflict (negocio_id, user_id) do update set rol = 'verificador', sucursal_id = null;
+      update sucursales set fuente = '{}' where codigo = 'centro';`);
+  const nueva = async (w = 1280, h = 800) => { const ctx = await b.newContext({ viewport: { width: w, height: h } }); const p = await ctx.newPage(); p.on('pageerror', e => errores.push(e.message)); await p.goto('http://localhost:8787/equipo'); await p.waitForSelector('.equipo-opciones'); return p; };
+  const p = await nueva();
+  await p.waitForFunction(() => /\d{4} \d{4}/.test(document.querySelector('.equipo-codigo').textContent));
+  await p.screenshot({ path: 'opciones.png' });
+  t(await p.$('text=Elegir sucursal') && await p.$('.equipo-codigo'), 'la pantalla ofrece las dos formas: aquí mismo o con código');
+  await p.click('text=Elegir sucursal');
+  await p.fill('#a-correo', 'carla@a.com'); await p.fill('#a-clave', 'mala'); await p.click('button:has-text("Entrar")'); await p.waitForTimeout(500);
+  t(/Correo o clave incorrectos/.test(await p.textContent('.equipo-autorizar')), 'clave equivocada: mensaje claro');
+  await p.fill('#a-correo', 'veri@a.com'); await p.fill('#a-clave', 'clave1234'); await p.click('button:has-text("Entrar")'); await p.waitForTimeout(700);
+  t(/no puede vincular equipos/.test(await p.textContent('.equipo-autorizar')), 'un verificador no puede autorizar');
+  await p.fill('#a-correo', 'carla@a.com'); await p.fill('#a-clave', 'clave1234'); await p.click('button:has-text("Entrar")');
+  await p.waitForSelector('#a-sucursal', { timeout: 5000 });
+  const ops = await p.$$eval('#a-sucursal option', (o) => o.map((x) => x.textContent));
+  t(ops.length === 1 && ops[0] === 'Centro', 'la encargada solo ve su sucursal: ' + ops.join(', '));
+  t(await p.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('sb-')).length) === 0, 'la sesión del usuario no se guarda en el equipo');
+  await p.fill('#a-nombre', 'Entrada'); await p.screenshot({ path: 'elegir.png' });
+  await p.click('text=Vincular este equipo');
+  await p.waitForSelector('.pz', { timeout: 8000 });
+  t(/Centro/.test(await p.textContent('.pz')), 'el equipo arranca solo en la sucursal elegida (Centro)');
+  t(db("select s.nombre || '|' || u.email from equipos e join sucursales s on s.id = e.sucursal_id join auth.users u on u.id = e.creado_por where e.nombre = 'Entrada'") === 'Centro|carla@a.com', 'queda registrado quién lo autorizó');
+  // el dueño elige entre todas sus sucursales
+  const p2 = await nueva(390, 860);
+  await p2.screenshot({ path: 'opciones-celular.png' });
+  await p2.click('text=Elegir sucursal'); await p2.fill('#a-correo', 'ana@a.com'); await p2.fill('#a-clave', 'clave1234'); await p2.click('button:has-text("Entrar")');
+  await p2.waitForSelector('#a-sucursal', { timeout: 5000 });
+  const negocios = await p2.$$eval('#a-negocio option', (o) => o.map((x) => x.textContent)).catch(() => []);
+  t(negocios.length >= 2, 'quien tiene varios negocios elige primero el negocio: ' + negocios.join(', '));
+  if (await p2.$('#a-negocio')) await p2.selectOption('#a-negocio', { label: 'Tienda Precios' });
+  const ops2 = await p2.$$eval('#a-sucursal option', (o) => o.map((x) => x.textContent));
+  t(ops2.length >= 3 && ops2.includes('Norte'), 'el dueño ve todas sus sucursales: ' + ops2.join(', '));
+  await p2.selectOption('#a-sucursal', { label: 'Norte' }); await p2.screenshot({ path: 'elegir-celular.png' });
+  await p2.click('text=Vincular este equipo'); await p2.waitForSelector('.pz', { timeout: 8000 });
+  t(/Norte/.test(await p2.textContent('.pz')), 'vinculado a Norte desde el equipo');
+  t(await p2.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'cabe en celular');
+  // volver al código
+  const p3 = await nueva(); await p3.click('text=Elegir sucursal'); await p3.click('text=Volver al código');
+  t(await p3.$('.equipo-codigo'), '«Volver al código» regresa a la pantalla inicial');
+  t(errores.length === 0, 'sin errores ' + errores.join(' | '));
+  console.log(`${ok} bien, ${mal} mal`); await b.close();
+})();

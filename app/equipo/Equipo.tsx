@@ -21,6 +21,15 @@ type Producto = { nombre: string; precio: number };
 const CADA_MIN = 5;              // revisar precios y subir consultas
 const CADA_VINCULO_S = 4;        // mientras espera que lo vinculen
 const SEG_NO_ENCONTRADO = 6;
+const RELOJ_MAL_MS = 2 * 60000;   // desde 2 minutos de diferencia se avisa en el menú
+
+/** «adelantado 1 h 05 min» / «atrasado 3 min» (desfase = hora real − hora del equipo). */
+function textoDesfase(ms: number): string {
+  const min = Math.round(Math.abs(ms) / 60000);
+  const dias = Math.floor(min / 1440), h = Math.floor((min % 1440) / 60), m = min % 60;
+  const partes = dias ? `${dias} d ${h} h` : h ? `${h} h ${String(m).padStart(2, "0")} min` : `${m} min`;
+  return `${ms < 0 ? "Adelantado" : "Atrasado"} ${partes}`;
+}
 
 /** Verificador sin internet: guarda los precios de su sucursal y consulta en el equipo. */
 export function Equipo({ sitio }: { sitio: string }) {
@@ -51,6 +60,10 @@ export function Equipo({ sitio }: { sitio: string }) {
   const accionClave = useRef<"menu" | "cerrar">("menu");
   const textoApp = useRef(APP_EQUIPO);
   const codigoRef = useRef<Codigo | null>(null);
+  /** Cuánto va mal el reloj de este equipo (ms, hora de Prezio − hora del equipo). Las consultas se anotan con la
+   *  hora corregida: así los reportes muestran la hora real aunque el reloj del equipo esté adelantado o atrasado. */
+  const desfase = useRef(0);
+  const ahora = () => new Date(Date.now() + desfase.current);
 
   const cambiarFase = (f: Fase) => { faseRef.current = f; setFase(f); };
 
@@ -88,10 +101,16 @@ export function Equipo({ sitio }: { sitio: string }) {
     ocupado.current = true;
     try {
       const pendientes = await contarPendientes().catch(() => 0);
+      const antes = Date.now();
       const nuevo = await llamar<InfoEquipo>("equipo_estado", {
         p_clave: clave.current, p_app: textoApp.current, p_productos: productos.current.size,
         p_pendientes: pendientes, p_version: version.current,
       });
+      const servidor = Date.parse(nuevo.hora);
+      if (Number.isFinite(servidor)) {
+        desfase.current = Math.round(servidor - (antes + Date.now()) / 2);   // a mitad del viaje de la llamada
+        await guardar("desfase", desfase.current).catch(() => {});
+      }
       setEnLinea(true);
       if (nuevo.version !== version.current || !productos.current.size) {
         const cat = await llamar<Catalogo>("equipo_catalogo", { p_clave: clave.current }, 120000);
@@ -99,7 +118,7 @@ export function Equipo({ sitio }: { sitio: string }) {
         cargarCatalogo(cat);
       }
       await guardar("info", nuevo);
-      await guardar("sincronizado", new Date().toISOString());
+      await guardar("sincronizado", ahora().toISOString());
       setInfo(nuevo);
       ponerCodigo(null);
       cambiarFase("listo");
@@ -132,6 +151,8 @@ export function Equipo({ sitio }: { sitio: string }) {
   useEffect(() => {
     let vivo = true;
     (async () => {
+      const d = await leer<number>("desfase").catch(() => undefined);
+      if (typeof d === "number" && Number.isFinite(d)) desfase.current = d;   // sin internet: el último conocido
       let c = await leer<string>("clave").catch(() => undefined);
       if (!c) { c = claveNueva(); await guardar("clave", c).catch(() => {}); }
       clave.current = c;
@@ -257,7 +278,7 @@ export function Equipo({ sitio }: { sitio: string }) {
       const p = productos.current.get(forma);
       if (p) { hallado = { codigo: forma, p }; break; }
     }
-    const hora = new Date().toISOString();
+    const hora = ahora().toISOString();
     if (hallado) {
       vez.current += 1;
       setEstado({ tipo: "producto", codigo: hallado.codigo, nombre: hallado.p.nombre, precio: hallado.p.precio, vez: vez.current });
@@ -406,6 +427,9 @@ export function Equipo({ sitio }: { sitio: string }) {
               <dt>Precios guardados</dt><dd>{menu.productos.toLocaleString("es-DO")}</dd>
               <dt>Internet</dt><dd>{enLinea ? "Conectado" : "Sin conexión: sigue funcionando con los precios guardados"}</dd>
               <dt>Última revisión</dt><dd>{formatoFecha(menu.sincronizado)}</dd>
+              {Math.abs(desfase.current) >= RELOJ_MAL_MS && (
+                <><dt>Reloj del equipo</dt><dd>{textoDesfase(desfase.current)}: las consultas se anotan con la hora correcta.</dd></>
+              )}
               <dt>Consultas por subir</dt><dd>{menu.pendientes.toLocaleString("es-DO")}</dd>
               {nativa && <><dt>App</dt><dd>Prezio para {nativa.app.plataforma === "android" ? "Android" : "Windows"} {nativa.version}</dd></>}
             </dl>
