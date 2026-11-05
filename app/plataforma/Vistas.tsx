@@ -300,3 +300,81 @@ export function HistorialNegocio({ negocio, escribe, planes }: { negocio: string
     </div>
   );
 }
+
+/* ---------------------------------------------------------------- descargas */
+
+export type AppPublicada = { version: string; url: string; fecha: string; codigo?: number };
+export type Apps = Partial<Record<"administrador" | "windows" | "android" | "conector", AppPublicada>>;
+
+const DESCARGAS: { clave: keyof Apps; nombre: string; para: string; detalle: string; archivo: string }[] = [
+  { clave: "administrador", nombre: "Prezcio Administrador", para: "PC de la oficina del negocio · Windows 10 u 11",
+    detalle: "El panel del negocio en una app, con el conector de la base de datos (SQL Server, MySQL, PostgreSQL, Firebird) y la copia automática de precios. Se activa con la licencia del negocio.",
+    archivo: "Instalador_Prezio_Administrador.exe" },
+  { clave: "windows", nombre: "Prezcio para Windows", para: "Verificador en PC o pantalla · Windows 10 u 11",
+    detalle: "El verificador a pantalla completa, sin barra ni teclas para salir. Funciona sin internet con los precios guardados.",
+    archivo: "Instalador_Prezio.exe" },
+  { clave: "android", nombre: "Prezcio para Android", para: "Verificador en tableta o teléfono · Android 5 o más nuevo",
+    detalle: "El verificador como app de quiosco. Al abrirse por primera vez pide permiso para instalar apps de esta fuente.",
+    archivo: "Prezio.apk" },
+  { clave: "conector", nombre: "Conector de consola", para: "Servidores sin pantalla · Windows (avanzado)",
+    detalle: "El mismo conector de Prezcio Administrador, sin ventana, para dejarlo como servicio. La mayoría de negocios no lo necesita.",
+    archivo: "PrezioConector.exe" },
+];
+
+function Copiar({ texto, etiqueta = "Copiar enlace" }: { texto: string; etiqueta?: string }) {
+  const [ok, setOk] = useState(false);
+  return (
+    <button type="button" className="boton secundario"
+      onClick={async () => { try { await navigator.clipboard.writeText(texto); setOk(true); setTimeout(() => setOk(false), 1800); } catch { /* sin portapapeles */ } }}>
+      {ok ? "¡Copiado!" : etiqueta}
+    </button>
+  );
+}
+
+export function VistaDescargas({ apps, sitio }: { apps: Apps; sitio: string }) {
+  const web = `${sitio || ""}/equipo`;
+  return (
+    <section aria-label="Descargas">
+      <p className="quieto" style={{ margin: "14px 0 0" }}>
+        Los enlaces son fijos: siempre bajan la última versión, así que puedes mandarlos por WhatsApp o correo. Las apps instaladas se actualizan solas al abrirse.
+      </p>
+      <ul className="pl-lista pl-descargas">
+        {DESCARGAS.map((d) => {
+          const a = apps[d.clave];
+          return (
+            <li key={d.clave} className="pl-negocio">
+              <div className="pl-cabeza">
+                <div className="pl-quien">
+                  <h3>{d.nombre}</h3>
+                  <p className="quieto pequeno">{d.para}</p>
+                </div>
+                {a ? <span className="pl-estado activa">Versión {a.version}</span> : <span className="pl-estado suspendida">Sin publicar</span>}
+              </div>
+              <p className="pequeno" style={{ margin: 0 }}>{d.detalle}</p>
+              {a ? (
+                <>
+                  <p className="pl-linea"><span>Publicada</span><b>{fechaCorta(a.fecha)}</b><span className="quieto pequeno">{d.archivo}</span></p>
+                  <div className="fila">
+                    <a className="boton" href={a.url} download>Descargar</a>
+                    <Copiar texto={a.url} />
+                  </div>
+                </>
+              ) : (
+                <p className="quieto pequeno">Todavía no hay una versión publicada: aparece aquí cuando GitHub termine de compilarla.</p>
+              )}
+            </li>
+          );
+        })}
+        <li className="pl-negocio">
+          <div className="pl-cabeza">
+            <div className="pl-quien"><h3>Verificador en el navegador</h3><p className="quieto pequeno">Cualquier equipo con Chrome o Edge · sin instalar</p></div>
+            <span className="pl-estado activa">Siempre al día</span>
+          </div>
+          <p className="pequeno" style={{ margin: 0 }}>Abre esta dirección en el equipo y vincúlalo con el código que muestra. También funciona sin internet después de la primera vez.</p>
+          <p className="pl-linea"><span>Dirección</span><b><code>{web}</code></b></p>
+          <div className="fila"><a className="boton secundario" href="/equipo" target="_blank" rel="noreferrer">Abrir</a><Copiar texto={web} etiqueta="Copiar dirección" /></div>
+        </li>
+      </ul>
+    </section>
+  );
+}

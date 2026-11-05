@@ -8,7 +8,11 @@ on:
     paths: ["apps/administrador/**", "conector/**", ".github/workflows/app-administrador.yml"]
 permissions:
   contents: write
-concurrency: { group: apps-json, cancel-in-progress: false }
+# Cada app en su propia fila (antes compartían una y GitHub cancelaba la que quedaba esperando);
+# el paso que anota apps.json ya reintenta si otra app lo cambió al mismo tiempo.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
 jobs:
   windows:
     runs-on: windows-latest

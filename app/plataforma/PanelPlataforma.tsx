@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Aviso } from "@/components/Aviso";
 import { fechaCorta, precioPlan, textoLicencia, type EstadoLic, type Limites, type Plan } from "@/lib/licencia";
 import { agregarDueno, altaNegocio, extenderPrueba, registrarPago, suspender } from "./actions";
-import { HistorialNegocio, VistaEquipo, VistaPlanes, VistaReglas, VistaSolicitudes, type DatosPl } from "./Vistas";
+import { HistorialNegocio, VistaDescargas, VistaEquipo, VistaPlanes, VistaReglas, VistaSolicitudes, type Apps, type DatosPl } from "./Vistas";
 
 type Dueno = { usuario: string | null; correo: string | null; confirmado: boolean };
 export type NegocioPl = {
@@ -14,7 +14,7 @@ export type NegocioPl = {
   usuarios: number; sucursales: number; equipos: number; equipos_activos: number; productos: number; ultima_consulta: string | null;
   lic: EstadoLic; limites: Limites; pcs: number; solicitud: "nueva" | "contactada" | null;
 };
-type Vista = "negocios" | "solicitudes" | "planes" | "reglas" | "equipo";
+type Vista = "negocios" | "solicitudes" | "planes" | "reglas" | "descargas" | "equipo";
 type Filtro = "todos" | "activos" | "prueba" | "vencen" | "bloqueados" | "piden";
 type Orden = "recientes" | "vencen" | "nombre";
 
@@ -307,12 +307,12 @@ function Tarjeta({ n, ahora, indice, planes, escribe }: { n: NegocioPl; ahora: n
 
 /* ---------------------------------------------------------------- pantalla */
 
-export function PanelPlataforma({ negocios, datos, vista: vistaInicial, ahora, error, bien, claveProblema, q }: {
-  negocios: NegocioPl[]; datos: DatosPl; vista?: string; ahora: number; error?: string; bien?: string; claveProblema?: string | null; q?: string;
+export function PanelPlataforma({ negocios, datos, apps, sitio, vista: vistaInicial, ahora, error, bien, claveProblema, q }: {
+  negocios: NegocioPl[]; datos: DatosPl; apps: Apps; sitio: string; vista?: string; ahora: number; error?: string; bien?: string; claveProblema?: string | null; q?: string;
 }) {
   const escribe = datos.rol !== "soporte";
   const admin = datos.rol === "administrador";
-  const [vista, setVista] = useState<Vista>((["negocios", "solicitudes", "planes", "reglas", "equipo"] as const).find((v) => v === vistaInicial) ?? "negocios");
+  const [vista, setVista] = useState<Vista>((["negocios", "solicitudes", "planes", "reglas", "descargas", "equipo"] as const).find((v) => v === vistaInicial) ?? "negocios");
   const nuevas = datos.solicitudes.filter((s) => s.estado === "nueva").length;
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [orden, setOrden] = useState<Orden>("recientes");
@@ -356,7 +356,7 @@ export function PanelPlataforma({ negocios, datos, vista: vistaInicial, ahora, e
     { k: "equipos", v: equipos, t: "Verificadores hoy", tono: "azul" },
   ];
   const chips: [Filtro, string][] = [["todos", "Todos"], ["activos", "Activos"], ["prueba", "En prueba"], ["vencen", "Por vencer"], ["bloqueados", "Bloqueados"], ["piden", "Piden plan"]];
-  const pestanas: [Vista, string, number?][] = [["negocios", "Negocios"], ["solicitudes", "Solicitudes", nuevas], ["planes", "Planes"], ["reglas", "Reglas"],
+  const pestanas: [Vista, string, number?][] = [["negocios", "Negocios"], ["solicitudes", "Solicitudes", nuevas], ["planes", "Planes"], ["reglas", "Reglas"], ["descargas", "Descargas"],
     ...(admin ? [["equipo", "Equipo"] as [Vista, string]] : [])];
 
   return (
@@ -400,6 +400,7 @@ export function PanelPlataforma({ negocios, datos, vista: vistaInicial, ahora, e
       {vista === "solicitudes" && <VistaSolicitudes datos={datos} escribe={escribe} />}
       {vista === "planes" && <VistaPlanes datos={datos} admin={admin} />}
       {vista === "reglas" && <VistaReglas a={datos.ajustes} admin={admin} />}
+      {vista === "descargas" && <VistaDescargas apps={apps} sitio={sitio} />}
       {vista === "equipo" && admin && datos.equipo && <VistaEquipo equipo={datos.equipo} />}
 
       <section aria-label="Negocios" hidden={vista !== "negocios"}>

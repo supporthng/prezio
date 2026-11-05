@@ -10,6 +10,9 @@ on:
 
 permissions:
   contents: write
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
 
 jobs:
   compilar:
@@ -19,6 +22,17 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Versión
+        shell: pwsh
+        run: |
+          # 2.0.N: siempre mayor que la 2.0.0 de las copias que ya están instaladas
+          $version = "2.0.${{ github.run_number }}"
+          $f = "conector/prezio_conector.py"
+          $t = Get-Content $f -Raw -Encoding utf8
+          $t = $t -replace '(?m)^VERSION = "[^"]*"', "VERSION = `"$version`""
+          Set-Content $f $t -Encoding utf8 -NoNewline
+          Select-String -Path $f -Pattern '^VERSION ='
+          "VERSION_APP=$version" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
       - name: Dependencias
         run: python -m pip install -r conector/requirements.txt
       - name: Compilar
@@ -29,11 +43,27 @@ jobs:
           python -c "import pyodbc; print('pyodbc', pyodbc.version)"
           & .\dist\PrezioConector.exe --version
           if ($LASTEXITCODE -ne 0) { throw "El ejecutable no arranca" }
-      - name: Publicar
-        shell: pwsh
+      - name: Publicar y anotar la versión
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release view conector *> $null
-          if ($LASTEXITCODE -ne 0) { gh release create conector --title "Prezio Conector" --notes "Conector de SQL Server para Prezcio. Descárgalo desde Prezcio › Inventarios." }
+          gh release view conector >/dev/null 2>&1 || gh release create conector --title "Prezcio Conector" --notes "Conector de bases de datos para Prezcio (versión de consola). Se descarga desde Prezcio › Inventarios." --latest=false
           gh release upload conector dist/PrezioConector.exe --clobber
+          URL="https://github.com/${{ github.repository }}/releases/download/conector/PrezioConector.exe"
+          git checkout -- conector/prezio_conector.py
+          for intento in 1 2 3; do
+            git pull --rebase --quiet origin main
+            python - "$URL" "$VERSION_APP" <<'PY'
+          import json, sys, datetime
+          p = "public/apps.json"
+          d = json.load(open(p, encoding="utf-8"))
+          d["conector"] = {"version": sys.argv[2], "url": sys.argv[1],
+                           "fecha": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")}
+          open(p, "w", encoding="utf-8", newline="\n").write(json.dumps(d, indent=2, ensure_ascii=False) + "\n")
+          PY
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -qam "Conector $VERSION_APP publicado" && git push --quiet origin HEAD:main && break
+            sleep 5
+          done

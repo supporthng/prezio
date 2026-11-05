@@ -3,7 +3,9 @@ import { Barra } from "@/components/Barra";
 import { supabaseServidor } from "@/lib/supabase/server";
 import { problemaClaveSecreta } from "@/lib/supabase/admin";
 import { PanelPlataforma, type NegocioPl } from "./PanelPlataforma";
-import type { DatosPl } from "./Vistas";
+import type { Apps, DatosPl } from "./Vistas";
+import apps from "@/public/apps.json";
+import { sitio } from "@/lib/util";
 
 export const metadata = { title: "Plataforma" };
 export const dynamic = "force-dynamic";
@@ -23,7 +25,7 @@ export default async function Plataforma({ searchParams }: Props) {
   return (
     <>
       <Barra />
-      <PanelPlataforma negocios={negocios} datos={datos as DatosPl} vista={vista} ahora={Date.now()} error={error} bien={bien} claveProblema={problemaClaveSecreta()} q={q} />
+      <PanelPlataforma negocios={negocios} datos={datos as DatosPl} apps={apps as Apps} sitio={sitio()} vista={vista} ahora={Date.now()} error={error} bien={bien} claveProblema={problemaClaveSecreta()} q={q} />
     </>
   );
 }
