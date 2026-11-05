@@ -163,7 +163,7 @@ export default async function Inventarios({ params, searchParams }: Props) {
             <CargaInventario negocioId={negocio.id} moneda={negocio.moneda}
               inventarios={inventarios.filter((i) => !i.origen?.tipo).map((i) => ({ id: i.id, nombre: i.nombre, usos: usos(i.id) }))} />
             <FuenteGoogle negocioId={negocio.id} slug={slug} nombresUsados={inventarios.map((i) => i.nombre)} />
-            <Conectores negocioId={negocio.id} slug={slug} conectores={conectores} sitio={sitio() || "https://prezio-jade.vercel.app"}
+            <Conectores negocioId={negocio.id} slug={slug} conectores={conectores} sitio={sitio() || "https://prezcio.app"}
               descarga={DESCARGA_CONECTOR} nombresUsados={inventarios.map((i) => i.nombre)} />
           </>
         ) : (

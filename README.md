@@ -70,8 +70,9 @@ En **Inventarios**, además de cargar Excel, un inventario puede llenarse solo:
 1. En [supabase.com](https://supabase.com) crea un proyecto **nuevo** (no uses el del sistema actual).
 2. **SQL Editor** › ejecuta, en orden, `supabase/migrations/0001_base.sql`, `0002_precios_y_apariencia.sql`, `0003_equipos.sql`, `0004_fuentes_automaticas.sql`, `0005_vincular_en_el_equipo.sql`, `0006_clave_de_salida.sql` y `0007_seguridad_reporte_mantenimiento.sql`.
 3. **Authentication › URL Configuration**:
-   - *Site URL*: la dirección de Vercel (por ejemplo `https://prezio.vercel.app`).
-   - *Redirect URLs*: agrega `https://prezio.vercel.app/**` (y `http://localhost:3000/**` si trabajas en tu PC).
+   - *Site URL*: `https://prezcio.app`.
+   - *Redirect URLs*: agrega `https://prezcio.app/**` y también `https://prezio-jade.vercel.app/**` (la dirección de antes,
+     que sigue funcionando para lo ya instalado), y `http://localhost:3000/**` si trabajas en tu PC.
 4. **Project Settings › API**: copia la *Project URL* y la clave **pública** (*publishable* o *anon*).
    La clave secreta (*service_role* / *secret*) **no** se usa aquí ni se comparte.
 
@@ -211,7 +212,7 @@ npm run typecheck
   1. Ejecutar `supabase/migrations/0010_plataforma.sql`.
   2. Una vez, en el SQL Editor: `select public.agregar_admin_plataforma('tu-correo');`
   3. Tener `SUPABASE_SECRET_KEY` en Vercel.
-  4. En Supabase › Authentication › URL Configuration › Redirect URLs, agregar `https://prezio-jade.vercel.app/**`.
+  4. En Supabase › Authentication › URL Configuration › Redirect URLs, agregar `https://prezcio.app/**` (y la de antes, `https://prezio-jade.vercel.app/**`).
      El enlace de la invitación vuelve a `/auth/sesion`.
   5. Para invitar por correo, configurar el correo propio (SMTP).
 

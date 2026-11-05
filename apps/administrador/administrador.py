@@ -40,7 +40,7 @@ import red  # noqa: E402
 certificados.instalar()  # HTTPS con los certificados de Windows + los de certifi
 
 # La compilación (GitHub Actions) reemplaza estos dos valores.
-SITIO = "https://prezio-jade.vercel.app"
+SITIO = "https://prezcio.app"
 VERSION = "2.0.0"
 # Agente de usuario de la ventana: el de Edge más «PrezioAdministrador/versión» al final. Así el servidor sabe que la página
 # va dentro de la app (menú lateral sin parpadeo) y Google y demás sitios la siguen viendo como un navegador normal.
@@ -170,7 +170,8 @@ class Api:
     # ---- archivos
     @staticmethod
     def _sitio_guardado(ruta: Path) -> str:
-        return (pc.leer_json(ruta, {}) or {}).get("sitio") or SITIO
+        # Una PC configurada con la dirección de antes pasa sola a la nueva.
+        return pc.sitio_vigente((pc.leer_json(ruta, {}) or {}).get("sitio") or SITIO)
 
     def _cfg(self) -> dict:
         return pc.leer_json(self._ruta_config, {}) or {}

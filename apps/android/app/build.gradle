@@ -5,7 +5,7 @@ plugins {
 // Firma: GitHub Actions deja la llave en ANDROID_KEYSTORE_PATH (desde el secreto ANDROID_KEYSTORE_B64).
 // Con la MISMA llave siempre, cada APK nuevo se instala encima del anterior sin borrar los precios guardados.
 def keystorePath = System.getenv("ANDROID_KEYSTORE_PATH")
-def sitio = System.getenv("PREZIO_SITIO") ?: "https://prezio-jade.vercel.app"
+def sitio = System.getenv("PREZIO_SITIO") ?: "https://prezcio.app"
 def descargas = System.getenv("PREZIO_DESCARGAS") ?: "https://github.com/supporthng/prezio/releases/download/"
 def codigo = (System.getenv("VERSION_CODE") ?: "1").toInteger()
 

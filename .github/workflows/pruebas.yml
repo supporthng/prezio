@@ -98,7 +98,7 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://ejemplo.supabase.co
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_prueba
-          NEXT_PUBLIC_SITE_URL: https://prezio-jade.vercel.app
+          NEXT_PUBLIC_SITE_URL: https://prezcio.app
         run: npm run build
       - name: Revisar tipos de todo el proyecto
         run: npm run typecheck

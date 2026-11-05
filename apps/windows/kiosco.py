@@ -26,7 +26,7 @@ from ctypes import wintypes
 import webview
 
 # La compilación (GitHub Actions) reemplaza estos tres valores.
-SITIO = "https://prezio-jade.vercel.app"
+SITIO = "https://prezcio.app"
 VERSION = "1.0.0"
 # Solo se aceptan actualizaciones publicadas en las descargas de Prezcio.
 ORIGEN_ACTUALIZACION = "https://github.com/supporthng/prezio/releases/download/"

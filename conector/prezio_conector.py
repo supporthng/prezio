@@ -44,6 +44,14 @@ except Exception:
 VERSION = "2.0.0"
 CARPETA = Path(os.environ.get("PROGRAMDATA") or (Path.home() / ".prezio")) / "Prezio"
 CONFIG = CARPETA / "conector.json"
+# La dirección de Prezcio. Las configuraciones guardadas con la dirección de antes pasan solas a esta.
+SITIO = "https://prezcio.app"
+SITIOS_VIEJOS = ("https://prezio-jade.vercel.app",)
+
+
+def sitio_vigente(sitio: str | None) -> str:
+    s = (sitio or SITIO).rstrip("/")
+    return SITIO if s in SITIOS_VIEJOS else s
 ESTADO = CARPETA / "estado.json"
 PARTE = 2000
 CONTROLADORES = ("ODBC Driver 18 for SQL Server", "ODBC Driver 17 for SQL Server", "SQL Server")
@@ -97,7 +105,7 @@ class ErrorPrezio(Exception):
 
 def prezio(cfg: dict, cuerpo: dict, segundos: int = 90) -> dict:
     datos = json.dumps({**cuerpo, "clave": revelar(cfg["clave"])}).encode("utf-8")
-    pedido = urllib.request.Request(cfg["sitio"].rstrip("/") + "/api/conector", data=datos, method="POST",
+    pedido = urllib.request.Request(sitio_vigente(cfg["sitio"]) + "/api/conector", data=datos, method="POST",
                                     headers={"Content-Type": "application/json", "User-Agent": f"PrezioConector/{VERSION}"})
     try:
         with urllib.request.urlopen(pedido, timeout=segundos) as r:
@@ -283,13 +291,13 @@ def sincronizar(cfg: dict, conectar=None) -> dict:
 
 
 def trabajar(cfg: dict) -> None:
-    log.info("Prezcio Conector %s · enviando a %s cada %s minutos", VERSION, cfg["sitio"], cfg.get("cada_min", 10))
+    log.info("Prezcio Conector %s · enviando a %s cada %s minutos", VERSION, sitio_vigente(cfg["sitio"]), cfg.get("cada_min", 10))
     espera = 60
     revisado = time.time()
     while True:
         if es_conector_de_consola() and time.time() - revisado > CADA_REVISION_S:
             revisado = time.time()
-            if auto_actualizar(cfg["sitio"]):
+            if auto_actualizar(sitio_vigente(cfg["sitio"])):
                 sys.exit(0)
         try:
             sincronizar(cfg)
@@ -397,7 +405,7 @@ def sugerir(columnas: list[str], claves: list[str]) -> int:
 def configurar(cfg: dict | None, conectar=conectar_sql) -> dict:
     cfg = dict(cfg or {})
     print("\n=== Prezcio · Conector de SQL Server ===\n")
-    cfg["sitio"] = preguntar("Dirección de Prezcio", cfg.get("sitio", "https://prezio-jade.vercel.app")).rstrip("/")
+    cfg["sitio"] = preguntar("Dirección de Prezcio", sitio_vigente(cfg.get("sitio"))).rstrip("/")
     while True:
         clave = preguntar("Clave del conector (Prezcio › Inventarios › Conector)" + (" — Enter para dejar la actual" if cfg.get("clave") else ""), secreto=True)
         if clave:
@@ -524,7 +532,7 @@ def main() -> None:
             instalar()
             return
     # Al abrir: si hay versión nueva, se instala sola y vuelve a arrancar con las mismas opciones.
-    if auto_actualizar(cfg.get("sitio") or "https://prezio-jade.vercel.app"):
+    if auto_actualizar(sitio_vigente(cfg.get("sitio"))):
         return
     if a.una_vez:
         print(sincronizar(cfg))

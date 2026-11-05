@@ -109,7 +109,7 @@ ok(valor(False, """select net.http_post(
             url := (select valor from public.ajustes_privados where clave = 'sitio') || '/api/tareas/google',
             headers := jsonb_build_object('Content-Type', 'application/json',
                                           'x-prezio-tareas', (select valor from public.ajustes_privados where clave = 'tareas_secreto')),
-            body := '{}'::jsonb, timeout_milliseconds := 60000)""") == str(len("https://prezio-jade.vercel.app/api/tareas/google") + 64),
+            body := '{}'::jsonb, timeout_milliseconds := 60000)""") == str(len("https://prezcio.app/api/tareas/google") + 64),
    "la llamada de la tarea programada arma dirección y clave")
 
 print(f"\n{c.bien} bien, {c.mal} mal")

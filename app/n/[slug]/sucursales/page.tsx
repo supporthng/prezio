@@ -31,7 +31,7 @@ export default async function Sucursales({ params, searchParams }: Props) {
   const puedeApariencia = puede("apariencia");
   const ap = ((neg as { apariencia?: { logo?: string | null; mostrar_logo?: boolean } } | null)?.apariencia) ?? {};
   const faltaLogo = !ap.logo || ap.mostrar_logo === false;
-  const base = sitio() || "https://prezio-jade.vercel.app";
+  const base = sitio() || "https://prezcio.app";
 
   return (
     <>
