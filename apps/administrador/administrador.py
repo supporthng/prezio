@@ -436,7 +436,7 @@ class Api:
     def abrir_panel(self, seccion=""):
         try:
             n = self._negocio()
-            seccion = seccion if seccion in ("", "sucursales", "inventarios", "apariencia", "equipos", "usuarios", "licencia") else ""
+            seccion = seccion if seccion in ("", "sucursales", "inventarios", "ofertas", "apariencia", "equipos", "usuarios", "licencia") else ""
             siguiente = f"/n/{n['slug']}" + (f"/{seccion}" if seccion else "")
             if self._panel_listo:
                 url = self._prezio.sitio + siguiente     # el panel ya tiene su sesión en esta ventana

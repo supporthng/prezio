@@ -6,9 +6,11 @@ import { Pantalla, type EstadoPantalla } from "@/components/Pantalla";
 import { supabaseNavegador } from "@/lib/supabase/browser";
 import { variantes } from "@/lib/codigos";
 import type { Apariencia } from "@/lib/apariencia";
+import { vigente, type Oferta, type OfertaProducto } from "@/lib/ofertas";
 
 type Props = { sucursalId: string; sucursal: string; negocio: string; slug: string; apariencia: Apariencia; moneda: string };
-type Respuesta = { encontrado: boolean; codigo: string; nombre?: string; precio?: number | string; sin_fuente?: boolean };
+type Respuesta = { encontrado: boolean; codigo: string; nombre?: string; precio?: number | string; sin_fuente?: boolean;
+  oferta?: (Omit<OfertaProducto, "precio_oferta"> & { precio_oferta: number | string | null }) | null };
 
 /** Verificador en línea: el lector escribe el código + Enter en un cuadro invisible siempre activo. */
 export function Verificador({ sucursalId, sucursal, negocio, slug, apariencia, moneda }: Props) {
@@ -19,6 +21,21 @@ export function Verificador({ sucursalId, sucursal, negocio, slug, apariencia, m
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
   const vez = useRef(0);
   const supabase = useRef(supabaseNavegador());
+  const todas = useRef<Oferta[]>([]);
+  const [ofertas, setOfertas] = useState<Oferta[]>([]);
+
+  // Ofertas de la sucursal: se piden al abrir y cada 2 minutos; cuáles se ven lo decide la hora (cada 30 s).
+  useEffect(() => {
+    let vivo = true;
+    const cargar = async () => {
+      const { data } = await supabase.current.rpc("ofertas_sucursal", { p_sucursal: sucursalId });
+      if (vivo && Array.isArray(data)) { todas.current = data as Oferta[]; setOfertas(todas.current.filter((o) => vigente(o, new Date()))); }
+    };
+    void cargar();
+    const a = setInterval(() => void cargar(), 120000);
+    const b = setInterval(() => setOfertas(todas.current.filter((o) => vigente(o, new Date()))), 30000);
+    return () => { vivo = false; clearInterval(a); clearInterval(b); };
+  }, [sucursalId]);
 
   const enfocar = useCallback(() => { entrada.current?.focus({ preventScroll: true }); }, []);
   useEffect(() => {
@@ -58,7 +75,10 @@ export function Verificador({ sucursalId, sucursal, negocio, slug, apariencia, m
     const r = data as Respuesta;
     if (r.encontrado) {
       vez.current += 1;
-      setEstado({ tipo: "producto", codigo: r.codigo, nombre: r.nombre ?? "", precio: Number(r.precio) || 0, vez: vez.current });
+      const precio = Number(r.precio) || 0;
+      const po = r.oferta && r.oferta.precio_oferta !== null ? Number(r.oferta.precio_oferta) : null;
+      setEstado({ tipo: "producto", codigo: r.codigo, nombre: r.nombre ?? "", vez: vez.current, precio: po ?? precio,
+        oferta: r.oferta ? { ...r.oferta, precio_oferta: po, antes: po !== null ? precio : undefined } : undefined });
       volverLuego(apariencia.segundos);
     } else {
       setEstado(r.sin_fuente ? { tipo: "sin_fuente", codigo } : { tipo: "no", codigo });
@@ -68,7 +88,7 @@ export function Verificador({ sucursalId, sucursal, negocio, slug, apariencia, m
 
   return (
     <div className="verificador" onClick={enfocar}>
-      <Pantalla apariencia={apariencia} moneda={moneda} negocio={negocio} sucursal={sucursal} estado={estado}>
+      <Pantalla apariencia={apariencia} moneda={moneda} negocio={negocio} sucursal={sucursal} estado={estado} ofertas={ofertas}>
         <input ref={entrada} className="pz-lector" aria-label="Código de barras" inputMode="none" autoComplete="off"
           onKeyDown={(e) => {
             if (e.key === "Enter") {

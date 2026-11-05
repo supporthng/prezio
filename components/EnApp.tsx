@@ -28,6 +28,7 @@ const PANEL = [
   { clave: "inventarios", texto: "Inventarios" },
   { clave: "apariencia", texto: "Apariencia" },
   { clave: "equipos", texto: "Equipos" },
+  { clave: "ofertas", texto: "Ofertas" },
   { clave: "usuarios", texto: "Usuarios" },
   { clave: "licencia", texto: "Licencia" },
 ] as const;

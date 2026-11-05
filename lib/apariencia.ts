@@ -22,6 +22,9 @@ export type Apariencia = {
   mensaje_espera: string;
   texto_qr: string;
   segundos: number;
+  mostrar_ofertas: boolean;  // en espera, las ofertas vigentes al lado del lector
+  titulo_ofertas: string;
+  segundos_oferta: number;   // cada cuántos segundos pasa a la siguiente oferta
   logo: string | null;   // dirección pública (Supabase Storage) con ?v= para refrescar
   qr: string | null;
 };
@@ -38,11 +41,14 @@ export const PREDETERMINADA: Apariencia = {
   mensaje_espera: "Pasa el código de barras por el lector",
   texto_qr: "Consulta también desde tu celular",
   segundos: 10,
+  mostrar_ofertas: true,
+  titulo_ofertas: "Ofertas de hoy",
+  segundos_oferta: 7,
   logo: null,
   qr: null,
 };
 
-const LARGOS = { titulo_espera: 60, mensaje_espera: 90, texto_qr: 60 } as const;
+const LARGOS = { titulo_espera: 60, mensaje_espera: 90, texto_qr: 60, titulo_ofertas: 40 } as const;
 
 export function normalizar(entrada: unknown): Apariencia {
   const a = (entrada && typeof entrada === "object" ? entrada : {}) as Record<string, unknown>;
@@ -50,7 +56,7 @@ export function normalizar(entrada: unknown): Apariencia {
   if (typeof a.estilo === "string" && a.estilo in ESTILOS) r.estilo = a.estilo as Estilo;
   if (typeof a.color_marca === "string" && /^#[0-9a-f]{6}$/i.test(a.color_marca)) r.color_marca = a.color_marca.toLowerCase();
   if (a.posicion_logo === "centro") r.posicion_logo = "centro";
-  for (const k of ["mostrar_nombre", "mostrar_sucursal", "mostrar_logo", "mostrar_qr"] as const) {
+  for (const k of ["mostrar_nombre", "mostrar_sucursal", "mostrar_logo", "mostrar_qr", "mostrar_ofertas"] as const) {
     if (typeof a[k] === "boolean") r[k] = a[k] as boolean;
   }
   for (const k of Object.keys(LARGOS) as (keyof typeof LARGOS)[]) {
@@ -59,6 +65,8 @@ export function normalizar(entrada: unknown): Apariencia {
   }
   const s = Number(a.segundos);
   if (Number.isFinite(s)) r.segundos = Math.min(30, Math.max(4, Math.round(s)));
+  const so = Number(a.segundos_oferta);
+  if (Number.isFinite(so)) r.segundos_oferta = Math.min(60, Math.max(3, Math.round(so)));
   for (const k of ["logo", "qr"] as const) {
     if (typeof a[k] === "string" && /^https:\/\//.test(a[k] as string)) r[k] = a[k] as string;
   }

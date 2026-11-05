@@ -38,7 +38,7 @@ jobs:
       - name: Pruebas
         run: |
           fallas=0
-          for t in aislamiento precios equipos fuentes salida reporte permisos movil plataforma licencias niveles planes; do
+          for t in aislamiento precios ofertas equipos fuentes salida reporte permisos movil plataforma licencias niveles planes; do
             echo "::group::$t"
             python3 supabase/tests/$t.py | tee /tmp/$t.txt
             echo "::endgroup::"

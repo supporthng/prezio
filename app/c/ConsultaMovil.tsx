@@ -8,12 +8,13 @@ import { abrirLector, activarSonido, type Lector } from "@/lib/lectorCamara";
 
 type Sucursal = { id: string; codigo: string; nombre: string; ubicacion: boolean; radio_m: number };
 type Props = { negocio: string; moneda: string; sucursal: Sucursal; color: string; logo: string | null; clase?: string };
-type Respuesta = { encontrado?: boolean; codigo?: string; nombre?: string; precio?: number | string; error?: string; distancia_m?: number; radio_m?: number };
+type Respuesta = { encontrado?: boolean; codigo?: string; nombre?: string; precio?: number | string; error?: string; distancia_m?: number; radio_m?: number;
+  oferta?: { texto: string; precio_oferta: number | string | null } | null };
 type Vista =
   | { tipo: "inicio" }
   | { tipo: "camara" }
   | { tipo: "buscando"; codigo: string }
-  | { tipo: "producto"; codigo: string; nombre: string; precio: number; vez: number }
+  | { tipo: "producto"; codigo: string; nombre: string; precio: number; vez: number; oferta?: { texto: string; antes?: number } }
   | { tipo: "no"; codigo: string; vez: number }
   | { tipo: "error"; titulo: string; texto: string; reintentar?: boolean };
 
@@ -120,7 +121,10 @@ export function ConsultaMovil({ negocio, moneda, sucursal, color, logo, clase }:
       } else if (r.error) {
         setVista({ tipo: "error", titulo: "No disponible", texto: r.error === "limite" ? "Hay muchas consultas en este momento. Intenta en un minuto." : "La consulta desde el celular no está disponible ahora." });
       } else if (r.encontrado) {
-        setVista({ tipo: "producto", codigo: r.codigo ?? codigo, nombre: r.nombre ?? "", precio: Number(r.precio) || 0, vez: vez.current });
+        const normal = Number(r.precio) || 0;
+        const po = r.oferta && r.oferta.precio_oferta !== null ? Number(r.oferta.precio_oferta) : null;
+        setVista({ tipo: "producto", codigo: r.codigo ?? codigo, nombre: r.nombre ?? "", precio: po ?? normal, vez: vez.current,
+          oferta: r.oferta ? { texto: r.oferta.texto, antes: po !== null && po < normal ? normal : undefined } : undefined });
       } else setVista({ tipo: "no", codigo, vez: vez.current });
     } catch (e) {
       setVista({ tipo: "error", titulo: "Sin conexión", reintentar: true,
@@ -181,6 +185,10 @@ export function ConsultaMovil({ negocio, moneda, sucursal, color, logo, clase }:
               <span className="mv-hoyo" aria-hidden="true" />
               <p className="mv-nombre movil-nombre">{v.nombre}</p>
               <p ref={precio} className="mv-precio movil-precio"><span className="mv-moneda moneda">{moneda}</span>{formato.format(v.precio).split(".")[0]}<span className="mv-centavos">.{formato.format(v.precio).split(".")[1]}</span></p>
+              {v.oferta && (
+                <p className="mv-oferta"><span>{v.oferta.texto}</span>
+                  {v.oferta.antes !== undefined && <> Antes <s>{moneda} {formato.format(v.oferta.antes)}</s></>}</p>
+              )}
               <p className="mv-codigo">Código {v.codigo}</p>
               <div className="mv-cuenta" aria-hidden="true"><span style={{ animationDuration: `${VUELTA.producto}s` }} /></div>
             </section>

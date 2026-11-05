@@ -29,7 +29,7 @@ limpiar() {
 }
 
 fallas=0
-for t in ${PRUEBAS:-vinculo codigo reloj apps autorizar empleado suspendido}; do
+for t in ${PRUEBAS:-vinculo codigo reloj apps autorizar empleado suspendido ofertas}; do
   limpiar
   echo "::group::$t"
   (cd "$PREZIO_SALIDA" && timeout 240 node "$OLDPWD/$t.js") 2>&1 | tee "$PREZIO_SALIDA/$t.txt"

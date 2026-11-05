@@ -7,6 +7,7 @@ import { appNativa, TEXTO_ACTUALIZACION, type AppNativa } from "@/lib/app";
 import { claveCorrecta } from "@/lib/salida";
 import { normalizar } from "@/lib/apariencia";
 import { variantes } from "@/lib/codigos";
+import { ofertaDe, vigente, type Oferta } from "@/lib/ofertas";
 import {
   APP_EQUIPO, ErrorEquipo, anotar, borrar, claveNueva, contarPendientes, guardar, leer, llamar,
   lotePendientes, quitarPendientes, type Catalogo, type InfoEquipo,
@@ -47,6 +48,9 @@ export function Equipo({ sitio }: { sitio: string }) {
   const [errorSalida, setErrorSalida] = useState("");
   const [confirmarCierre, setConfirmarCierre] = useState(false);
   const [menu, setMenu] = useState<null | { productos: number; pendientes: number; sincronizado: string | null }>(null);
+  // Ofertas: todas las que mandó Prezcio (también las que empiezan después) y las vigentes ahora (se revisa cada 30 s).
+  const ofertas = useRef<{ version: string; ofertas: Oferta[] }>({ version: "", ofertas: [] });
+  const [vigentes, setVigentes] = useState<Oferta[]>([]);
 
   const clave = useRef("");
   const productos = useRef(new Map<string, Producto>());
@@ -77,7 +81,9 @@ export function Equipo({ sitio }: { sitio: string }) {
   const ponerCodigo = (c: Codigo | null) => { codigoRef.current = c; setCodigo(c); };
 
   const olvidar = useCallback(async () => {
-    await Promise.all([borrar("info"), borrar("catalogo"), borrar("sincronizado")]).catch(() => {});
+    await Promise.all([borrar("info"), borrar("catalogo"), borrar("sincronizado"), borrar("ofertas")]).catch(() => {});
+    ofertas.current = { version: "", ofertas: [] };
+    setVigentes([]);
     productos.current = new Map();
     version.current = null;
     setInfo(null);
@@ -116,6 +122,14 @@ export function Equipo({ sitio }: { sitio: string }) {
         const cat = await llamar<Catalogo>("equipo_catalogo", { p_clave: clave.current }, 120000);
         await guardar("catalogo", cat);
         cargarCatalogo(cat);
+      }
+      // Ofertas: solo llegan si cambiaron.
+      const of = await llamar<{ version: string; ofertas?: Oferta[] }>("equipo_ofertas",
+        { p_clave: clave.current, p_version: ofertas.current.version || null }).catch(() => null);
+      if (of?.ofertas) {
+        ofertas.current = { version: of.version, ofertas: of.ofertas };
+        await guardar("ofertas", ofertas.current).catch(() => {});
+        setVigentes(of.ofertas.filter((o) => vigente(o, ahora())));
       }
       await guardar("info", nuevo);
       await guardar("sincronizado", ahora().toISOString());
@@ -157,6 +171,8 @@ export function Equipo({ sitio }: { sitio: string }) {
       if (!c) { c = claveNueva(); await guardar("clave", c).catch(() => {}); }
       clave.current = c;
       const [i, cat] = await Promise.all([leer<InfoEquipo>("info"), leer<Catalogo>("catalogo")]).catch(() => [undefined, undefined]);
+      const of = await leer<{ version: string; ofertas: Oferta[] }>("ofertas").catch(() => undefined);
+      if (of?.ofertas) { ofertas.current = of; setVigentes(of.ofertas.filter((o) => vigente(o, ahora()))); }
       if (!vivo) return;
       if (i && cat) { cargarCatalogo(cat); setInfo(i); cambiarFase("listo"); }
       else cambiarFase("vincular");
@@ -265,6 +281,15 @@ export function Equipo({ sitio }: { sitio: string }) {
     return () => clearInterval(t);
   }, [enfocar]);
 
+  // Una oferta empieza o termina con la hora (corregida): se revisa cada 30 segundos, también sin internet.
+  useEffect(() => {
+    const t = setInterval(() => {
+      const nuevas = ofertas.current.ofertas.filter((o) => vigente(o, ahora()));
+      setVigentes((v) => (v.map((o) => o.id).join() === nuevas.map((o) => o.id).join() ? v : nuevas));
+    }, 30000);
+    return () => clearInterval(t);
+  }, []);
+
   const volverLuego = (segundos: number) => {
     if (temporizador.current) clearTimeout(temporizador.current);
     temporizador.current = setTimeout(() => setEstado({ tipo: "espera" }), segundos * 1000);
@@ -281,7 +306,10 @@ export function Equipo({ sitio }: { sitio: string }) {
     const hora = ahora().toISOString();
     if (hallado) {
       vez.current += 1;
-      setEstado({ tipo: "producto", codigo: hallado.codigo, nombre: hallado.p.nombre, precio: hallado.p.precio, vez: vez.current });
+      const oferta = ofertaDe(ofertas.current.ofertas, hallado.codigo, hallado.p.precio, ahora());
+      setEstado({ tipo: "producto", codigo: hallado.codigo, nombre: hallado.p.nombre, vez: vez.current,
+        precio: oferta?.precio_oferta ?? hallado.p.precio,
+        oferta: oferta ? { ...oferta, antes: oferta.precio_oferta !== null ? hallado.p.precio : undefined } : undefined });
       volverLuego(apariencia.segundos);
       void anotar({ codigo: cod, encontrado: true, nombre: hallado.p.nombre, precio: hallado.p.precio, hora }).catch(() => {});
     } else {
@@ -370,7 +398,7 @@ export function Equipo({ sitio }: { sitio: string }) {
   return (
     <div className="verificador" onClick={enfocar}>
       <Pantalla apariencia={apariencia} moneda={info?.negocio.moneda ?? "RD$"} negocio={info?.negocio.nombre ?? ""}
-        sucursal={info?.sucursal.nombre} estado={suspendido ? { tipo: "suspendido" } : estado}>
+        sucursal={info?.sucursal.nombre} estado={suspendido ? { tipo: "suspendido" } : estado} ofertas={vigentes}>
         <input ref={entrada} className="pz-lector" aria-label="Código de barras" inputMode="none" autoComplete="off" autoFocus
           onKeyDown={(e) => {
             if (e.key === "Enter") {

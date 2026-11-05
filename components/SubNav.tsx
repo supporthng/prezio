@@ -7,6 +7,7 @@ const SECCIONES = [
   { clave: "resumen", texto: "Resumen", ruta: "" },
   { clave: "sucursales", texto: "Sucursales", ruta: "/sucursales" },
   { clave: "inventarios", texto: "Inventarios", ruta: "/inventarios" },
+  { clave: "ofertas", texto: "Ofertas", ruta: "/ofertas" },
   { clave: "apariencia", texto: "Apariencia", ruta: "/apariencia" },
   { clave: "equipos", texto: "Equipos", ruta: "/equipos" },
   { clave: "usuarios", texto: "Usuarios", ruta: "/usuarios" },

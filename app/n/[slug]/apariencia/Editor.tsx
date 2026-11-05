@@ -3,14 +3,25 @@
 import { useState } from "react";
 import { Pantalla, type EstadoPantalla } from "@/components/Pantalla";
 import { ESTILOS, type Apariencia, type Estilo } from "@/lib/apariencia";
+import type { Oferta } from "@/lib/ofertas";
 import { supabaseNavegador } from "@/lib/supabase/browser";
 import { guardarApariencia, guardarImagen } from "./actions";
 
 type Props = { negocioId: string; slug: string; negocio: string; sucursal: string; inicial: Apariencia; moneda: string; puedeEditar: boolean };
 
+/** Ofertas de ejemplo para la vista previa (las de verdad se crean en Ofertas). */
+const EJEMPLO_OFERTAS: Oferta[] = [
+  { id: "e1", nombre: "Fin de semana refrescante", descripcion: "En todos los refrescos de 2 litros", tipo: "precio", valor: null, lleva: null, paga: null,
+    imagen: null, desde: null, hasta: null, dias: [6, 0], hora_desde: null, hora_hasta: null,
+    productos: [["7501055363063", "Refresco de cola 2 litros", 125.5, 99], ["7501055300020", "Refresco de naranja 2 litros", 120, 95]] },
+  { id: "e2", nombre: "Galletas 3×2", descripcion: null, tipo: "lleva_paga", valor: null, lleva: 3, paga: 2, imagen: null,
+    desde: null, hasta: null, dias: null, hora_desde: null, hora_hasta: null, productos: [["042100005264", "Galletas de chocolate", 95, null]] },
+];
+
 const VISTAS = {
   espera: "Esperando",
   producto: "Con precio",
+  oferta: "En oferta",
   no: "No encontrado",
 } as const;
 
@@ -26,6 +37,9 @@ export function Editor({ negocioId, slug, negocio, sucursal, inicial, moneda: mo
 
   const estado: EstadoPantalla = vista === "producto"
     ? { tipo: "producto", codigo: "7501055363063", nombre: "Refresco de cola 2 litros", precio: 125.5, vez: 1 }
+    : vista === "oferta"
+    ? { tipo: "producto", codigo: "7501055363063", nombre: "Refresco de cola 2 litros", precio: 99, vez: 1,
+        oferta: { nombre: "Fin de semana refrescante", tipo: "precio", texto: "Fin de semana refrescante", precio_oferta: 99, antes: 125.5 } }
     : vista === "no" ? { tipo: "no", codigo: "7460855230237" } : { tipo: "espera" };
 
   async function subir(cual: "logo" | "qr", archivo: File | undefined) {
@@ -55,7 +69,7 @@ export function Editor({ negocioId, slug, negocio, sucursal, inicial, moneda: mo
     setAviso(r);
   }
 
-  const casilla = (k: "mostrar_nombre" | "mostrar_sucursal" | "mostrar_logo" | "mostrar_qr", texto: string) => (
+  const casilla = (k: "mostrar_nombre" | "mostrar_sucursal" | "mostrar_logo" | "mostrar_qr" | "mostrar_ofertas", texto: string) => (
     <label className="opcion" style={{ flex: "1 1 100%", padding: "10px 12px" }}>
       <input type="checkbox" checked={a[k]} disabled={!puedeEditar} onChange={(e) => cambiar(k, e.target.checked)} />
       <span>{texto}</span>
@@ -131,6 +145,18 @@ export function Editor({ negocioId, slug, negocio, sucursal, inicial, moneda: mo
             <input id="t3" value={a.texto_qr} maxLength={60} onChange={(e) => cambiar("texto_qr", e.target.value)} /></div>
           <div className="campo"><label htmlFor="seg">Segundos que se ve el precio: {a.segundos}</label>
             <input id="seg" type="range" min={4} max={30} value={a.segundos} onChange={(e) => cambiar("segundos", Number(e.target.value))} style={{ padding: 0, minHeight: 0 }} /></div>
+
+          <h2 style={{ marginTop: 20 }}>Ofertas en la pantalla</h2>
+          <div className="opciones">{casilla("mostrar_ofertas", "Mostrar las ofertas vigentes al lado del lector")}</div>
+          {a.mostrar_ofertas && (
+            <>
+              <div className="campo"><label htmlFor="t4">Título de las ofertas</label>
+                <input id="t4" value={a.titulo_ofertas} maxLength={40} onChange={(e) => cambiar("titulo_ofertas", e.target.value)} /></div>
+              <div className="campo"><label htmlFor="sego">Segundos de cada oferta: {a.segundos_oferta}</label>
+                <input id="sego" type="range" min={3} max={30} value={a.segundos_oferta} onChange={(e) => cambiar("segundos_oferta", Number(e.target.value))} style={{ padding: 0, minHeight: 0 }} /></div>
+            </>
+          )}
+          <p className="quieto pequeno"><a href={`/n/${slug}/ofertas`}>Crear y programar ofertas ›</a></p>
         </fieldset>
         {puedeEditar && (
           <button className="boton" type="button" disabled={!cambios || guardando} onClick={() => void guardar()}>
@@ -153,7 +179,8 @@ export function Editor({ negocioId, slug, negocio, sucursal, inicial, moneda: mo
           </label>
         </div>
         <div className={`marco-vista${vertical ? " vertical" : ""}`}>
-          <Pantalla apariencia={a} moneda={moneda} negocio={negocio} sucursal={sucursal} estado={estado} vistaPrevia />
+          <Pantalla apariencia={a} moneda={moneda} negocio={negocio} sucursal={sucursal} estado={estado} vistaPrevia
+            ofertas={vista === "espera" ? EJEMPLO_OFERTAS : undefined} />
         </div>
         <p className="quieto pequeno" style={{ marginTop: 8 }}>Así se verá en los verificadores (con la sucursal «{sucursal}» de ejemplo).</p>
       </div>

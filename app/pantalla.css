@@ -120,3 +120,62 @@
 
 /* El cuadro donde escribe el lector: siempre activo e invisible. */
 .pz-lector { position: absolute; z-index: 10; left: 0; bottom: 0; width: 2px; height: 2px; opacity: 0; border: 0; padding: 0; caret-color: transparent; }
+
+/* ---------- ofertas: en espera, al lado del lector; al escanear, el precio de oferta */
+.pz-espera.con-ofertas { grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr); column-gap: clamp(14px, 4cqw, 70px); }
+.pz-espera.con-ofertas .pz-cabecera { grid-column: 1; }
+.pz-espera.con-ofertas .pz-centro { grid-column: 1; }
+.pz-espera.con-ofertas .pz-titulo { font-size: clamp(16px, 6.2cqmin, 84px); }
+.pz-espera.con-ofertas .pz-laser { width: 86%; }
+.pz-espera.con-ofertas .pz-qr { grid-column: 1; justify-self: start; text-align: left; flex-direction: row-reverse; }
+.pz-ofertas { grid-column: 2; grid-row: 1 / 4; align-self: center; min-width: 0; display: flex; flex-direction: column; gap: clamp(6px, 1.6cqh, 18px); touch-action: pan-y; }
+.pz-ofertas-titulo { margin: 0; font-size: clamp(12px, 3.4cqmin, 44px); font-weight: 700; letter-spacing: -0.01em; color: var(--pz-gris); }
+.pz-carrusel { position: relative; display: grid; }
+.pz-oferta {
+  grid-area: 1 / 1; display: flex; flex-direction: column; min-width: 0; overflow: hidden;
+  border-radius: clamp(10px, 2.4cqmin, 28px); background: var(--pz-papel); border: 1px solid var(--pz-linea);
+  box-shadow: 0 1px 0 var(--pz-linea), 0 clamp(6px, 2cqmin, 24px) clamp(18px, 5cqmin, 60px) -18px rgba(15, 36, 64, .35);
+  opacity: 0; transform: translateX(3%); transition: opacity .45s ease, transform .45s ease; pointer-events: none;
+}
+.pz-oferta.on { opacity: 1; transform: none; pointer-events: auto; }
+.pz-oferta-img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; background: var(--pz-linea); }
+.pz-oferta-texto { padding: clamp(10px, 3cqmin, 40px); display: flex; flex-direction: column; gap: clamp(4px, 1.2cqh, 14px); min-width: 0; }
+.pz-oferta h3 { margin: 0; font-size: clamp(15px, 5.2cqmin, 70px); line-height: 1.05; letter-spacing: -0.02em; font-weight: 700; text-wrap: balance; overflow-wrap: anywhere; }
+.pz-oferta-desc { margin: 0; color: var(--pz-gris); font-size: clamp(10px, 2.6cqmin, 32px); }
+.pz-oferta-sello {
+  align-self: flex-start; display: inline-block; padding: .28em .8em; border-radius: 999px; font-weight: 800; letter-spacing: -0.01em;
+  background: #ffd23f; color: #102a43; font-size: clamp(10px, 2.8cqmin, 34px); line-height: 1.15;
+}
+.pz-oferta-prods { list-style: none; margin: clamp(2px, .8cqh, 10px) 0 0; padding: 0; display: grid; gap: clamp(4px, 1.2cqh, 14px); }
+.pz-oferta-prods li { display: flex; justify-content: space-between; align-items: baseline; gap: 1em; border-top: 1px solid var(--pz-linea); padding-top: clamp(4px, 1.2cqh, 14px); font-size: clamp(10px, 2.8cqmin, 36px); }
+.pz-op-nombre { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pz-op-precios { display: flex; align-items: baseline; gap: .6em; white-space: nowrap; }
+.pz-op-precios s { color: var(--pz-gris); font-size: .8em; }
+.pz-op-precios b { color: var(--pz-precio); font-size: 1.3em; letter-spacing: -0.02em; }
+.pz-oferta-mas, .pz-oferta-cuando { margin: 0; color: var(--pz-gris); font-size: clamp(9px, 2.2cqmin, 28px); }
+.pz-puntos { display: flex; justify-content: center; gap: clamp(4px, 1cqmin, 12px); }
+.pz-puntos span { width: clamp(5px, 1.2cqmin, 14px); height: clamp(5px, 1.2cqmin, 14px); border-radius: 999px; background: var(--pz-linea); transition: width .3s ease, background .3s ease; }
+.pz-puntos span.on { width: clamp(14px, 3.6cqmin, 42px); background: var(--pz-acento); }
+@media (prefers-reduced-motion: reduce) { .pz-oferta { transition: none; transform: none; } }
+/* Pantalla vertical: las ofertas debajo del lector. */
+@container pantalla (max-aspect-ratio: 1 / 1) {
+  .pz-espera.con-ofertas { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto 1fr auto; row-gap: clamp(8px, 2cqh, 30px); }
+  .pz-espera.con-ofertas .pz-centro { grid-row: 2; }
+  .pz-espera.con-ofertas .pz-ofertas { grid-column: 1; grid-row: 3; }
+  .pz-espera.con-ofertas .pz-qr { grid-row: 4; justify-self: end; flex-direction: row; text-align: right; }
+}
+/* Fondos de color: las tarjetas de oferta siguen siendo claras para leer bien el precio. */
+.pz.estilo-marca .pz-oferta, .pz.estilo-noche .pz-oferta { background: #fff; color: #0f2440; border-color: transparent; }
+.pz.estilo-marca .pz-oferta-desc, .pz.estilo-marca .pz-oferta-mas, .pz.estilo-marca .pz-oferta-cuando, .pz.estilo-marca .pz-op-precios s,
+.pz.estilo-noche .pz-oferta-desc, .pz.estilo-noche .pz-oferta-mas, .pz.estilo-noche .pz-oferta-cuando, .pz.estilo-noche .pz-op-precios s { color: #5b6b82; }
+.pz.estilo-marca .pz-oferta-prods li, .pz.estilo-noche .pz-oferta-prods li { border-top-color: #e3e8ef; }
+.pz.estilo-marca .pz-op-precios b, .pz.estilo-noche .pz-op-precios b { color: #b42318; }
+.pz.estilo-marca .pz-ofertas-titulo { color: var(--pz-sobre-marca); opacity: .85; }
+
+.pz-en-oferta { margin: clamp(8px, 2.4cqh, 26px) 0 0; display: flex; flex-wrap: wrap; align-items: center; gap: .5em 1em; }
+.pz-en-oferta .pz-oferta-sello { font-size: clamp(11px, 3.4cqmin, 42px); }
+.pz-antes { color: var(--pz-gris); font-size: clamp(10px, 3cqmin, 38px); font-weight: 600; }
+.pz-antes s { font-weight: 500; }
+.pz-resultado.en-oferta .pz-etiqueta { color: var(--pz-alerta); }
+.pz.logo-centro .pz-espera.con-ofertas .pz-ofertas { grid-row: 1 / 6; }
+.pz.logo-centro .pz-espera.con-ofertas .pz-cabecera { grid-column: 1; }
