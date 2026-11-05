@@ -12,7 +12,7 @@ import { sitio } from "@/lib/util";
 
 import apps from "@/public/apps.json";
 
-// El conector viene dentro de Prezio Administrador (Releases › «administrador»); si todavía no se ha publicado,
+// El conector viene dentro de Prezcio Administrador (Releases › «administrador»); si todavía no se ha publicado,
 // queda el conector de consola (Releases › «conector»).
 const DESCARGA_CONECTOR = (apps as { administrador?: { url?: string } }).administrador?.url
   || "https://github.com/supporthng/prezio/releases/download/conector/PrezioConector.exe";

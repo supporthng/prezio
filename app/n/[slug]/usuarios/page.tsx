@@ -120,7 +120,7 @@ export default async function Usuarios({ params, searchParams }: Props) {
           <section className="tarjeta" aria-labelledby="t-nuevo" style={{ marginTop: 20 }}>
             <h2 id="t-nuevo">Nuevo usuario</h2>
             <p className="quieto" style={{ marginTop: 0 }}>
-              Para empleados, sin correo. Entran en Prezio › Entrar › <strong>Con usuario</strong> con la licencia del negocio
+              Para empleados, sin correo. Entran en Prezcio › Entrar › <strong>Con usuario</strong> con la licencia del negocio
               <strong> {negocio.licencia}</strong>, su usuario y su clave. Si olvidan la clave, la cambias aquí.
             </p>
             <form action={crearUsuario}>

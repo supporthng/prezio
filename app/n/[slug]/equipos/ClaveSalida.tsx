@@ -6,7 +6,7 @@ import { supabaseNavegador } from "@/lib/supabase/browser";
 import { crearSalida } from "@/lib/salida";
 import { mensajeError } from "@/lib/util";
 
-/** La clave para salir de las apps Prezio. Se calcula su huella aquí: la clave no sale del navegador. */
+/** La clave para salir de las apps Prezcio. Se calcula su huella aquí: la clave no sale del navegador. */
 export function ClaveSalida({ negocioId, puesta }: { negocioId: string; puesta: string | null }) {
   const router = useRouter();
   const [clave, setClave] = useState("");
@@ -32,7 +32,7 @@ export function ClaveSalida({ negocioId, puesta }: { negocioId: string; puesta: 
     <section className="tarjeta" aria-labelledby="t-salida" style={{ marginTop: 20 }}>
       <h2 id="t-salida">Clave para salir de las apps</h2>
       <p className="quieto" style={{ marginTop: 0 }}>
-        Las apps Prezio no dejan salir del verificador. Para mantenimiento: menú ⓘ › «Salir de la app» y esta clave.
+        Las apps Prezcio no dejan salir del verificador. Para mantenimiento: menú ⓘ › «Salir de la app» y esta clave.
         Funciona aunque no haya internet. {puesta ? `Última vez cambiada: ${new Date(puesta).toLocaleDateString("es-DO")}.` : "Todavía no hay clave."}
       </p>
       <form className="fila" onSubmit={guardar}>

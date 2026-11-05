@@ -36,7 +36,7 @@ export default async function Negocios({ searchParams }: Props) {
           <div className="tarjeta">
             <h2>Tu cuenta todavía no tiene negocios</h2>
             <p className="quieto">
-              {plataforma ? "Da de alta el primero en la Plataforma." : "Pide a quien administra Prezio en tu negocio que te dé acceso."}
+              {plataforma ? "Da de alta el primero en la Plataforma." : "Pide a quien administra Prezcio en tu negocio que te dé acceso."}
             </p>
             {plataforma && <Link className="boton" href="/plataforma">Ir a la Plataforma</Link>}
           </div>

@@ -1,4 +1,4 @@
-"""Prezio · buscar servidores de base de datos en la red del negocio.
+"""Prezcio · buscar servidores de base de datos en la red del negocio.
 
 1. Toma las redes privadas de esta PC (192.168.x.0/24, 10.x.x.0/24, 172.16–31.x.0/24).
 2. Prueba en cada equipo los puertos de SQL Server (1433), MySQL/MariaDB (3306), PostgreSQL (5432) y Firebird (3050),

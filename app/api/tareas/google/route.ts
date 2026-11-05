@@ -3,7 +3,7 @@ import { enviarEnPartes, productosDeGoogle, type OrigenGoogle } from "@/lib/fuen
 import { rpcAnonimo } from "@/lib/rpc";
 
 // La llama la tarea programada de Supabase cada 15 minutos (pg_cron + pg_net), con la clave interna de la base
-// en el encabezado «x-prezio-tareas». Prezio no guarda esa clave: se la devuelve a la base, que la comprueba.
+// en el encabezado «x-prezio-tareas». Prezcio no guarda esa clave: se la devuelve a la base, que la comprueba.
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 

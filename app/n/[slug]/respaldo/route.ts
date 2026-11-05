@@ -10,7 +10,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ slug: stri
   const { slug } = await params;
   const supabase = await supabaseServidor();
   const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) return new Response("Entra a Prezio para descargar.", { status: 401 });
+  if (!auth.user) return new Response("Entra a Prezcio para descargar.", { status: 401 });
   const { data: neg } = await supabase.from("negocios").select("id, nombre, slug, moneda, apariencia").eq("slug", slug).maybeSingle();
   const negocio = neg as { id: string; nombre: string; slug: string; moneda: string; apariencia: unknown } | null;
   if (!negocio) return new Response("No encontrado.", { status: 404 });

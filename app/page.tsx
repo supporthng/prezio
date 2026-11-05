@@ -40,7 +40,7 @@ export default async function Inicio({ searchParams }: Props) {
         Carga tus precios desde Excel, Google o tu sistema, y pon verificadores en cada sucursal. Funcionan aunque se
         caiga el internet.
       </p>
-      <p className="quieto pequeno">¿Quieres Prezio en tu negocio? Pide tu acceso a tu proveedor de Prezio.</p>
+      <p className="quieto pequeno">¿Quieres Prezcio en tu negocio? Pide tu acceso a tu proveedor de Prezcio.</p>
       <div className="fila" style={{ marginTop: 24 }}>
         <Link className="boton" href="/entrar">Entrar</Link>
       </div>

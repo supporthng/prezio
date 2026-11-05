@@ -1,6 +1,6 @@
-"""Prezio para Windows: verificador de precios tipo quiosco.
+"""Prezcio para Windows: verificador de precios tipo quiosco.
 
-- Abre Prezio (SITIO/equipo) a pantalla completa, siempre encima, sin bordes.
+- Abre Prezcio (SITIO/equipo) a pantalla completa, siempre encima, sin bordes.
 - Usa WebView2 (el motor de Microsoft Edge, ya incluido en Windows 10/11): los precios
   quedan guardados en el equipo y funciona SIN internet.
 - Bloquea Alt+Tab, Alt+Esc, Ctrl+Esc, Ctrl+Shift+Esc, Alt+F4, Alt+Espacio y la tecla Windows.
@@ -28,7 +28,7 @@ import webview
 # La compilación (GitHub Actions) reemplaza estos tres valores.
 SITIO = "https://prezio-jade.vercel.app"
 VERSION = "1.0.0"
-# Solo se aceptan actualizaciones publicadas en las descargas de Prezio.
+# Solo se aceptan actualizaciones publicadas en las descargas de Prezcio.
 ORIGEN_ACTUALIZACION = "https://github.com/supporthng/prezio/releases/download/"
 DIRECCION = SITIO + "/equipo"
 DATOS = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), "Prezio", "WebView")
@@ -287,7 +287,7 @@ class Kiosco:
             self._avisar("buscando")
         try:
             pedido = urllib.request.Request(f"{APPS_JSON}?t={int(time.time())}",
-                                            headers={"Cache-Control": "no-cache", "User-Agent": "Prezio/" + VERSION})
+                                            headers={"Cache-Control": "no-cache", "User-Agent": "Prezcio/" + VERSION})
             with urllib.request.urlopen(pedido, timeout=20) as r:
                 info = json.loads(r.read().decode("utf-8")).get("windows") or {}
             nueva = str(info.get("version") or "")
@@ -326,7 +326,7 @@ class Kiosco:
             anotar(f"descargando {url}")
             self._avisar("descargando")
             destino = os.path.join(tempfile.gettempdir(), f"Instalador_Prezio_{int(time.time())}.exe")
-            pedido = urllib.request.Request(url, headers={"User-Agent": "Prezio/" + VERSION})
+            pedido = urllib.request.Request(url, headers={"User-Agent": "Prezcio/" + VERSION})
             with urllib.request.urlopen(pedido, timeout=180) as respuesta, open(destino, "wb") as archivo:
                 while True:
                     bloque = respuesta.read(1 << 16)
@@ -362,7 +362,7 @@ def main():
     os.makedirs(DATOS, exist_ok=True)
     api = Kiosco()
     ventana = webview.create_window(
-        "Prezio", DIRECCION, js_api=api,
+        "Prezcio", DIRECCION, js_api=api,
         fullscreen=True, frameless=True, on_top=True, easy_drag=False,
         background_color="#102A43", text_select=False, zoomable=False, confirm_close=False)
     api._ventana = ventana

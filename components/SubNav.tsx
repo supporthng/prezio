@@ -23,13 +23,13 @@ export async function SubNav({ slug, activa }: { slug: string; activa: string })
     {lic?.estado === "suspendida" && (
       <p className="aviso error" role="alert">
         Este negocio está suspendido: puedes ver tus datos, pero no cambiarlos, y los verificadores no muestran precios.
-        Comunícate con tu proveedor de Prezio.
+        Comunícate con tu proveedor de Prezcio.
       </p>
     )}
     {lic?.estado === "vencida" && (
       <p className="aviso error" role="alert">
         {(data as DatosLicencia).plan === "prueba" ? "Terminó tu prueba de 30 días." : `Tu licencia venció el ${fechaCorta(lic.vence!)}.`}{" "}
-        Para seguir usando Prezio, realiza el pago a tu proveedor indicando tu licencia <strong>{licencia}</strong>. Mientras
+        Para seguir usando Prezcio, realiza el pago a tu proveedor indicando tu licencia <strong>{licencia}</strong>. Mientras
         tanto puedes ver tus datos, pero no cambiarlos, y los verificadores no muestran precios.
       </p>
     )}

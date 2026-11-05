@@ -16,7 +16,7 @@ export async function todosLosProductos(supabase: Supabase, inventario: string):
   }
 }
 
-/** CSV que Excel abre bien (UTF-8 con BOM, separado por comas) y que Prezio vuelve a cargar tal cual. */
+/** CSV que Excel abre bien (UTF-8 con BOM, separado por comas) y que Prezcio vuelve a cargar tal cual. */
 export function aCsv(productos: FilaProducto[]): string {
   const celda = (v: string) => (/[",\n\r;]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
   const filas = productos.map((p) => [celda(p.codigo), celda(p.nombre), p.precio.toFixed(2)].join(","));
@@ -24,5 +24,5 @@ export function aCsv(productos: FilaProducto[]): string {
 }
 
 export function nombreArchivo(texto: string): string {
-  return texto.normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "prezio";
+  return texto.normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "prezcio";
 }

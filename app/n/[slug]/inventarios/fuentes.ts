@@ -20,7 +20,7 @@ export type Revision =
 /** Lee la hoja y propone las columnas, para revisar antes de crear el inventario. */
 export async function revisarGoogle(url: string): Promise<Revision> {
   const { data: auth } = await (await supabaseServidor()).auth.getUser();
-  if (!auth.user) return { ok: false, error: "Vuelve a entrar a Prezio." };
+  if (!auth.user) return { ok: false, error: "Vuelve a entrar a Prezcio." };
   try {
     const filas = await descargarGoogle(url);
     if (!filas.length) return { ok: false, error: "La hoja está vacía." };

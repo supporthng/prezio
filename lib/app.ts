@@ -1,4 +1,4 @@
-/** Puente con las apps Prezio (Android y Windows) cuando la página /equipo corre dentro de ellas.
+/** Puente con las apps Prezcio (Android y Windows) cuando la página /equipo corre dentro de ellas.
  *  Android: objeto window.PrezioApp. Windows (pywebview): window.pywebview.api (asíncrono). */
 
 export type AppNativa = {

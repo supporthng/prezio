@@ -1,4 +1,4 @@
-"""Prezio · motores de base de datos del conector: SQL Server, MySQL / MariaDB, PostgreSQL y Firebird.
+"""Prezcio · motores de base de datos del conector: SQL Server, MySQL / MariaDB, PostgreSQL y Firebird.
 
 Una «conexión» es un diccionario (se guarda en la PC, con la clave cifrada):
     motor        "sqlserver" | "mysql" | "postgresql" | "firebird"
@@ -92,7 +92,7 @@ def cadena_sqlserver(cx: dict, base: str | None, controladores=None) -> str:
         def esc(v):
             return "{" + str(v).replace("}", "}}") + "}"
         cs += "UID=" + esc(cx.get("usuario", "")) + ";PWD=" + esc(revelar(cx.get("clave", ""))) + ";"
-    return cs + "APP=Prezio Conector;"
+    return cs + "APP=Prezcio Conector;"
 
 
 def _controladores_odbc() -> list[str]:
@@ -155,7 +155,7 @@ def conectar(cx: dict, base: str | None = None):
     except ErrorMotor:
         raise
     except ImportError as e:
-        raise ErrorMotor(f"Falta el componente para {MOTORES[motor]['nombre']} ({e.name}). Reinstala Prezio Administrador.") from None
+        raise ErrorMotor(f"Falta el componente para {MOTORES[motor]['nombre']} ({e.name}). Reinstala Prezcio Administrador.") from None
     except Exception as e:
         raise ErrorMotor(explicar(e, motor)) from None
 
@@ -173,7 +173,7 @@ def explicar(e: Exception, motor: str = "") -> str:
     if re.search(r"Cannot open database|Unknown database|does not exist|I/O error .* for file", t, re.I):
         return "La base de datos no existe o el usuario no tiene permiso para abrirla."
     if re.search(r"fbclient|Firebird client library", t, re.I):
-        return "Falta el cliente de Firebird (fbclient.dll). Reinstala Prezio Administrador."
+        return "Falta el cliente de Firebird (fbclient.dll). Reinstala Prezcio Administrador."
     if re.search(r"IM002|Data source name not found", t):
         return "No está instalado el controlador ODBC de SQL Server en esta PC."
     return linea

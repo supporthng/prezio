@@ -1,4 +1,4 @@
-/** Clave para salir de las apps Prezio: PBKDF2-SHA256 con sal (WebCrypto). El panel calcula la huella;
+/** Clave para salir de las apps Prezcio: PBKDF2-SHA256 con sal (WebCrypto). El panel calcula la huella;
  *  el equipo la recibe y comprueba la clave sin internet. La clave misma nunca sale del navegador. */
 import type { Salida } from "@/lib/equipo";
 

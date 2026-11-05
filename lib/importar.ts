@@ -2,13 +2,13 @@
  *  Administración › Respaldo (manifest.json + tablas/*.json + archivos/*).
  *
  *  1. leerRespaldo(): abre el ZIP en el navegador y arma un PLAN (no toca nada) para mostrarlo antes.
- *  2. ejecutarPlan(): crea o actualiza en Prezio, en este orden: inventarios con sus productos, Principal,
+ *  2. ejecutarPlan(): crea o actualiza en Prezcio, en este orden: inventarios con sus productos, Principal,
  *     sucursales con su fuente, apariencia, logo y QR. Se puede repetir: empareja por nombre y por código.
  *
  *  Lo que no se puede traer tal cual se convierte:
  *  - Google (con cuenta de Google) → inventario «desde Google» con el mismo archivo y columnas (hay que compartir
  *    la hoja con «Cualquier persona con el enlace»).
- *  - SQL Server → se avisa: se crea un conector nuevo en Prezio (su clave anterior no sirve aquí).
+ *  - SQL Server → se avisa: se crea un conector nuevo en Prezcio (su clave anterior no sirve aquí).
  *  - Precios propios de una sucursal (versión anterior, encima de la Principal) → un inventario con los precios
  *    de la Principal + los suyos, que es lo que veía esa sucursal. */
 
@@ -131,7 +131,7 @@ export async function leerRespaldo(datos: Uint8Array): Promise<Plan> {
       const nombre = nombreLibre("Google · Principal");
       inventarios.push({ nombre, productos: [], origen: o, nota: "Se llena solo desde Google en unos minutos" });
       fuentePrincipal = { tipo: "inventario", nombre };
-      avisos.push("La Principal tomaba los precios de Google. En Google abre ese archivo › Compartir › «Cualquier persona con el enlace» · Lector; si no, Prezio no lo puede leer.");
+      avisos.push("La Principal tomaba los precios de Google. En Google abre ese archivo › Compartir › «Cualquier persona con el enlace» · Lector; si no, Prezcio no lo puede leer.");
     } else avisos.push("La Principal usaba Google pero el respaldo no trae el archivo completo: créalo en Inventarios › Inventario desde Google.");
   } else if (tipoP === "external") {
     avisos.push(`La Principal tomaba los precios de SQL Server${externas.length ? ` (${externas.length} configuración)` : ""}: crea un conector en Inventarios › Conector de SQL Server e instálalo en la PC del sistema.`);
@@ -165,7 +165,7 @@ export async function leerRespaldo(datos: Uint8Array): Promise<Plan> {
         avisos.push(`«${nombre}» tomaba sus precios de Google: comparte ese archivo con «Cualquier persona con el enlace».`);
       } else avisos.push(`«${nombre}» usaba Google sin archivo completo: queda igual que la Principal.`);
     } else if (tipo === "external") {
-      avisos.push(`«${nombre}» tomaba sus precios de SQL Server: queda igual que la Principal hasta que instales un conector de Prezio.`);
+      avisos.push(`«${nombre}» tomaba sus precios de SQL Server: queda igual que la Principal hasta que instales un conector de Prezcio.`);
     } else if ((propiosPor.get(texto(s.id)) ?? []).length) {
       // Versión anterior: precios propios por encima de los de la Principal.
       const mezcla = new Map(productosPrincipal.map((p) => [p.codigo, p]));
@@ -208,7 +208,7 @@ export async function leerRespaldo(datos: Uint8Array): Promise<Plan> {
 }
 
 // ---------------------------------------------------------------- ejecutar
-/** Lo que necesita la importación de Prezio (en la app: Supabase con la sesión del usuario). */
+/** Lo que necesita la importación de Prezcio (en la app: Supabase con la sesión del usuario). */
 export type Destino = {
   inventarios(): Promise<{ id: string; nombre: string }[]>;
   crearInventario(nombre: string, origen?: OrigenGoogle): Promise<string>;

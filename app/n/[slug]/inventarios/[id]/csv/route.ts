@@ -8,7 +8,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ slug: stri
   const { id } = await params;
   const supabase = await supabaseServidor();
   const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) return new Response("Entra a Prezio para descargar.", { status: 401 });
+  if (!auth.user) return new Response("Entra a Prezcio para descargar.", { status: 401 });
   // La base solo lo devuelve si el usuario es miembro del negocio.
   const { data: inv } = await supabase.from("inventarios").select("nombre").eq("id", id).maybeSingle();
   if (!inv) return new Response("No encontrado.", { status: 404 });

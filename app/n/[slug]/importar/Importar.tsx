@@ -170,7 +170,7 @@ export function Importar({ negocioId, slug }: Props) {
             No se importan los usuarios (cada persona crea su cuenta y la invitas en Resumen › Equipo) ni los equipos (se
             vinculan de nuevo en Equipos). Si un inventario o una sucursal ya existe con el mismo nombre o código, se actualiza.
           </p>
-          <button className="boton" type="button" onClick={importar} disabled={trabajando}>Importar a Prezio</button>
+          <button className="boton" type="button" onClick={importar} disabled={trabajando}>Importar a Prezcio</button>
         </section>
       )}
 

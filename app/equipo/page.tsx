@@ -3,9 +3,9 @@ import { sitio } from "@/lib/util";
 import { Equipo } from "./Equipo";
 
 export const metadata: Metadata = {
-  title: "Prezio · Equipo",
+  title: "Prezcio · Equipo",
   manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, title: "Prezio", statusBarStyle: "black-translucent" },
+  appleWebApp: { capable: true, title: "Prezcio", statusBarStyle: "black-translucent" },
   robots: { index: false },
 };
 export const viewport: Viewport = { themeColor: "#102a43", width: "device-width", initialScale: 1, viewportFit: "cover" };
@@ -14,5 +14,5 @@ export const viewport: Viewport = { themeColor: "#102a43", width: "device-width"
 export const dynamic = "force-static";
 
 export default function PaginaEquipo() {
-  return <Equipo sitio={sitio() || "prezio"} />;
+  return <Equipo sitio={sitio() || "prezcio"} />;
 }

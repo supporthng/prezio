@@ -36,5 +36,5 @@ export async function POST(request: Request) {
 }
 
 export function GET() {
-  return NextResponse.json({ servicio: "Prezio · conector", ok: true });
+  return NextResponse.json({ servicio: "Prezcio · conector", ok: true });
 }

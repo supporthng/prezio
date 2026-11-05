@@ -13,8 +13,8 @@ export default async function NuevaClave({ searchParams }: Props) {
   const { error, nuevo, siguiente } = await searchParams;
   return (
     <EntradaMarco>
-      <h1>{nuevo ? "Bienvenido a Prezio" : "Elige una clave nueva"}</h1>
-      {nuevo && <p className="quieto">Elige la clave con la que vas a entrar a tu negocio, aquí y en la app Prezio Administrador.</p>}
+      <h1>{nuevo ? "Bienvenido a Prezcio" : "Elige una clave nueva"}</h1>
+      {nuevo && <p className="quieto">Elige la clave con la que vas a entrar a tu negocio, aquí y en la app Prezcio Administrador.</p>}
       <Aviso error={error} />
       <form action={cambiarClave}>
         <input type="hidden" name="siguiente" value={siguiente ?? ""} />

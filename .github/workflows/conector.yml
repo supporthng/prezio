@@ -35,5 +35,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release view conector *> $null
-          if ($LASTEXITCODE -ne 0) { gh release create conector --title "Prezio Conector" --notes "Conector de SQL Server para Prezio. Descárgalo desde Prezio › Inventarios." }
+          if ($LASTEXITCODE -ne 0) { gh release create conector --title "Prezio Conector" --notes "Conector de SQL Server para Prezcio. Descárgalo desde Prezcio › Inventarios." }
           gh release upload conector dist/PrezioConector.exe --clobber

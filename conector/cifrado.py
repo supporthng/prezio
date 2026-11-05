@@ -1,6 +1,6 @@
 """Claves guardadas en la PC, cifradas con Windows (DPAPI): solo esta PC las puede leer.
 
-Nunca se envían a Prezio: las credenciales de la base de datos se quedan en la PC del negocio.
+Nunca se envían a Prezcio: las credenciales de la base de datos se quedan en la PC del negocio.
 """
 import base64
 import os

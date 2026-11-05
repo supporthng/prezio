@@ -1,10 +1,10 @@
-"""0011: licencia PREZIO-XXXX-XXXX-XXXX, prueba de 30 días, vencimiento y pagos. Correr después de los demás."""
+"""0011 + 0014: licencia PREZCIO-XXXX-XXXX-XXXX (las PREZIO-… de antes siguen sirviendo), prueba de 30 días, vencimiento y pagos."""
 import json, os, re, sys, uuid
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _comun import *   # noqa: F401,F403
 import _comun as c
 
-FORMATO = re.compile(r"^PREZIO-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$")
+FORMATO = re.compile(r"^PREZCIO-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$")
 A = valor("ana", "select id from negocios where nombre = 'Tienda Precios'")
 lic = valor("ana", f"select licencia from negocios where id = '{A}'")
 ok(FORMATO.match(lic) is not None, f"los negocios que ya existían reciben su licencia ({lic})")
@@ -14,13 +14,18 @@ r = json.loads(valor("pat", "select public.plataforma_crear_negocio('Licencias S
 N = r["id"]
 L = valor("pat", f"select public.plataforma_licencia_de('{N}')")
 ok(FORMATO.match(L) is not None, f"un alta nueva nace con su licencia ({L})")
-ok(not puede(False, f"update negocios set licencia = 'PREZIO-MAL' where id = '{N}'"), "la licencia siempre tiene el formato PREZIO-XXXX-XXXX-XXXX")
+ok(not puede(False, f"update negocios set licencia = 'PREZIO-MAL' where id = '{N}'"), "la licencia siempre tiene el formato PREZCIO-XXXX-XXXX-XXXX")
 
 # ---------------------------------------------------------------- entrar con la licencia
 ok(valor(None, f"select public.negocio_de_slug('{L}')") == N, "sin sesión, la licencia lleva al negocio (para entrar)")
 ok(valor(None, f"select public.negocio_de_slug('  {L.lower()} ')") == N, "sin importar mayúsculas ni espacios")
 ok(valor(None, "select public.negocio_de_slug('licencias-srl')") == N, "el código viejo de la dirección también sirve")
 ok(valor(None, "select coalesce(public.negocio_de_slug('PREZIO-AAAA-BBBB-CCCC')::text, 'nada')") == "nada", "una licencia inventada: nada")
+vieja = "PREZIO-" + L[len("PREZCIO-"):]
+ok(valor(None, f"select public.negocio_de_slug('{vieja}')") == N, "la licencia escrita como antes (PREZIO-…) también entra")
+ok(json.loads(valor(None, f"select public.licencia_info('{vieja}')"))["licencia"] == L, "y activa la app con la licencia nueva")
+ok(valor(False, "select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.prosrc ~ '\\mPrezio\\M'") == "0",
+   "ningún mensaje de la base dice «Prezio»")
 
 # ---------------------------------------------------------------- prueba de 30 días
 due = str(uuid.uuid4())

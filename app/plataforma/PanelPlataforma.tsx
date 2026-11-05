@@ -129,7 +129,7 @@ function AltaNegocio({ abierto, cerrar }: { abierto: boolean; cerrar: () => void
 
         <div className="pl-licencia-vista">
           <span>Licencia</span>
-          <code>PREZIO-XXXX-XXXX-XXXX</code>
+          <code>PREZCIO-XXXX-XXXX-XXXX</code>
           <small>{nombre.trim() ? <><b>{nombre.trim()}</b> · </> : null}30 días de prueba · hasta {vence}</small>
         </div>
 
@@ -330,7 +330,7 @@ export function PanelPlataforma({ negocios, ahora, error, bien, claveProblema, q
       <section className="pl-hero">
         <div className="pl-hero-fila">
           <div>
-            <p className="pl-sobre">Prezio · administración</p>
+            <p className="pl-sobre">Prezcio · administración</p>
             <h1>Plataforma</h1>
             <p className="pl-sub">Negocios, licencias y vigencia en un solo lugar.</p>
           </div>

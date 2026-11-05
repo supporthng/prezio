@@ -18,7 +18,7 @@ export default async function Entrar({ searchParams }: Props) {
   const pestana = (m: string) => `/entrar?modo=${m}${siguiente ? `&siguiente=${encodeURIComponent(sig)}` : ""}`;
   return (
     <EntradaMarco>
-      <h1>Entra a Prezio</h1>
+      <h1>Entra a Prezcio</h1>
       <p className="quieto">Administra los precios y los verificadores de tu negocio.</p>
       <Aviso error={error} bien={bien} />
       <nav className="pestanas" aria-label="Forma de entrar">
@@ -31,7 +31,7 @@ export default async function Entrar({ searchParams }: Props) {
           <div className="campo">
             <label htmlFor="negocio">Licencia del negocio</label>
             <input id="negocio" name="negocio" defaultValue={negocio ?? recordado} autoComplete="organization" required
-              autoCapitalize="characters" spellCheck={false} placeholder="PREZIO-XXXX-XXXX-XXXX" />
+              autoCapitalize="characters" spellCheck={false} placeholder="PREZCIO-XXXX-XXXX-XXXX" />
           </div>
           <div className="campo">
             <label htmlFor="usuario">Usuario</label>
@@ -59,7 +59,7 @@ export default async function Entrar({ searchParams }: Props) {
         </form>
       )}
       <p className="pequeno" style={{ marginTop: 20 }}>
-        ¿No tienes acceso? Pídelo a quien administra Prezio en tu negocio.
+        ¿No tienes acceso? Pídelo a quien administra Prezcio en tu negocio.
       </p>
       {!conUsuario && <details className="pequeno">
         <summary style={{ cursor: "pointer" }}>¿Olvidaste tu clave?</summary>

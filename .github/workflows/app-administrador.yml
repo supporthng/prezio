@@ -1,5 +1,5 @@
 name: App Administrador
-# Compila Prezio Administrador (panel + conector de SQL Server con ventanas), lo publica en Releases › «administrador»
+# Compila Prezcio Administrador (panel + conector de SQL Server con ventanas), lo publica en Releases › «administrador»
 # y anota la versión en public/apps.json (el panel muestra la descarga y el programa avisa si hay versión nueva).
 on:
   workflow_dispatch:
@@ -56,7 +56,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release view administrador >/dev/null 2>&1 || gh release create administrador --title "Prezio Administrador" --notes "Panel y conector de SQL Server para Windows. Se descarga desde Prezio › Inventarios." --latest=false
+          gh release view administrador >/dev/null 2>&1 || gh release create administrador --title "Prezcio Administrador" --notes "Panel y conector de SQL Server para Windows. Se descarga desde Prezcio › Inventarios." --latest=false
           gh release upload administrador dist_instalador/Instalador_Prezio_Administrador.exe --clobber
           URL="https://github.com/${{ github.repository }}/releases/download/administrador/Instalador_Prezio_Administrador.exe"
           git checkout -- apps/administrador/administrador.py
@@ -72,6 +72,6 @@ jobs:
           PY
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git commit -qam "Prezio Administrador $VERSION_APP publicado" && git push --quiet origin HEAD:main && break
+            git commit -qam "Prezcio Administrador $VERSION_APP publicado" && git push --quiet origin HEAD:main && break
             sleep 5
           done

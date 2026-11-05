@@ -101,7 +101,7 @@ export function FuenteGoogle({ negocioId, slug, nombresUsados }: Props) {
       )}
       {!driveConfigurado() && (
         <p className="quieto pequeno" style={{ margin: "0 0 14px" }}>
-          Google Drive todavía no está conectado a Prezio. Quien administra Prezio debe agregar en Vercel las variables
+          Google Drive todavía no está conectado a Prezcio. Quien administra Prezcio debe agregar en Vercel las variables
           <code> NEXT_PUBLIC_GOOGLE_CLIENT_ID</code>, <code>NEXT_PUBLIC_GOOGLE_API_KEY</code> y <code>NEXT_PUBLIC_GOOGLE_APP_ID</code> y volver a publicar.
           Mientras tanto puedes pegar el enlace del archivo.
         </p>
@@ -109,7 +109,7 @@ export function FuenteGoogle({ negocioId, slug, nombresUsados }: Props) {
       {sinCompartir && elegido && (
         <div className="aviso" role="status" style={{ marginBottom: 14 }}>
           <p style={{ margin: "0 0 10px" }}>
-            «{elegido.nombre}» es privado. Para que Prezio lo actualice solo, debe quedar como
+            «{elegido.nombre}» es privado. Para que Prezcio lo actualice solo, debe quedar como
             <strong> «Cualquier persona con el enlace · Lector»</strong>. Solo se comparte para leer, no para editar.
           </p>
           <button className="boton" type="button" onClick={compartirYRevisar} disabled={trabajando}>Compartir por enlace y continuar</button>

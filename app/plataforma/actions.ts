@@ -59,7 +59,7 @@ async function ponerDueno(supabase: SupabaseClient, negocio: { id: string; slug:
     return { error: mensajeError(e2) };
   }
   const { data: lic } = await supabase.rpc("plataforma_licencia_de", { p_negocio: negocio.id });
-  return { bien: `Entrega al dueño: licencia ${lic ?? negocio.slug}, usuario «${usuario}» y la clave que escribiste. Entra en Prezio › Entrar › Con usuario, o en la app Prezio Administrador.` };
+  return { bien: `Entrega al dueño: licencia ${lic ?? negocio.slug}, usuario «${usuario}» y la clave que escribiste. Entra en Prezcio › Entrar › Con usuario, o en la app Prezcio Administrador.` };
 }
 
 export async function altaNegocio(d: FormData) {

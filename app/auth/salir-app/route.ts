@@ -1,6 +1,6 @@
 import { supabaseServidor } from "@/lib/supabase/server";
 
-/** La app Prezio Administrador al salir: cierra la sesión del panel en su ventana y vuelve a su pantalla de entrar. */
+/** La app Prezcio Administrador al salir: cierra la sesión del panel en su ventana y vuelve a su pantalla de entrar. */
 export const dynamic = "force-dynamic";
 
 export async function GET() {

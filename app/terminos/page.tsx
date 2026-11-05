@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Condiciones del servicio · Prezio" };
+export const metadata: Metadata = { title: "Condiciones del servicio · Prezcio" };
 
 export default function Terminos() {
   return (
@@ -11,8 +11,8 @@ export default function Terminos() {
 
       <h2>El servicio</h2>
       <p>
-        Prezio ofrece a los comercios una herramienta para mostrar precios a sus clientes mediante verificadores y
-        consulta desde el celular. El servicio se presta bajo la licencia contratada con tu proveedor de Prezio.
+        Prezcio ofrece a los comercios una herramienta para mostrar precios a sus clientes mediante verificadores y
+        consulta desde el celular. El servicio se presta bajo la licencia contratada con tu proveedor de Prezcio.
       </p>
 
       <h2>Tu responsabilidad</h2>
@@ -24,19 +24,19 @@ export default function Terminos() {
       <h2>Disponibilidad</h2>
       <p>
         Trabajamos para que el servicio esté siempre disponible, pero no garantizamos que funcione sin interrupciones.
-        Prezio no se hace responsable de pérdidas causadas por precios mal cargados o por falta temporal del servicio.
+        Prezcio no se hace responsable de pérdidas causadas por precios mal cargados o por falta temporal del servicio.
       </p>
 
       <h2>Licencia y pagos</h2>
       <p>
-        El uso de Prezio requiere una licencia vigente. Si vence o se suspende, podrás ver tus datos, pero no cambiarlos,
+        El uso de Prezcio requiere una licencia vigente. Si vence o se suspende, podrás ver tus datos, pero no cambiarlos,
         y los verificadores dejarán de mostrar precios.
       </p>
 
       <h2>Cambios</h2>
       <p>Podemos actualizar estas condiciones. Los cambios importantes se avisarán en el panel.</p>
 
-      <p style={{ marginTop: 28 }}><Link href="/privacidad">Política de privacidad</Link> · <Link href="/">‹ Volver a Prezio</Link></p>
+      <p style={{ marginTop: 28 }}><Link href="/privacidad">Política de privacidad</Link> · <Link href="/">‹ Volver a Prezcio</Link></p>
     </main>
   );
 }

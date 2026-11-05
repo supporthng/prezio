@@ -16,7 +16,7 @@ export default async function Invitacion({ params, searchParams }: Props) {
   if (!usuario) {
     return (
       <EntradaMarco>
-        <h1>Te invitaron a un negocio en Prezio</h1>
+        <h1>Te invitaron a un negocio en Prezcio</h1>
         <p className="quieto">Entra o crea tu cuenta con el mismo correo al que te llegó la invitación.</p>
         <div className="fila">
           <Link className="boton" href={`/registro?siguiente=${encodeURIComponent(aqui)}`}>Crear cuenta</Link>

@@ -45,9 +45,9 @@ import org.json.JSONObject;
 import java.io.OutputStream;
 
 /**
- * Prezio: muestra el verificador sin internet (SITIO/equipo) a pantalla completa, como quiosco.
+ * Prezcio: muestra el verificador sin internet (SITIO/equipo) a pantalla completa, como quiosco.
  * - Se actualiza sola: al abrir y cada 6 horas revisa SITIO/apps.json y, si hay versión nueva publicada
- *   en las descargas de Prezio, la descarga e instala.
+ *   en las descargas de Prezcio, la descarga e instala.
  * - Pantalla siempre encendida, sin barras de Android, sin botón Atrás.
  * - Es también pantalla de inicio (HOME): el botón Inicio vuelve aquí.
  * - Con Device Owner (ver guía) bloquea por completo el equipo (lock task).
@@ -59,7 +59,7 @@ public class MainActivity extends Activity {
 
     static final String DIRECCION = BuildConfig.SITIO + "/equipo";
     static final String HOST_APP = Uri.parse(BuildConfig.SITIO).getHost();
-    /** Solo se aceptan actualizaciones publicadas en las descargas de Prezio. */
+    /** Solo se aceptan actualizaciones publicadas en las descargas de Prezcio. */
     static final String ORIGEN_ACTUALIZACION = BuildConfig.ORIGEN_DESCARGAS;
     static final long CADA_REVISION_MS = 60L * 60 * 1000;      // cada hora
     static final long ENTRE_REVISIONES_MS = 10L * 60 * 1000;   // al volver al frente, como mucho cada 10 min
@@ -140,7 +140,7 @@ public class MainActivity extends Activity {
         });
     }
 
-    /** Lee SITIO/apps.json; si hay un APK más nuevo publicado en las descargas de Prezio, lo instala. */
+    /** Lee SITIO/apps.json; si hay un APK más nuevo publicado en las descargas de Prezcio, lo instala. */
     private void revisarActualizacion(boolean avisar) {
         if (revisando || descargaId != -1) return;
         revisando = true;
@@ -180,7 +180,7 @@ public class MainActivity extends Activity {
         DownloadManager dm = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
         if (dm == null) { avisarWeb("error"); return; }
         DownloadManager.Request pedido = new DownloadManager.Request(Uri.parse(url));
-        pedido.setTitle("Prezio");
+        pedido.setTitle("Prezcio");
         pedido.setDescription("Descargando la versión nueva de la app");
         pedido.setMimeType("application/vnd.android.package-archive");
         pedido.setDestinationInExternalFilesDir(this, null, "actualizacion-" + System.currentTimeMillis() + ".apk");
@@ -295,7 +295,7 @@ public class MainActivity extends Activity {
                     vista.loadData("<html><body style='font-family:sans-serif;background:#102a43;color:#f0f4f8;"
                             + "display:flex;align-items:center;justify-content:center;height:100vh;margin:0;"
                             + "text-align:center'><div><div style='font-size:52px'>📶</div><h2>Hace falta internet una vez</h2>"
-                            + "<p>Conecta el equipo a internet para abrir Prezio por primera vez.<br>Se reintenta solo.</p></div></body></html>",
+                            + "<p>Conecta el equipo a internet para abrir Prezcio por primera vez.<br>Se reintenta solo.</p></div></body></html>",
                             "text/html; charset=utf-8", "utf-8");
                     hilo.postDelayed(() -> { if (web != null) web.loadUrl(DIRECCION); }, 15000);
                 }

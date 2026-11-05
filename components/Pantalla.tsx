@@ -107,7 +107,7 @@ export function Pantalla({ apariencia: a, moneda, negocio, sucursal, estado, vis
           <p className="pz-pista">
             {estado.tipo === "suspendido" ? "Consulta los precios en caja."
               : estado.tipo === "no" ? <>Código <strong>{estado.codigo}</strong>. Consulta el precio en caja.</>
-              : estado.tipo === "sin_fuente" ? "Elige su inventario en el panel de Prezio."
+              : estado.tipo === "sin_fuente" ? "Elige su inventario en el panel de Prezcio."
               : a.mensaje_espera}
           </p>
         </section>

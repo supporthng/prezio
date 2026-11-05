@@ -44,7 +44,7 @@ export function Conectores({ negocioId, slug, conectores, sitio, descarga, nombr
         Para precios que salen de una base de datos (SQL Server, MySQL / MariaDB, PostgreSQL o Firebird).
       </p>
       <ol className="pequeno" style={{ margin: "0 0 16px", paddingLeft: "1.2em", lineHeight: 1.7 }}>
-        <li>En una PC de la misma red que el servidor, instala <a href={descarga}>Prezio Administrador</a>.</li>
+        <li>En una PC de la misma red que el servidor, instala <a href={descarga}>Prezcio Administrador</a>.</li>
         <li>Entra con la licencia del negocio, tu usuario y tu clave.</li>
         <li>En «Base de datos», toca «Buscar servidores en mi red», elige el tuyo y autoriza con el usuario y la clave de la base.</li>
         <li>Elige la tabla de productos y sus columnas: la app crea el inventario y envía los precios sola, cada pocos minutos.</li>
@@ -65,7 +65,7 @@ export function Conectores({ negocioId, slug, conectores, sitio, descarga, nombr
           </div>
           <ol className="pequeno" style={{ margin: "12px 0 0", paddingLeft: "1.2em", lineHeight: 1.6 }}>
             <li>Es para el conector de consola (PrezioConector.exe): ejecútalo con <code>--configurar</code>, escribe la dirección <strong>{sitio}</strong> y pega esta clave.</li>
-            <li>Con Prezio Administrador no hace falta: entra con tu usuario y conecta la base desde «Base de datos».</li>
+            <li>Con Prezcio Administrador no hace falta: entra con tu usuario y conecta la base desde «Base de datos».</li>
           </ol>
           <button className="boton secundario" type="button" style={{ marginTop: 12 }} onClick={() => setClave(null)}>Ya la guardé</button>
         </div>

@@ -59,7 +59,7 @@ export function Autorizar({ clave, onListo, onCancelar }: Props) {
       type M = { negocio_id: string; rol: string; permisos: string[] | null; sucursales: string[] | null };
       const permitidos = ((mios ?? []) as M[])
         .filter((m) => m.rol === "dueno" || ((m.permisos ?? []).includes("equipos") && (m.sucursales === null || m.sucursales.length > 0)));
-      if (!permitidos.length) throw new Error("Este usuario no puede vincular equipos: necesita la casilla «Equipos» (Prezio › Usuarios).");
+      if (!permitidos.length) throw new Error("Este usuario no puede vincular equipos: necesita la casilla «Equipos» (Prezcio › Usuarios).");
       const ids = permitidos.map((m) => m.negocio_id);
       const [{ data: negs }, { data: sucs }] = await Promise.all([
         s.from("negocios").select("id, nombre").in("id", ids).order("nombre"),
@@ -107,7 +107,7 @@ export function Autorizar({ clave, onListo, onCancelar }: Props) {
             <>
               <label htmlFor="a-negocio-codigo">Licencia del negocio</label>
               <input id="a-negocio-codigo" autoComplete="off" autoCapitalize="none" spellCheck={false} value={codigoNegocio}
-                onChange={(e) => setCodigoNegocio(e.target.value)} required placeholder="PREZIO-XXXX-XXXX-XXXX" />
+                onChange={(e) => setCodigoNegocio(e.target.value)} required placeholder="PREZCIO-XXXX-XXXX-XXXX" />
             </>
           )}
           <label htmlFor="a-clave">Clave</label>

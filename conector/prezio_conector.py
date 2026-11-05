@@ -1,8 +1,8 @@
-"""Prezio · Conector de bases de datos (SQL Server, MySQL / MariaDB, PostgreSQL y Firebird).
+"""Prezcio · Conector de bases de datos (SQL Server, MySQL / MariaDB, PostgreSQL y Firebird).
 
 Se instala en la PC donde está el sistema de facturación. Cada pocos minutos lee los precios de la base del
-negocio y los envía a Prezio (solo cuando cambiaron). Lo configura la app Prezio Administrador (buscar el
-servidor en la red, autorizar con las credenciales de la base y elegir tabla y columnas). Habla únicamente con la dirección de Prezio, con su propia
+negocio y los envía a Prezcio (solo cuando cambiaron). Lo configura la app Prezcio Administrador (buscar el
+servidor en la red, autorizar con las credenciales de la base y elegir tabla y columnas). Habla únicamente con la dirección de Prezcio, con su propia
 clave de conector; nunca usa claves de Supabase.
 
 Uso:
@@ -48,7 +48,7 @@ ESTADO = CARPETA / "estado.json"
 PARTE = 2000
 CONTROLADORES = ("ODBC Driver 18 for SQL Server", "ODBC Driver 17 for SQL Server", "SQL Server")
 REENVIAR_HORAS = 12      # aunque nada cambie, se reenvía cada tantas horas
-# Actualización automática (solo PrezioConector.exe de consola; la app Prezio Administrador tiene la suya).
+# Actualización automática (solo PrezioConector.exe de consola; la app Prezcio Administrador tiene la suya).
 ORIGEN_ACTUALIZACION = "https://github.com/supporthng/prezio/releases/download/"
 CADA_REVISION_S = 6 * 60 * 60
 
@@ -88,7 +88,7 @@ def preparar_registro(consola: bool) -> None:
         log.addHandler(pantalla)
 
 
-# ---------------------------------------------------------------- Prezio
+# ---------------------------------------------------------------- Prezcio
 class ErrorPrezio(Exception):
     def __init__(self, mensaje, estado=0):
         super().__init__(mensaje)
@@ -109,7 +109,7 @@ def prezio(cfg: dict, cuerpo: dict, segundos: int = 90) -> dict:
             mensaje = str(e)
         raise ErrorPrezio(mensaje, e.code) from None
     except (urllib.error.URLError, socket.timeout, OSError) as e:
-        raise ErrorPrezio(f"Sin conexión con Prezio ({getattr(e, 'reason', e)})") from None
+        raise ErrorPrezio(f"Sin conexión con Prezcio ({getattr(e, 'reason', e)})") from None
 
 
 def estado_prezio(cfg: dict, error: str | None = None) -> dict:
@@ -136,7 +136,7 @@ def cadena_conexion(sql: dict, base: str | None = None) -> str:
         def esc(v):
             return "{" + str(v).replace("}", "}}") + "}"
         cs += "UID=" + esc(sql.get("usuario", "")) + ";PWD=" + esc(revelar(sql.get("clave", ""))) + ";"
-    return cs + "APP=Prezio Conector;"
+    return cs + "APP=Prezcio Conector;"
 
 
 def conectar_sql(sql: dict, base: str | None = None):
@@ -229,7 +229,7 @@ def huella(productos: list[dict]) -> str:
 
 
 def sincronizar(cfg: dict, conectar=None) -> dict:
-    """Una vuelta: pregunta a Prezio qué inventarios llenar, lee SQL y envía lo que cambió."""
+    """Una vuelta: pregunta a Prezcio qué inventarios llenar, lee SQL y envía lo que cambió."""
     estado = leer_json(ESTADO, {})
     info = estado_prezio(cfg)
     resumen = {"enviados": 0, "sin_cambios": 0, "errores": 0}
@@ -278,12 +278,12 @@ def sincronizar(cfg: dict, conectar=None) -> dict:
     # Avisa al panel cómo terminó la vuelta (y borra el error anterior si ya se arregló).
     estado_prezio(cfg, "; ".join(errores)[:300] if errores else None)
     if not info.get("inventarios"):
-        log.info("Prezio todavía no tiene inventarios para este conector (créalos en Inventarios › Conector).")
+        log.info("Prezcio todavía no tiene inventarios para este conector (créalos en Inventarios › Conector).")
     return resumen
 
 
 def trabajar(cfg: dict) -> None:
-    log.info("Prezio Conector %s · enviando a %s cada %s minutos", VERSION, cfg["sitio"], cfg.get("cada_min", 10))
+    log.info("Prezcio Conector %s · enviando a %s cada %s minutos", VERSION, cfg["sitio"], cfg.get("cada_min", 10))
     espera = 60
     revisado = time.time()
     while True:
@@ -296,7 +296,7 @@ def trabajar(cfg: dict) -> None:
             espera = max(1, int(cfg.get("cada_min", 10))) * 60
         except ErrorPrezio as e:
             if e.estado == 401:
-                log.error("Prezio rechazó la clave: el conector fue quitado. Crea uno nuevo y ejecuta --configurar.")
+                log.error("Prezcio rechazó la clave: el conector fue quitado. Crea uno nuevo y ejecuta --configurar.")
                 espera = 30 * 60
             else:
                 log.warning("%s · se reintenta en %s s", e, espera)
@@ -318,7 +318,7 @@ def _version_mayor(a: str, b: str) -> bool:
 
 
 def es_conector_de_consola() -> bool:
-    """Solo PrezioConector.exe se reemplaza a sí mismo (dentro de Prezio Administrador lo actualiza el instalador)."""
+    """Solo PrezioConector.exe se reemplaza a sí mismo (dentro de Prezcio Administrador lo actualiza el instalador)."""
     return bool(getattr(sys, "frozen", False)) and Path(sys.executable).stem.lower() == "prezioconector"
 
 
@@ -396,10 +396,10 @@ def sugerir(columnas: list[str], claves: list[str]) -> int:
 
 def configurar(cfg: dict | None, conectar=conectar_sql) -> dict:
     cfg = dict(cfg or {})
-    print("\n=== Prezio · Conector de SQL Server ===\n")
-    cfg["sitio"] = preguntar("Dirección de Prezio", cfg.get("sitio", "https://prezio-jade.vercel.app")).rstrip("/")
+    print("\n=== Prezcio · Conector de SQL Server ===\n")
+    cfg["sitio"] = preguntar("Dirección de Prezcio", cfg.get("sitio", "https://prezio-jade.vercel.app")).rstrip("/")
     while True:
-        clave = preguntar("Clave del conector (Prezio › Inventarios › Conector)" + (" — Enter para dejar la actual" if cfg.get("clave") else ""), secreto=True)
+        clave = preguntar("Clave del conector (Prezcio › Inventarios › Conector)" + (" — Enter para dejar la actual" if cfg.get("clave") else ""), secreto=True)
         if clave:
             cfg["clave"] = proteger(clave)
         if not cfg.get("clave"):
@@ -498,7 +498,7 @@ def desinstalar() -> None:
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(description="Prezio · Conector de SQL Server")
+    p = argparse.ArgumentParser(description="Prezcio · Conector de SQL Server")
     p.add_argument("--configurar", action="store_true")
     p.add_argument("--una-vez", action="store_true")
     p.add_argument("--instalar", action="store_true")

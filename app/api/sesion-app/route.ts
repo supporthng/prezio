@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { SUPABASE_KEY, SUPABASE_URL } from "@/lib/supabase/config";
 import { supabaseAdmin, problemaClaveSecreta } from "@/lib/supabase/admin";
 
-/** La app Prezio Administrador abre el panel con una sesión PROPIA (no comparte la de la app):
+/** La app Prezcio Administrador abre el panel con una sesión PROPIA (no comparte la de la app):
  *  manda su token de acceso (que ya prueba quién es) y recibe un enlace de un solo uso que abre en su ventana.
  *  El enlace pasa por /auth/confirm, que crea la sesión del panel. Vence en minutos y sirve una vez. */
 export const dynamic = "force-dynamic";

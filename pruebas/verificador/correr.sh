@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Pruebas del verificador en un navegador de verdad (Chromium), contra un PostgreSQL con las migraciones de Prezio.
+# Pruebas del verificador en un navegador de verdad (Chromium), contra un PostgreSQL con las migraciones de Prezcio.
 # Arma la pantalla /equipo, levanta un servidor de prueba que imita a Supabase (puerto 8787) y corre cada prueba
 # desde un estado limpio. Las capturas quedan en pruebas/verificador/salida/.
 #   En GitHub Actions: PREZIO_PSQL="psql postgresql://…/prezio" bash pruebas/verificador/correr.sh

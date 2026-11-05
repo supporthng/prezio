@@ -13,14 +13,14 @@
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <application
-        android:label="Prezio"
+        android:label="Prezcio"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="false"
         android:hardwareAccelerated="true"
         android:usesCleartextTraffic="false"
         android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen">
 
-        <!-- Pantalla única: Prezio (/equipo) a pantalla completa.
+        <!-- Pantalla única: Prezcio (/equipo) a pantalla completa.
              También es "pantalla de inicio": el botón Inicio vuelve a ella.
              configChanges evita que se reinicie al conectar o desconectar el lector (teclado). -->
         <activity

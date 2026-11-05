@@ -1,7 +1,7 @@
-; Instalador de Prezio Administrador (la app de cada negocio: panel + conector de bases de datos) para Windows.
+; Instalador de Prezcio Administrador (la app de cada negocio: panel + conector de bases de datos) para Windows.
 ; Pide administrador una vez: instala para todos, prepara la carpeta de configuración y deja que el conector
 ; arranque solo al encender (tarea de Windows «Prezio Conector», que se activa desde el programa).
-#define MyAppName "Prezio Administrador"
+#define MyAppName "Prezcio Administrador"
 #ifndef MyAppVersion
   #define MyAppVersion "2.0.0"
 #endif
@@ -10,9 +10,9 @@
 AppId={{9C41E7B2-3D58-4A6F-B0E1-7F2A5D8C6B13}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
-AppPublisher=Prezio
+AppPublisher=Prezcio
 DefaultDirName={autopf}\Prezio Administrador
-DefaultGroupName=Prezio
+DefaultGroupName=Prezcio
 DisableProgramGroupPage=yes
 OutputDir=..\..\dist_instalador
 OutputBaseFilename=Instalador_Prezio_Administrador
@@ -33,11 +33,16 @@ Name: "escritorio"; Description: "Crear un acceso directo en el escritorio"
 Name: "{commonappdata}\Prezio"; Permissions: users-modify
 [Files]
 Source: "dist\PrezioAdministrador\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+[InstallDelete]
+; Los accesos directos con el nombre anterior (Prezio) se reemplazan por los de Prezcio.
+Type: files; Name: "{group}\Prezio Administrador.lnk"
+Type: files; Name: "{autodesktop}\Prezio Administrador.lnk"
+
 [Icons]
-Name: "{group}\Prezio Administrador"; Filename: "{app}\{#MyAppExeName}"
-Name: "{autodesktop}\Prezio Administrador"; Filename: "{app}\{#MyAppExeName}"; Tasks: escritorio
+Name: "{group}\Prezcio Administrador"; Filename: "{app}\{#MyAppExeName}"
+Name: "{autodesktop}\Prezcio Administrador"; Filename: "{app}\{#MyAppExeName}"; Tasks: escritorio
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "Abrir Prezio Administrador"; Flags: postinstall nowait skipifsilent runasoriginaluser
+Filename: "{app}\{#MyAppExeName}"; Description: "Abrir Prezcio Administrador"; Flags: postinstall nowait skipifsilent runasoriginaluser
 ; Actualización automática (instalación silenciosa):
 ;  · desde la ventana: volver a abrir la app para la persona que la estaba usando;
 ;  · desde la copia automática (/SERVICIO, como SYSTEM): no abrir ventanas, solo volver a arrancar la tarea.

@@ -3,7 +3,7 @@ name: App Android
 # y anota la versión en public/apps.json: los equipos con la app la ven y se actualizan solos.
 # Firma: secretos ANDROID_KEYSTORE_B64 y ANDROID_KEYSTORE_PASSWORD (Settings › Secrets and variables › Actions).
 # Sin ellos se genera un APK de PRUEBA (no se publica ni se puede actualizar encima).
-# Opcional: variable PREZIO_SITIO (Settings › Variables) si Prezio usa otro dominio.
+# Opcional: variable PREZIO_SITIO (Settings › Variables) si Prezcio usa otro dominio.
 on:
   workflow_dispatch:
   push:
@@ -55,7 +55,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release view android >/dev/null 2>&1 || gh release create android --title "Prezio para Android" --notes "Se descarga desde Prezio › Equipos." --latest=false
+          gh release view android >/dev/null 2>&1 || gh release create android --title "Prezcio para Android" --notes "Se descarga desde Prezcio › Equipos." --latest=false
           gh release upload android Prezio.apk --clobber
           URL="https://github.com/${{ github.repository }}/releases/download/android/Prezio.apk"
           for intento in 1 2 3; do

@@ -26,7 +26,7 @@ export default async function Registro({ searchParams }: Props) {
       <EntradaMarco>
         <h1>Pide tu acceso</h1>
         <p className="quieto">
-          Las cuentas de Prezio las entrega tu proveedor al dar de alta tu negocio. Si te invitaron, abre el enlace de
+          Las cuentas de Prezcio las entrega tu proveedor al dar de alta tu negocio. Si te invitaron, abre el enlace de
           la invitación que te llegó por correo.
         </p>
         <Link className="boton" href="/entrar">Entrar</Link>

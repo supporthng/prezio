@@ -8,7 +8,7 @@ import { Marca } from "./Marca";
 type ApiApp = { ir_app?: (s: string) => Promise<unknown>; salir?: () => Promise<unknown>; abrir_en_navegador?: (u: string) => Promise<unknown> };
 const apiApp = (): ApiApp | null => (typeof window !== "undefined" ? (window as { pywebview?: { api?: ApiApp } }).pywebview?.api ?? null : null);
 
-/** ¿Esta página está abierta dentro de la app Prezio Administrador? (la app pone window.pywebview.api) */
+/** ¿Esta página está abierta dentro de la app Prezcio Administrador? (la app pone window.pywebview.api) */
 export function useEnApp(): boolean {
   const [en, setEn] = useState(false);
   useEffect(() => {

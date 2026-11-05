@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 // Protecciones estándar del navegador para todo el sitio.
 const cabeceras = [
-  { key: "X-Frame-Options", value: "DENY" },                         // nadie mete Prezio dentro de otra página
+  { key: "X-Frame-Options", value: "DENY" },                         // nadie mete Prezcio dentro de otra página
   { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },

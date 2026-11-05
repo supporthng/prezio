@@ -130,7 +130,7 @@ export function CargaInventario({ negocioId, inventarios, moneda }: Props) {
       </label>
       {!driveConfigurado() && (
         <p className="quieto pequeno" style={{ margin: "12px 0 0" }}>
-          Google Drive todavía no está conectado a Prezio. Quien administra Prezio debe agregar en Vercel las variables
+          Google Drive todavía no está conectado a Prezcio. Quien administra Prezcio debe agregar en Vercel las variables
           <code> NEXT_PUBLIC_GOOGLE_CLIENT_ID</code>, <code>NEXT_PUBLIC_GOOGLE_API_KEY</code> y <code>NEXT_PUBLIC_GOOGLE_APP_ID</code> y volver a publicar.
           Mientras tanto puedes pegar el enlace del archivo.
         </p>

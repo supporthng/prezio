@@ -1,4 +1,4 @@
-/* Prezio · guardián del equipo sin internet (alcance: /equipo).
+/* Prezcio · guardián del equipo sin internet (alcance: /equipo).
    - La página /equipo: primero internet; sin internet, la última guardada.
    - Archivos de la app (/_next/static, con nombre único por versión): guardados una vez.
    - Logo y QR (Supabase Storage): se muestran los guardados y se renuevan por detrás.

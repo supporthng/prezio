@@ -84,7 +84,7 @@ export async function quitarPendientes(claves: IDBValidKey[]): Promise<void> {
   await new Promise<void>((ok, mal) => { tx.oncomplete = () => ok(); tx.onerror = () => mal(tx.error); });
 }
 
-/** Clave propia del equipo: 64 cifras hexadecimales al azar. Solo su huella llega a Prezio. */
+/** Clave propia del equipo: 64 cifras hexadecimales al azar. Solo su huella llega a Prezcio. */
 export function claveNueva(): string {
   const b = crypto.getRandomValues(new Uint8Array(32));
   return Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");

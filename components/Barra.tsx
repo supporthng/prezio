@@ -5,9 +5,9 @@ import { BotonSalir, MenuLateralApp, SoloWeb } from "./EnApp";
 import { supabaseServidor } from "@/lib/supabase/server";
 
 /** Barra superior del panel: logotipo, negocio actual y salir. «Cambiar de negocio» solo para quien tiene varios
- *  negocios (o la plataforma) y nunca dentro de la app Prezio Administrador, que es de un solo negocio. */
+ *  negocios (o la plataforma) y nunca dentro de la app Prezcio Administrador, que es de un solo negocio. */
 export async function Barra({ negocio }: { negocio?: { nombre: string; slug: string } }) {
-  // Dentro de la app Prezio Administrador (Windows) el panel lleva su menú lateral: se decide aquí, en el servidor,
+  // Dentro de la app Prezcio Administrador (Windows) el panel lleva su menú lateral: se decide aquí, en el servidor,
   // para que no se vea la barra de arriba un instante antes de cambiarla por el menú.
   const enAppDesdeServidor = ((await headers()).get("user-agent") ?? "").includes("PrezioAdministrador/");
   let variosNegocios = false;

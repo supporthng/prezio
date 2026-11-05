@@ -1,4 +1,4 @@
-"""Prezio · certificados para HTTPS.
+"""Prezcio · certificados para HTTPS.
 
 Windows trae sus certificados raíz «a pedido», y a veces a una PC le falta el de GitHub o el de Vercel: la
 descarga falla con «CERTIFICATE_VERIFY_FAILED: unable to get local issuer certificate» aunque el navegador

@@ -60,7 +60,7 @@ export default async function Equipos({ params, searchParams }: Props) {
   const descargas: { clave: string; nombre: string; detalle: string; app: App }[] = [
     { clave: "android", nombre: "Android", detalle: "Tabletas y teléfonos Android 5 o más nuevo (APK).", app: apps.android },
     { clave: "windows", nombre: "Windows", detalle: "PC o pantalla con Windows 10 u 11 (instalador).", app: apps.windows },
-    { clave: "administrador", nombre: "Prezio Administrador (Windows)", detalle: "Para la oficina: el panel del negocio y la conexión con la base de datos del sistema (busca el servidor en la red).",
+    { clave: "administrador", nombre: "Prezcio Administrador (Windows)", detalle: "Para la oficina: el panel del negocio y la conexión con la base de datos del sistema (busca el servidor en la red).",
       app: (apps as { administrador?: App }).administrador ?? { version: "", url: "", fecha: "" } },
   ];
 
@@ -159,7 +159,7 @@ export default async function Equipos({ params, searchParams }: Props) {
               )}
             </section>
             <section className="tarjeta" aria-labelledby="t-apps" style={{ marginTop: 20 }}>
-              <h2 id="t-apps">Apps Prezio</h2>
+              <h2 id="t-apps">Apps Prezcio</h2>
               <p className="quieto" style={{ marginTop: 0 }}>
                 Abren el verificador a pantalla completa, arrancan solas al encender el equipo, no dejan salir sin la
                 clave y se actualizan solas. Sin la app también funciona desde el navegador.

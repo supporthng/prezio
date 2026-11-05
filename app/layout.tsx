@@ -6,7 +6,7 @@ import "./pantalla.css";
 const fuente = Figtree({ subsets: ["latin"], variable: "--fuente", display: "swap" });
 
 export const metadata: Metadata = {
-  title: { default: "Prezio", template: "%s · Prezio" },
+  title: { default: "Prezcio", template: "%s · Prezcio" },
   description: "Verificadores de precios para tu negocio: en línea, sin internet y en todas tus sucursales.",
 };
 

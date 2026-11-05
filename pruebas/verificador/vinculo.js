@@ -42,7 +42,7 @@ const { chromium, db, comoAna } = require("./comun");
   await p.click('.verificador-esquina [aria-label="Información del equipo"]'); await p.click('text=Buscar precios nuevos'); await p.waitForTimeout(1500); await p.click('text=Cerrar'); await p.waitForTimeout(100);
   await p.screenshot({ path: 'tras-menu.png' });
   await p.keyboard.type('7501055363063'); await p.keyboard.press('Enter'); await p.waitForTimeout(300);
-  t(/199/.test(await p.textContent('.pz-etiqueta')), 'precio cambiado en Prezio: el equipo lo descarga (199)');
+  t(/199/.test(await p.textContent('.pz-etiqueta')), 'precio cambiado en Prezcio: el equipo lo descarga (199)');
   t(db(`select app || '|' || productos || '|' || pendientes from equipos where nombre = 'Caja prueba'`).startsWith('web 1.0|2|'), 'el panel ve versión de la app y precios guardados');
   // desvincular en el panel
   comoAna(`select public.quitar_equipo(id) from equipos where nombre = 'Caja prueba'`);

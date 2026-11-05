@@ -1,15 +1,15 @@
-"""Prezio Administrador para Windows · la app de cada negocio.
+"""Prezcio Administrador para Windows · la app de cada negocio.
 
   · Entrar con el código del negocio + usuario + clave (o con correo): las mismas cuentas y permisos de la web.
   · Panel del negocio en su propia ventana (sucursales, inventarios, apariencia, equipos, usuarios…), sin volver
-    a entrar: la app le pide a Prezio un enlace de un solo uso con el que el panel abre su propia sesión.
+    a entrar: la app le pide a Prezcio un enlace de un solo uso con el que el panel abre su propia sesión.
   · Base de datos: busca los servidores de la red (SQL Server, MySQL / MariaDB, PostgreSQL, Firebird), se elige
     uno, se autoriza con las credenciales de la base y se eligen base, tabla y columnas. La app crea sola el
-    conector y el inventario en Prezio: no hay claves que copiar.
+    conector y el inventario en Prezcio: no hay claves que copiar.
   · Copia automática: cada pocos minutos envía los precios que cambiaron (también con la PC sin nadie,
     con la tarea de Windows «Prezio Conector»).
 
-Las credenciales de la base de datos se guardan cifradas en esta PC y nunca se envían a Prezio.
+Las credenciales de la base de datos se guardan cifradas en esta PC y nunca se envían a Prezcio.
 
   PrezioAdministrador.exe --servicio      (lo arranca la tarea de Windows como SYSTEM: envía los precios)
   PrezioAdministrador.exe --instalar      (crea esa tarea; pide permiso de administrador)
@@ -59,7 +59,7 @@ DRIVE = pc.CARPETA / "drive.json"                  # conexión con Google Drive 
 ARRANQUE = pc.CARPETA / "arranque.json"          # lo que dejó el paso con permiso de administrador (tarea de Windows)
 ACTIVACION = pc.CARPETA / "activacion.json"     # de la PC (todas las cuentas de Windows): la licencia del negocio
 USUARIO_VALIDO = r"^[a-z0-9][a-z0-9._-]{2,29}$"
-# Solo se instalan actualizaciones publicadas en las descargas de Prezio.
+# Solo se instalan actualizaciones publicadas en las descargas de Prezcio.
 ORIGEN_ACTUALIZACION = "https://github.com/supporthng/prezio/releases/download/"
 CADA_REVISION_S = 6 * 60 * 60
 
@@ -68,7 +68,7 @@ class ErrorApp(Exception):
     """Error con un mensaje para mostrar tal cual."""
 
 
-# ---------------------------------------------------------------- Prezio y Supabase (con la sesión del usuario)
+# ---------------------------------------------------------------- Prezcio y Supabase (con la sesión del usuario)
 class Prezio:
     def __init__(self, sitio: str = SITIO, abrir=urllib.request.urlopen):
         self.sitio = sitio.rstrip("/")
@@ -95,13 +95,13 @@ class Prezio:
                 m = "La sesión venció: vuelve a entrar."
             raise ErrorApp(str(m)) from None
         except (urllib.error.URLError, OSError) as e:
-            raise ErrorApp(f"Sin conexión con Prezio ({getattr(e, 'reason', e)}). Revisa el internet.") from None
+            raise ErrorApp(f"Sin conexión con Prezcio ({getattr(e, 'reason', e)}). Revisa el internet.") from None
 
     def publico(self) -> dict:
         if not self._publico:
             self._publico = self._pedir("GET", f"{self.sitio}/api/publico")
             if not self._publico or not self._publico.get("supabase_url"):
-                raise ErrorApp("Prezio no respondió con su configuración.")
+                raise ErrorApp("Prezcio no respondió con su configuración.")
         return self._publico
 
     def _cab(self, token: str | None) -> dict:
@@ -144,8 +144,8 @@ class Api:
     """Lo que la ventana (interfaz.html) llama con window.pywebview.api.*. Todo devuelve {ok…} o {error}.
 
     pywebview publica para la página TODO lo que no empieza con «_» (también objetos guardados en la instancia,
-    recorriéndolos). Por eso los datos internos (la ventana, el cliente de Prezio, las rutas) llevan «_»:
-    publicar la ventana rompe la API completa, y publicar el cliente dejaría a la página llamar a Prezio sin control."""
+    recorriéndolos). Por eso los datos internos (la ventana, el cliente de Prezcio, las rutas) llevan «_»:
+    publicar la ventana rompe la API completa, y publicar el cliente dejaría a la página llamar a Prezcio sin control."""
 
     def __init__(self, prezio: Prezio | None = None, ruta_config: Path = pc.CONFIG, ruta_sesion: Path = SESION,
                  buscar=red.buscar, abrir_ventana=None, ruta_activacion: Path = ACTIVACION):
@@ -241,22 +241,23 @@ class Api:
         return a if a and a.get("negocio_id") and a.get("licencia") else None
 
     def activar(self, licencia):
-        """La primera vez: la licencia PREZIO-XXXX-XXXX-XXXX del negocio. La PC queda amarrada a ese negocio."""
+        """La primera vez: la licencia PREZCIO-XXXX-XXXX-XXXX del negocio. La PC queda amarrada a ese negocio."""
         try:
             import re
             lic = re.sub(r"\s+", "", str(licencia or "")).upper()
-            if not re.fullmatch(r"PREZIO-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}", lic):
-                return {"error": "Escribe la licencia completa: PREZIO-XXXX-XXXX-XXXX."}
+            lic = re.sub(r"^PREZIO-", "PREZCIO-", lic)      # las licencias de antes siguen sirviendo
+            if not re.fullmatch(r"PREZCIO-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}", lic):
+                return {"error": "Escribe la licencia completa: PREZCIO-XXXX-XXXX-XXXX."}
             info = self._prezio.rpc("licencia_info", {"p_licencia": lic})
             if not info:
-                return {"error": "Esa licencia no existe. Revísala o pídela a tu proveedor de Prezio."}
+                return {"error": "Esa licencia no existe. Revísala o pídela a tu proveedor de Prezcio."}
             actual = self._activacion()
             if actual and actual["negocio_id"] != info["id"]:
                 self.salir()
             pc.guardar_json(self._ruta_activacion, {"licencia": info["licencia"], "negocio_id": info["id"], "nombre": info["nombre"],
                                                    "fecha": time.strftime("%Y-%m-%d %H:%M")})
             return {**self.estado(), "aviso": {"vencida": "La licencia está vencida: el negocio funciona en solo lectura hasta que se pague.",
-                                                "suspendida": "La licencia está suspendida: comunícate con tu proveedor de Prezio."}.get(info.get("estado"))}
+                                                "suspendida": "La licencia está suspendida: comunícate con tu proveedor de Prezcio."}.get(info.get("estado"))}
         except Exception as e:
             return {"error": mensaje(e)}
 
@@ -293,7 +294,7 @@ class Api:
         return bool(url) and not url.startswith(("http://", "https://")) or url.startswith(("http://127.0.0.1", "http://localhost"))
 
     def _desde_prezio(self) -> bool:
-        """La pantalla de la app o una página de Prezio (el panel) — para volver a la app o salir."""
+        """La pantalla de la app o una página de Prezcio (el panel) — para volver a la app o salir."""
         return self._desde_la_app() or self._url_actual().startswith(self._prezio.sitio + "/")
 
     def ir_app(self, seccion="inicio"):
@@ -480,7 +481,7 @@ class Api:
 
     @staticmethod
     def _conexion_publica(m: dict) -> dict:
-        """Lo que se guarda en Prezio de una conexión para que TODAS las PCs la vean: servidor, base, tabla y
+        """Lo que se guarda en Prezcio de una conexión para que TODAS las PCs la vean: servidor, base, tabla y
         columnas. La clave de la base NUNCA va aquí: se queda cifrada en cada PC."""
         cx = m.get("conexion") or {}
         return {"motor": cx.get("motor"), "host": cx.get("host"), "puerto": cx.get("puerto"),
@@ -520,7 +521,7 @@ class Api:
 
     def adoptar_fuente(self, d):
         """Seguir enviando desde ESTA PC una base ya conectada en otra: solo hace falta la clave de la base
-        (el servidor, la tabla y las columnas ya están guardados en Prezio)."""
+        (el servidor, la tabla y las columnas ya están guardados en Prezcio)."""
         try:
             if not self._puede("inventarios"):
                 return {"error": "Necesitas la casilla «Inventarios» para conectar una base de datos."}
@@ -641,7 +642,7 @@ class Api:
         if (cfg.get("inventarios") or {}).pop(str(iid), None) is None:
             return {"error": "No estaba configurado."}
         self._guardar_cfg(cfg)
-        return {"ok": True, "mensaje": "Esta PC ya no lo envía. El inventario sigue en Prezio con sus últimos precios."}
+        return {"ok": True, "mensaje": "Esta PC ya no lo envía. El inventario sigue en Prezcio con sus últimos precios."}
 
     # ---- copia automática
     def _enviar_fondo(self):
@@ -662,7 +663,7 @@ class Api:
             return {"ok": True, **r}
         except pc.ErrorPrezio as e:
             self._ultimo_envio = {"hora": time.time(), "error": str(e)}
-            return {"error": "Prezio rechazó el conector de esta PC: vuelve a conectar la base." if e.estado == 401 else str(e)}
+            return {"error": "Prezcio rechazó el conector de esta PC: vuelve a conectar la base." if e.estado == 401 else str(e)}
         except Exception as e:
             self._ultimo_envio = {"hora": time.time(), "error": mensaje(e)}
             return {"error": mensaje(e)}
@@ -799,11 +800,11 @@ class Api:
             return {"error": "No se pudo descargar la actualización: " + mensaje(e)}
 
     def abrir_en_navegador(self, url):
-        """Desde el panel: abrir una página de Prezio (p. ej. el verificador) en el navegador, sin dejar la ventana sin salida."""
+        """Desde el panel: abrir una página de Prezcio (p. ej. el verificador) en el navegador, sin dejar la ventana sin salida."""
         if str(url).startswith(self._prezio.sitio + "/"):
             webbrowser.open(str(url))
             return {"ok": True}
-        return {"error": "Solo se pueden abrir páginas de Prezio."}
+        return {"error": "Solo se pueden abrir páginas de Prezcio."}
 
     def _google_flujo(self, permanente: bool = False):
         """Permiso de Google Drive (solo «drive.file») pedido en el NAVEGADOR del equipo, porque Google no deja iniciar
@@ -826,9 +827,9 @@ class Api:
                 listo = q.get("state") == estado and ("code" in q or "error" in q)
                 if listo:
                     recibido.update(q)
-                cuerpo = ("<!doctype html><meta charset=utf-8><title>Prezio</title><body style='font-family:system-ui;text-align:center;"
+                cuerpo = ("<!doctype html><meta charset=utf-8><title>Prezcio</title><body style='font-family:system-ui;text-align:center;"
                           "padding:15vh 20px;color:#102a43'><h1>" + ("Listo" if listo and "code" in q else "No se dio el permiso")
-                          + "</h1><p>Ya puedes cerrar esta pestaña y volver a Prezio.</p></body>").encode("utf-8")
+                          + "</h1><p>Ya puedes cerrar esta pestaña y volver a Prezcio.</p></body>").encode("utf-8")
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
                 self.send_header("Content-Length", str(len(cuerpo)))
@@ -882,9 +883,9 @@ class Api:
                 bien = q.get("s") == clave and (q.get("id") or q.get("cancelado"))
                 if bien:
                     recibido.update(q)
-                cuerpo = ("<!doctype html><meta charset=utf-8><title>Prezio</title><body style='font-family:system-ui;text-align:center;"
+                cuerpo = ("<!doctype html><meta charset=utf-8><title>Prezcio</title><body style='font-family:system-ui;text-align:center;"
                           "padding:15vh 20px;color:#102a43'><h1>" + ("Listo" if bien and q.get("id") else "Cancelado")
-                          + "</h1><p>Ya puedes cerrar esta pestaña y volver a Prezio.</p></body>").encode("utf-8")
+                          + "</h1><p>Ya puedes cerrar esta pestaña y volver a Prezcio.</p></body>").encode("utf-8")
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
                 self.send_header("Content-Length", str(len(cuerpo)))
@@ -908,11 +909,11 @@ class Api:
         return {"cancelado": True}
 
     def google_token(self):
-        """Para las páginas de Prezio (selector de archivos de Drive): solo el permiso corto, nunca la clave permanente."""
+        """Para las páginas de Prezcio (selector de archivos de Drive): solo el permiso corto, nunca la clave permanente."""
         r = self._google_flujo(False)
         return {k: v for k, v in r.items() if k != "renovar"}
 
-    # ---- respaldo en Google Drive (clave permanente guardada cifrada en esta PC; Prezio no la ve)
+    # ---- respaldo en Google Drive (clave permanente guardada cifrada en esta PC; Prezcio no la ve)
     def _drive_cfg(self) -> dict:
         return pc.leer_json(DRIVE, {}) or {}
 
@@ -959,7 +960,7 @@ class Api:
         if r.get("error"):
             return r
         if not r.get("renovar"):
-            return {"error": "Google no dio el permiso permanente. Entra a myaccount.google.com/permissions, quita «Prezio» y vuelve a conectar."}
+            return {"error": "Google no dio el permiso permanente. Entra a myaccount.google.com/permissions, quita «Prezcio» y vuelve a conectar."}
         d = self._drive_cfg()
         d.update(renovar=cifrado.proteger(r["renovar"], equipo=False), carpeta_id="", vencida=False)
         self._drive_acc = {"tok": r["token"], "vence": time.time() + int(r.get("dura") or 3000)}
@@ -1023,7 +1024,7 @@ class Api:
                 "sucursales": sucursales, "inventarios": inventarios, "equipos": equipos}
 
     def _carpeta_drive(self, token: str, d: dict) -> str:
-        """La carpeta «Prezio respaldos»: la guardada si sigue ahí, si no la busca y, si no existe, la crea."""
+        """La carpeta «Prezcio respaldos»: la guardada si sigue ahí, si no la busca y, si no existe, la crea."""
         if d.get("carpeta_id"):
             try:
                 f = drive_pedir("GET", f"https://www.googleapis.com/drive/v3/files/{d['carpeta_id']}?fields=id,trashed", token)[0]
@@ -1043,7 +1044,7 @@ class Api:
 
     def _guardar_local(self, d: dict, nombre: str, contenido: bytes, conservar: int) -> str:
         """Guarda el respaldo en la carpeta elegida de esta PC (se escribe aparte y se renombra: nunca queda a medias)
-        y borra los respaldos de Prezio más viejos que las últimas copias a conservar."""
+        y borra los respaldos de Prezcio más viejos que las últimas copias a conservar."""
         carpeta = self._carpeta_local(d)
         carpeta.mkdir(parents=True, exist_ok=True)
         destino = carpeta / nombre
@@ -1154,7 +1155,7 @@ class Api:
     # ---- restaurar un respaldo (precios de los inventarios)
     def _validar_respaldo(self, d, origen: str) -> dict:
         if not isinstance(d, dict) or d.get("formato") != "prezio-respaldo-1" or not isinstance(d.get("inventarios"), list):
-            raise ErrorApp("Ese archivo no es un respaldo de Prezio.")
+            raise ErrorApp("Ese archivo no es un respaldo de Prezcio.")
         limpios = []
         for inv in d["inventarios"]:
             nombre = str((inv or {}).get("nombre") or "").strip()[:80]
@@ -1178,17 +1179,17 @@ class Api:
             import webview
             inicio = self._carpeta_local(self._drive_cfg())
             r = self._ventana.create_file_dialog(webview.OPEN_DIALOG, directory=str(inicio) if inicio.exists() else str(Path.home()),
-                                                 allow_multiple=False, file_types=("Respaldo de Prezio (*.json)", "Todos los archivos (*.*)")) \
+                                                 allow_multiple=False, file_types=("Respaldo de Prezcio (*.json)", "Todos los archivos (*.*)")) \
                 if self._ventana is not None else None
             if not r:
                 return {"cancelado": True}
             ruta = Path(r[0] if isinstance(r, (list, tuple)) else r)
             if ruta.stat().st_size > 300 * 1024 * 1024:
-                return {"error": "El archivo es demasiado grande para ser un respaldo de Prezio."}
+                return {"error": "El archivo es demasiado grande para ser un respaldo de Prezcio."}
             try:
                 datos = json.loads(ruta.read_text(encoding="utf-8-sig"))
             except ValueError:
-                return {"error": "Ese archivo no es un respaldo de Prezio."}
+                return {"error": "Ese archivo no es un respaldo de Prezcio."}
             return self._validar_respaldo(datos, ruta.name)
         except Exception as e:
             return {"error": mensaje(e)}
@@ -1283,7 +1284,7 @@ class Api:
 
 
 # Lo que hace cosas en la PC (bases de datos, claves, archivos) solo responde a la pantalla propia de la app:
-# si en la ventana se abre otra página, no puede usarlo. Desde el panel de Prezio solo se vuelve a la app o se sale.
+# si en la ventana se abre otra página, no puede usarlo. Desde el panel de Prezcio solo se vuelve a la app o se sale.
 def _solo(permitido):
     import functools
 
@@ -1347,7 +1348,7 @@ def drive_pedir(metodo: str, url: str, token: str, cuerpo=None, cabeceras: dict 
 
 
 def version_publicada(sitio: str, abrir=urllib.request.urlopen) -> dict | None:
-    """{version, url} si en apps.json hay una versión más nueva que esta, publicada en las descargas de Prezio."""
+    """{version, url} si en apps.json hay una versión más nueva que esta, publicada en las descargas de Prezcio."""
     try:
         pedido = urllib.request.Request(f"{sitio}/apps.json?t={int(time.time())}",
                                         headers={"Cache-Control": "no-cache", "User-Agent": "PrezioAdministrador/" + VERSION})
@@ -1451,7 +1452,7 @@ def main():
         cfg = pc.leer_json(pc.CONFIG, None)
         threading.Thread(target=servicio_actualizar, args=((cfg or {}).get("sitio") or SITIO,), daemon=True).start()
         if not cfg or not cfg.get("clave"):
-            pc.log.error("Falta conectar la base: abre Prezio Administrador › Base de datos.")
+            pc.log.error("Falta conectar la base: abre Prezcio Administrador › Base de datos.")
             while True:            # sigue vivo para poder actualizarse
                 time.sleep(3600)
         pc.trabajar(cfg)
@@ -1464,7 +1465,7 @@ def main():
     import webview
     webview.settings["OPEN_EXTERNAL_LINKS_IN_BROWSER"] = True   # enlaces a otros sitios: en el navegador
     api = Api()
-    ventana = webview.create_window("Prezio Administrador", str(AQUI / "interfaz.html"), js_api=api,
+    ventana = webview.create_window("Prezcio Administrador", str(AQUI / "interfaz.html"), js_api=api,
                                     width=1240, height=860, min_size=(900, 620), background_color="#F3F5F7")
     api._ventana = ventana   # con «_»: pywebview no la publica para la página (publicarla rompe la API)
 

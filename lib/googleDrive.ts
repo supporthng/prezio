@@ -1,6 +1,6 @@
 /** Elegir un Excel, CSV u hoja de Google directamente desde Google Drive (selector oficial de Google).
  *
- *  Solo se pide el permiso «drive.file»: Prezio ve ÚNICAMENTE el archivo que la persona elige, nunca el resto
+ *  Solo se pide el permiso «drive.file»: Prezcio ve ÚNICAMENTE el archivo que la persona elige, nunca el resto
  *  de su Drive. El permiso dura una hora y no se guarda en ningún lado.
  *
  *  Variables en Vercel (las tres son públicas, van con el prefijo NEXT_PUBLIC_):
@@ -61,7 +61,7 @@ function cargarScript(src: string): Promise<void> {
 
 /** Pide el permiso a Google (ventana emergente). Devuelve null si la persona cierra la ventana. */
 async function pedirPermiso(): Promise<string | null> {
-  // Dentro de la app Prezio Administrador (Windows) Google no deja iniciar sesión en la ventana incrustada:
+  // Dentro de la app Prezcio Administrador (Windows) Google no deja iniciar sesión en la ventana incrustada:
   // la app abre el navegador del equipo, recibe el permiso y se lo pasa a esta página.
   const puente = (window as any).pywebview?.api;
   if (typeof puente?.google_token === "function") {
@@ -91,8 +91,8 @@ async function pedirPermiso(): Promise<string | null> {
 
 /** Abre el selector de Google Drive. Devuelve el archivo elegido, o null si la persona cancela. */
 export async function elegirArchivoDrive(): Promise<ArchivoDrive | null> {
-  if (!driveConfigurado()) throw new Error("Falta configurar Google Drive en Prezio.");
-  // Dentro de la app Prezio Administrador (Windows) el selector de Google no funciona en la ventana incrustada
+  if (!driveConfigurado()) throw new Error("Falta configurar Google Drive en Prezcio.");
+  // Dentro de la app Prezcio Administrador (Windows) el selector de Google no funciona en la ventana incrustada
   // (bloquea sus cookies): la app abre /google-elegir en el navegador del equipo y recibe de vuelta el archivo elegido.
   const puente = (window as any).pywebview?.api;
   if (typeof puente?.google_elegir === "function") {
@@ -155,7 +155,7 @@ export async function descargarDeDrive(a: ArchivoDrive): Promise<{ name: string;
   return { name, arrayBuffer: async () => datos };
 }
 
-/** Deja el archivo como «Cualquier persona con el enlace · Lector» para que Prezio lo actualice solo.
+/** Deja el archivo como «Cualquier persona con el enlace · Lector» para que Prezcio lo actualice solo.
  *  Devuelve un texto de error, o "" si quedó bien. Solo funciona si la persona es dueña o editora del archivo. */
 export async function compartirPorEnlace(a: ArchivoDrive): Promise<string> {
   try {

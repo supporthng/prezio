@@ -1,4 +1,4 @@
-/** Inventarios que se llenan solos desde Google (en el servidor de Prezio, no en el navegador).
+/** Inventarios que se llenan solos desde Google (en el servidor de Prezcio, no en el navegador).
  *  Acepta el enlace de una hoja de Google, una hoja «publicada en la web» o un Excel/CSV guardado en Drive.
  *  La hoja debe estar compartida como «Cualquier persona con el enlace · Lector». */
 

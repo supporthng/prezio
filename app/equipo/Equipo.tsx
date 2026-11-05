@@ -15,7 +15,7 @@ import {
 type Fase = "cargando" | "vincular" | "listo";
 /** «recibido» es la hora de ESTE equipo al recibir el código: el reloj del equipo puede estar mal y no se compara con «expira». */
 type Codigo = { codigo: string; expira: string; recibido: number };
-const VIDA_CODIGO_MS = 14.5 * 60000;  // el código dura 15 minutos en Prezio: se pide otro un poco antes
+const VIDA_CODIGO_MS = 14.5 * 60000;  // el código dura 15 minutos en Prezcio: se pide otro un poco antes
 type Producto = { nombre: string; precio: number };
 
 const CADA_MIN = 5;              // revisar precios y subir consultas
@@ -60,7 +60,7 @@ export function Equipo({ sitio }: { sitio: string }) {
   const accionClave = useRef<"menu" | "cerrar">("menu");
   const textoApp = useRef(APP_EQUIPO);
   const codigoRef = useRef<Codigo | null>(null);
-  /** Cuánto va mal el reloj de este equipo (ms, hora de Prezio − hora del equipo). Las consultas se anotan con la
+  /** Cuánto va mal el reloj de este equipo (ms, hora de Prezcio − hora del equipo). Las consultas se anotan con la
    *  hora corregida: así los reportes muestran la hora real aunque el reloj del equipo esté adelantado o atrasado. */
   const desfase = useRef(0);
   const ahora = () => new Date(Date.now() + desfase.current);
@@ -95,7 +95,7 @@ export function Equipo({ sitio }: { sitio: string }) {
     }
   }, []);
 
-  /** Habla con Prezio: estado, precios nuevos si cambiaron, y sube las consultas hechas sin internet. */
+  /** Habla con Prezcio: estado, precios nuevos si cambiaron, y sube las consultas hechas sin internet. */
   const sincronizar = useCallback(async () => {
     if (ocupado.current || !clave.current) return;
     ocupado.current = true;
@@ -147,7 +147,7 @@ export function Equipo({ sitio }: { sitio: string }) {
     }
   }, [olvidar, pedirCodigo]);
 
-  // Arranque: lo guardado primero (funciona sin internet), luego Prezio.
+  // Arranque: lo guardado primero (funciona sin internet), luego Prezcio.
   useEffect(() => {
     let vivo = true;
     (async () => {
@@ -194,7 +194,7 @@ export function Equipo({ sitio }: { sitio: string }) {
     }).catch(() => {});
   }, []);
 
-  // ¿Corre dentro de la app Prezio de Android o Windows? (Windows avisa cuando su puente está listo.)
+  // ¿Corre dentro de la app Prezcio de Android o Windows? (Windows avisa cuando su puente está listo.)
   useEffect(() => {
     let hecho = false;
     const detectar = async () => {
@@ -338,7 +338,7 @@ export function Equipo({ sitio }: { sitio: string }) {
     return (
       <div className="equipo-vincular">
         <div className="equipo-vincular-caja">
-          <p className="equipo-marca">Prezio</p>
+          <p className="equipo-marca">Prezcio</p>
           <h1>Vincula este equipo</h1>
           {autorizar ? (
             <Autorizar clave={clave.current} onCancelar={() => setAutorizar(false)}
@@ -415,7 +415,7 @@ export function Equipo({ sitio }: { sitio: string }) {
               <button className="boton" type="submit" disabled={!claveSalida}>{accionClave.current === "cerrar" ? "Cerrar" : "Entrar"}</button>
               <button className="boton secundario" type="button" onClick={() => dialogo.current?.close()}>Cancelar</button>
             </div>
-            <p className="quieto pequeno" style={{ marginBottom: 0 }}>La clave se pone en Prezio › Equipos. Funciona sin internet.</p>
+            <p className="quieto pequeno" style={{ marginBottom: 0 }}>La clave se pone en Prezcio › Equipos. Funciona sin internet.</p>
           </form>
         )}
         {menu && info && (
@@ -431,7 +431,7 @@ export function Equipo({ sitio }: { sitio: string }) {
                 <><dt>Reloj del equipo</dt><dd>{textoDesfase(desfase.current)}: las consultas se anotan con la hora correcta.</dd></>
               )}
               <dt>Consultas por subir</dt><dd>{menu.pendientes.toLocaleString("es-DO")}</dd>
-              {nativa && <><dt>App</dt><dd>Prezio para {nativa.app.plataforma === "android" ? "Android" : "Windows"} {nativa.version}</dd></>}
+              {nativa && <><dt>App</dt><dd>Prezcio para {nativa.app.plataforma === "android" ? "Android" : "Windows"} {nativa.version}</dd></>}
             </dl>
             <div className="fila">
               <button className="boton" type="button" onClick={async () => { await sincronizar(); await mostrarMenu(); }}>Buscar precios nuevos</button>
@@ -444,7 +444,7 @@ export function Equipo({ sitio }: { sitio: string }) {
             </div>
             {nativa && !info.salida && (
               <p className="aviso error" style={{ marginBottom: 12 }}>
-                Sin clave de salida: cualquiera puede abrir este menú y salir. Ponla en Prezio › Equipos y toca «Buscar precios nuevos».
+                Sin clave de salida: cualquiera puede abrir este menú y salir. Ponla en Prezcio › Equipos y toca «Buscar precios nuevos».
               </p>
             )}
             {nativa && (
@@ -452,7 +452,7 @@ export function Equipo({ sitio }: { sitio: string }) {
                 onClick={() => { dialogo.current?.close(); nativa.app.salir(); }}>Salir de la app</button>
             )}
             <p className="quieto pequeno" style={{ marginBottom: 0 }}>
-              Para cambiar la sucursal o desvincular este equipo, entra a Prezio › Equipos.
+              Para cambiar la sucursal o desvincular este equipo, entra a Prezcio › Equipos.
             </p>
           </>
         )}

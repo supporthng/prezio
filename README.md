@@ -1,4 +1,4 @@
-# Prezio
+# Prezcio
 
 Verificadores de precios para negocios, como suscripción. Cada negocio carga sus precios (Excel, Google o SQL Server)
 y pone verificadores en sus sucursales, que funcionan aun sin internet.
@@ -31,7 +31,7 @@ y pone verificadores en sus sucursales, que funcionan aun sin internet.
 ## Etapa 3 · parte 1: equipos sin internet
 
 - **Equipo** (`/equipo`): la tableta, el teléfono o la PC del verificador abre esa dirección y muestra un código
-  de 8 cifras. En **Prezio › Equipos** se escribe el código y se elige la sucursal. El equipo guarda los precios
+  de 8 cifras. En **Prezcio › Equipos** se escribe el código y se elige la sucursal. El equipo guarda los precios
   de su sucursal en el propio equipo y sigue consultando sin internet; al volver la conexión sube las consultas.
 - Revisa precios nuevos cada 5 minutos (o con «Buscar precios nuevos» en su menú ⓘ) y solo descarga si cambiaron.
 - Desde el panel se ve si cada equipo está conectado, al día y con consultas por subir; se renombra, se cambia
@@ -58,14 +58,14 @@ En **Inventarios**, además de cargar Excel, un inventario puede llenarse solo:
   `.github/workflows/conector.yml`): en el panel se crea el conector y se copia su clave (se ve una sola vez);
   en la PC del sistema se abre el programa, se pega la clave, se elige servidor, base, tabla y columnas.
   Envía solo cuando cambian los precios, en partes, y el panel muestra si está conectado y su último error.
-  Habla solo con `/api/conector` de Prezio; si se pierde la PC, se quita el conector y su clave deja de servir.
+  Habla solo con `/api/conector` de Prezcio; si se pierde la PC, se quita el conector y su clave deja de servir.
 - Los equipos sin internet reciben los precios nuevos en su próxima revisión, como con Excel.
 - Requiere ejecutar **`supabase/migrations/0004_fuentes_automaticas.sql`**. Si al final dice que no pudo
   programar la tarea, activa `pg_cron` y `pg_net` en Supabase › Database › Extensions y ejecútalo otra vez.
 
 ## Puesta en marcha
 
-### 1. Supabase (proyecto nuevo, solo para Prezio)
+### 1. Supabase (proyecto nuevo, solo para Prezcio)
 
 1. En [supabase.com](https://supabase.com) crea un proyecto **nuevo** (no uses el del sistema actual).
 2. **SQL Editor** › ejecuta, en orden, `supabase/migrations/0001_base.sql`, `0002_precios_y_apariencia.sql`, `0003_equipos.sql`, `0004_fuentes_automaticas.sql`, `0005_vincular_en_el_equipo.sql`, `0006_clave_de_salida.sql` y `0007_seguridad_reporte_mantenimiento.sql`.
@@ -95,7 +95,7 @@ En **Inventarios**, además de cargar Excel, un inventario puede llenarse solo:
 
 - El navegador y el servidor usan solo la clave **pública**; lo que cada usuario puede ver lo deciden las reglas
   de la base de datos (RLS), no la app.
-- El plan y la suscripción no los puede cambiar un cliente (solo Prezio con la clave de servidor).
+- El plan y la suscripción no los puede cambiar un cliente (solo Prezcio con la clave de servidor).
 - `supabase/tests/aislamiento.py` (49 pruebas), `precios.py` (17), `equipos.py` (59) y `fuentes.py` (45) prueban en PostgreSQL que los negocios no se ven
   entre sí, los permisos por rol, la consulta de precios por sucursal, los permisos del logo/QR y los equipos (vincular, mover, quitar, subir consultas) y las fuentes automáticas (Google, conector, cargas por partes).
 
@@ -108,11 +108,11 @@ npm run dev                   # http://localhost:3000
 npm run typecheck
 ```
 
-## Etapa 3 · parte 3: apps Prezio para Android y Windows
+## Etapa 3 · parte 3: apps Prezcio para Android y Windows
 
 - **`apps/android`** (Java, sin librerías) y **`apps/windows`** (Python + WebView2, instalador Inno Setup):
   abren `/equipo` a pantalla completa, arrancan al encender, no dejan salir sin la **clave de salida** del negocio
-  (Prezio › Equipos; se comprueba sin internet, en la base solo queda su huella PBKDF2) y se **actualizan solas**:
+  (Prezcio › Equipos; se comprueba sin internet, en la base solo queda su huella PBKDF2) y se **actualizan solas**:
   al abrir y cada 6 horas leen `/apps.json` y solo instalan archivos publicados en las Releases de este repositorio.
 - **`.github/workflows/app-android.yml`** y **`app-windows.yml`** compilan, publican en Releases («android»,
   «windows») y anotan la versión en `public/apps.json` (Vercel la publica sola). Versión: `1.0.<n.º de compilación>`.
@@ -128,7 +128,7 @@ npm run typecheck
   limpio (las migraciones dos veces y las 200 pruebas) y compila la web como Vercel. Si algo falla, aparece en rojo en
   Actions antes de que lo vean los clientes.
 - **Seguridad**: máximo 10 códigos de equipo equivocados por usuario cada 15 minutos; cabeceras que impiden meter
-  Prezio dentro de otra página (`next.config.ts`).
+  Prezcio dentro de otra página (`next.config.ts`).
 - **Reporte de consultas** (Resumen): consultas de 7, 30 o 90 días, por día y sucursal, lo más consultado y los
   **códigos buscados que no tenían precio**. El encargado ve solo su sucursal.
 - **Respaldo**: cada inventario se descarga en CSV (Excel lo abre; se restaura cargándolo con «Reemplazar») y el
@@ -155,7 +155,7 @@ npm run typecheck
   muestra lo que va a hacer y, al confirmar, crea o actualiza inventarios con sus productos, la Principal (nombre,
   inventario y ubicación), las sucursales (inventario propio, ubicación, activa) y la apariencia con logo y QR.
 - Conversiones: Google con cuenta → inventario «desde Google» con el mismo archivo y columnas (hay que compartir la
-  hoja con el enlace); SQL Server → aviso para instalar el conector de Prezio; «precios propios» de la versión vieja →
+  hoja con el enlace); SQL Server → aviso para instalar el conector de Prezcio; «precios propios» de la versión vieja →
   inventario con los precios de la Principal más los de la sucursal.
 - Se puede repetir sin duplicar (empareja por nombre de inventario y código de sucursal). No trae usuarios ni equipos.
 - No requiere migración: usa los permisos de dueño o admin.
@@ -215,10 +215,10 @@ npm run typecheck
      El enlace de la invitación vuelve a `/auth/sesion`.
   5. Para invitar por correo, configurar el correo propio (SMTP).
 
-## Licencias (PREZIO-XXXX-XXXX-XXXX)
+## Licencias (PREZCIO-XXXX-XXXX-XXXX)
 
-- **Cada negocio tiene una licencia única**, por ejemplo `PREZIO-K7QM-2XRP-H9TD`. Es el código con el que sus usuarios
-  entran (Entrar › Con usuario, la app Prezio Administrador y «Vincular aquí» en los verificadores).
+- **Cada negocio tiene una licencia única**, por ejemplo `PREZCIO-K7QM-2XRP-H9TD`. Es el código con el que sus usuarios
+  entran (Entrar › Con usuario, la app Prezcio Administrador y «Vincular aquí» en los verificadores).
   - Se escribe en mayúsculas o minúsculas; el código viejo de la dirección (`abarrotao-market`) también sirve.
   - No usa caracteres que se confunden (0/O, 1/I/L).
   - Se ve en el Resumen del negocio, con un botón para copiarla.
@@ -251,7 +251,7 @@ Cada programa lee `public/apps.json` (lo escribe GitHub Actions al publicar) y s
 `github.com/supporthng/prezio/releases/download/`.
 
 - **Verificador Android** y **Verificador Windows**: al abrir y cada 6 horas; se instalan solos, sin preguntar.
-- **Prezio Administrador**:
+- **Prezcio Administrador**:
   - al abrir revisa y, si hay versión nueva, muestra «Actualizando…», la instala (Windows pide permiso una vez)
     y la app se vuelve a abrir sola;
   - la copia automática (tarea «Prezio Conector», como SYSTEM) revisa al arrancar y cada 6 horas, y se
@@ -269,9 +269,9 @@ Cada programa lee `public/apps.json` (lo escribe GitHub Actions al publicar) y s
 - Si Supabase la rechaza («This endpoint requires a valid Bearer token»), usa la «service_role»: Supabase ›
   Project Settings › API Keys › Legacy API keys. Después, en Vercel, Redeploy.
 
-## Prezio Administrador (Windows) · la app de cada negocio
+## Prezcio Administrador (Windows) · la app de cada negocio
 
-- **Activar (una vez por PC)**: la primera vez la app pide la licencia del negocio (PREZIO-XXXX-XXXX-XXXX) y queda
+- **Activar (una vez por PC)**: la primera vez la app pide la licencia del negocio (PREZCIO-XXXX-XXXX-XXXX) y queda
   amarrada a ese negocio. Ejecutar `supabase/migrations/0013_activar_app.sql`. «Usar otra licencia en esta PC»
   solo funciona con la sesión cerrada.
 - **Entrar**: solo usuario + clave (o correo) de ese negocio. No hay «Cambiar de negocio»: cada app es de un cliente.
@@ -293,7 +293,7 @@ Cada programa lee `public/apps.json` (lo escribe GitHub Actions al publicar) y s
   3. Elegir base, tabla y columnas. La app sugiere las columnas y muestra una vista previa.
   4. Elegir un inventario nuevo o uno que ya existe, y si se usa en la Principal.
   - La app crea el conector de la PC y el inventario. No hay claves que copiar.
-  - Las credenciales de la base quedan cifradas en la PC (DPAPI) y nunca van a Prezio.
+  - Las credenciales de la base quedan cifradas en la PC (DPAPI) y nunca van a Prezcio.
 - **Copia automática**: cada N minutos envía solo lo que cambió. Con «Arrancar con Windows» envía aunque nadie
   abra la app (tarea «Prezio Conector», `PrezioAdministrador.exe --servicio`).
 - **Código**:

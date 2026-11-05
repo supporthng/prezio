@@ -57,7 +57,7 @@ export async function crearUsuario(datos: FormData) {
     if (e3) volver(slug, e3);
   }
   const { data: lic } = await supabase.from("negocios").select("licencia").eq("id", negocio).maybeSingle();
-  volver(slug, null, `Usuario «${usuario}» creado. Entra en Prezio › Entrar › Con usuario, con la licencia ${(lic as { licencia?: string } | null)?.licencia ?? slug}.`);
+  volver(slug, null, `Usuario «${usuario}» creado. Entra en Prezcio › Entrar › Con usuario, con la licencia ${(lic as { licencia?: string } | null)?.licencia ?? slug}.`);
 }
 
 export async function guardarPermisos(datos: FormData) {
