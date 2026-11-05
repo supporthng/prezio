@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Aviso } from "@/components/Aviso";
 import { fechaCorta, precioPlan, textoLicencia, type EstadoLic, type Limites, type Plan } from "@/lib/licencia";
@@ -238,7 +237,6 @@ function Tarjeta({ n, ahora, indice, planes, escribe }: { n: NegocioPl; ahora: n
         <button type="button" className={`pl-tab${panel === "dueno" ? " on" : ""}`} aria-expanded={panel === "dueno"} onClick={() => abrir("dueno")}>Agregar dueño</button>
         </>}
         <button type="button" className={`pl-tab${panel === "historial" ? " on" : ""}`} aria-expanded={panel === "historial"} onClick={() => abrir("historial")}>Historial y PCs</button>
-        <Link className="pl-tab enlace" href={`/n/${n.slug}`}>Abrir panel ›</Link>
       </div>
 
       {panel === "pago" && (
