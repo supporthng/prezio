@@ -248,7 +248,7 @@ class Api:
             lic = re.sub(r"^PREZIO-", "PREZCIO-", lic)      # las licencias de antes siguen sirviendo
             if not re.fullmatch(r"PREZCIO-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}", lic):
                 return {"error": "Escribe la licencia completa: PREZCIO-XXXX-XXXX-XXXX."}
-            info = self._prezio.rpc("licencia_info", {"p_licencia": lic})
+            info = self._activar_pc(lic)
             if not info:
                 return {"error": "Esa licencia no existe. Revísala o pídela a tu proveedor de Prezcio."}
             actual = self._activacion()
@@ -260,6 +260,47 @@ class Api:
                                                 "suspendida": "La licencia está suspendida: comunícate con tu proveedor de Prezcio."}.get(info.get("estado"))}
         except Exception as e:
             return {"error": mensaje(e)}
+
+    # ---- la licencia queda amarrada a esta PC (el plan dice en cuántas PCs se puede usar)
+    def _id_pc(self) -> str:
+        """Identificador fijo de esta PC (de todas sus cuentas de Windows), junto al archivo de activación."""
+        import uuid
+        ruta = self._ruta_activacion.parent / "pc.json"
+        d = pc.leer_json(ruta, None) or {}
+        valor = str(d.get("id") or "")
+        if len(valor) != 36:
+            valor = str(uuid.uuid4())
+            pc.guardar_json(ruta, {"id": valor})
+        return valor
+
+    def _activar_pc(self, lic: str):
+        """Registra esta PC en la licencia. Si el plan ya no permite otra PC, Prezcio responde con el motivo."""
+        try:
+            return self._prezio.rpc("activar_pc", {"p_licencia": lic, "p_equipo": self._id_pc(),
+                                                   "p_nombre": platform.node()[:80] or None, "p_version": VERSION})
+        except ErrorApp as e:
+            if "activar_pc" in str(e) and ("not find" in str(e) or "does not exist" in str(e)):
+                return self._prezio.rpc("licencia_info", {"p_licencia": lic})     # Prezcio todavía sin PCs
+            raise
+
+    def _comprobar_pc(self, act: dict) -> str | None:
+        """Al entrar: ¿esta PC sigue activa en la licencia? Devuelve el problema, o None si todo va bien."""
+        try:
+            e = self._prezio.rpc("pc_estado", {"p_licencia": act["licencia"], "p_equipo": self._id_pc(), "p_version": VERSION})
+        except ErrorApp as err:
+            return None if "pc_estado" in str(err) or "conexión" in str(err) else str(err)   # sin internet o Prezcio viejo: sigue
+        if e == "liberada":
+            try:
+                self._ruta_activacion.unlink()
+            except OSError:
+                pass
+            return "Tu proveedor liberó esta PC: vuelve a activar la app con la licencia del negocio."
+        if e == "nueva":
+            try:
+                self._activar_pc(act["licencia"])
+            except ErrorApp as err:
+                return str(err)
+        return None
 
     def desactivar(self):
         """Usar otra licencia en esta PC (solo con la sesión cerrada)."""
@@ -325,6 +366,9 @@ class Api:
             act = self._activacion()
             if not act:
                 return {"error": "Primero activa la app con la licencia del negocio."}
+            problema = self._comprobar_pc(act)
+            if problema:
+                return {"error": problema, "estado": self.estado()}
             solo = act["negocio_id"]
             if d.get("modo") == "correo":
                 correo = str(d.get("correo") or "").strip().lower()
@@ -391,7 +435,7 @@ class Api:
     def abrir_panel(self, seccion=""):
         try:
             n = self._negocio()
-            seccion = seccion if seccion in ("", "sucursales", "inventarios", "apariencia", "equipos", "usuarios") else ""
+            seccion = seccion if seccion in ("", "sucursales", "inventarios", "apariencia", "equipos", "usuarios", "licencia") else ""
             siguiente = f"/n/{n['slug']}" + (f"/{seccion}" if seccion else "")
             if self._panel_listo:
                 url = self._prezio.sitio + siguiente     # el panel ya tiene su sesión en esta ventana

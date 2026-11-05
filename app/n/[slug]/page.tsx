@@ -6,7 +6,7 @@ import { ROLES, sitio } from "@/lib/util";
 import { PERMISOS, resumenPermisos } from "@/lib/permisos";
 import { SubNav } from "@/components/SubNav";
 import { CodigoNegocio } from "@/components/CodigoNegocio";
-import { estadoLicencia } from "@/lib/licencia";
+import { textoLicencia, type EstadoLic } from "@/lib/licencia";
 import { Reporte, type Resumen } from "./Reporte";
 import { invitar, quitarMiembro } from "./actions";
 
@@ -71,7 +71,8 @@ export default async function PanelNegocio({ params, searchParams }: Props) {
   const { data: resumen } = puedeVerReporte
     ? await supabase.rpc("resumen_consultas", { p_negocio: negocio.id, p_dias: diasReporte })
     : { data: null };
-  const lic = estadoLicencia(negocio);
+  const { data: licData } = await supabase.rpc("negocio_licencia", { p_negocio: negocio.id });
+  const lic = licData as EstadoLic | null;
   const nombreSucursal = (id: string | null) => lasSucursales.find((s) => s.id === id)?.nombre ?? "";
 
   return (
@@ -81,7 +82,7 @@ export default async function PanelNegocio({ params, searchParams }: Props) {
         <Aviso error={error} bien={bien} />
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
           <h1>{negocio.nombre}</h1>
-          <span className={`chip${lic.bloqueado ? " plan-suspendido" : lic.estado === "prueba" ? " etiqueta" : ""}`}>{lic.texto}</span>
+          {lic && <a href={`/n/${negocio.slug}/licencia`} className={`chip${lic.bloqueado || lic.estado === "gracia" ? " plan-suspendido" : lic.estado === "prueba" || lic.estado === "por_vencer" ? " etiqueta" : ""}`}>{textoLicencia(lic)}</a>}
         </div>
         <p className="quieto">Tus permisos: {resumenPermisos(miRol, misPermisos, miAlcance, nombreSucursal)}</p>
         <CodigoNegocio codigo={negocio.licencia || negocio.slug} />

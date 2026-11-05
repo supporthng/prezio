@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { SoloWeb } from "./EnApp";
 import { supabaseServidor } from "@/lib/supabase/server";
-import { estadoLicencia, fechaCorta, type DatosLicencia } from "@/lib/licencia";
+import { avisoLicencia, type EstadoLic } from "@/lib/licencia";
 
 const SECCIONES = [
   { clave: "resumen", texto: "Resumen", ruta: "" },
@@ -10,33 +10,22 @@ const SECCIONES = [
   { clave: "apariencia", texto: "Apariencia", ruta: "/apariencia" },
   { clave: "equipos", texto: "Equipos", ruta: "/equipos" },
   { clave: "usuarios", texto: "Usuarios", ruta: "/usuarios" },
+  { clave: "licencia", texto: "Licencia", ruta: "/licencia" },
 ] as const;
 
-/** Pestañas del panel de un negocio (y el aviso si la plataforma lo suspendió). */
+/** Pestañas del panel de un negocio (y el aviso de la licencia: por vencer, en gracia, vencida o suspendida). */
 export async function SubNav({ slug, activa }: { slug: string; activa: string }) {
   const supabase = await supabaseServidor();
-  const { data } = await supabase.from("negocios").select("plan, prueba_hasta, pagado_hasta, licencia").eq("slug", slug).maybeSingle();
-  const lic = data ? estadoLicencia(data as DatosLicencia) : null;
-  const licencia = (data as DatosLicencia | null)?.licencia ?? "";
+  const { data: n } = await supabase.from("negocios").select("id").eq("slug", slug).maybeSingle();
+  const { data } = n ? await supabase.rpc("negocio_licencia", { p_negocio: n.id }) : { data: null };
+  const lic = data as EstadoLic | null;
+  const aviso = lic ? avisoLicencia(lic) : null;
   return (
     <>
-    {lic?.estado === "suspendida" && (
-      <p className="aviso error" role="alert">
-        Este negocio está suspendido: puedes ver tus datos, pero no cambiarlos, y los verificadores no muestran precios.
-        Comunícate con tu proveedor de Prezcio.
-      </p>
-    )}
-    {lic?.estado === "vencida" && (
-      <p className="aviso error" role="alert">
-        {(data as DatosLicencia).plan === "prueba" ? "Terminó tu prueba de 30 días." : `Tu licencia venció el ${fechaCorta(lic.vence!)}.`}{" "}
-        Para seguir usando Prezcio, realiza el pago a tu proveedor indicando tu licencia <strong>{licencia}</strong>. Mientras
-        tanto puedes ver tus datos, pero no cambiarlos, y los verificadores no muestran precios.
-      </p>
-    )}
-    {lic && !lic.bloqueado && lic.dias !== null && lic.dias <= 7 && (
-      <p className="aviso nota" role="status">
-        {lic.estado === "prueba" ? "Tu prueba termina" : "Tu licencia vence"} en {lic.dias} {lic.dias === 1 ? "día" : "días"} ({fechaCorta(lic.vence!)}).
-        Realiza el pago a tu proveedor indicando tu licencia <strong>{licencia}</strong> para no interrumpir el servicio.
+    {aviso && (
+      <p className={`aviso ${aviso.tono}`} role={aviso.tono === "error" ? "alert" : "status"}>
+        {aviso.texto}{" "}
+        {activa !== "licencia" && <Link href={`/n/${slug}/licencia`}><strong>{lic!.bloqueado || lic!.estado === "gracia" ? "Renovar la licencia" : "Ver la licencia"}</strong></Link>}
       </p>
     )}
     <nav className="subnav" aria-label="Secciones del negocio">

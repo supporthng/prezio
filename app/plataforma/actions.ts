@@ -8,10 +8,14 @@ import { supabaseAdmin, problemaClaveSecreta, errorDeCuentas, correoDeUsuario, U
 import { mensajeError, sitio } from "@/lib/util";
 
 const campo = (d: FormData, n: string) => String(d.get(n) ?? "").trim();
-const volver = (error: unknown, bien = ""): never => {
+const volver = (error: unknown, bien = "", d?: FormData): never => {
   revalidatePath("/plataforma");
-  redirect(`/plataforma?${error ? "error=" + encodeURIComponent(typeof error === "string" ? error : mensajeError(error as { message?: string })) : "bien=" + encodeURIComponent(bien)}`);
+  // Vuelve a la misma pestaña de la Plataforma desde la que se mandó el formulario.
+  const v = d ? campo(d, "vista") : "";
+  const vista = /^[a-z]{3,12}$/.test(v) ? `&vista=${v}` : "";
+  redirect(`/plataforma?${error ? "error=" + encodeURIComponent(typeof error === "string" ? error : mensajeError(error as { message?: string })) : "bien=" + encodeURIComponent(bien)}${vista}`);
 };
+
 const CORREO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 async function soloPlataforma() {
@@ -68,21 +72,21 @@ export async function altaNegocio(d: FormData) {
     p_nombre: campo(d, "nombre"), p_slug: campo(d, "slug").toLowerCase() || null,
     p_moneda: campo(d, "moneda") || "RD$", p_plan: campo(d, "plan") || "prueba",
   });
-  if (error || !data) volver(error ?? "No se pudo crear el negocio.");
+  if (error || !data) volver(error ?? "No se pudo crear el negocio.", "", d);
   const negocio = data as { id: string; slug: string };
   const r = await ponerDueno(supabase, negocio, d);
   if (r.error) {
     // Alta a medias: se deshace para poder repetirla con el mismo código.
     await supabase.rpc("plataforma_borrar_negocio", { p_negocio: negocio.id });
-    volver(r.error);
+    volver(r.error, "", d);
   }
-  volver(null, `Negocio «${campo(d, "nombre")}» creado con 30 días de prueba. ${r.bien}`);
+  volver(null, `Negocio «${campo(d, "nombre")}» creado${campo(d, "plan") && campo(d, "plan") !== "prueba" ? "" : " en prueba"}. ${r.bien}`, d);
 }
 
 export async function agregarDueno(d: FormData) {
   const supabase = await soloPlataforma();
   const r = await ponerDueno(supabase, { id: campo(d, "negocio"), slug: campo(d, "slug") }, d);
-  volver(r.error ?? null, r.bien ?? "");
+  volver(r.error ?? null, r.bien ?? "", d);
 }
 
 export async function cambiarPlan(d: FormData) {
@@ -90,23 +94,24 @@ export async function cambiarPlan(d: FormData) {
   const plan = campo(d, "plan");
   const { error } = await supabase.rpc("plataforma_cambiar_plan", { p_negocio: campo(d, "negocio"), p_plan: plan });
   volver(error, plan === "suspendido" ? "Negocio suspendido: sus verificadores dejan de mostrar precios en su próxima revisión."
-    : "Plan guardado. Si estaba suspendido, ya volvió a funcionar.");
+    : "Plan guardado. Si estaba suspendido, ya volvió a funcionar.", d);
 }
 
 export async function registrarPago(d: FormData) {
   const supabase = await supabaseServidor();
-  const meses = Number(campo(d, "meses"));
+  const meses = Number(campo(d, "meses")) || null;
   const { data, error } = await supabase.rpc("plataforma_registrar_pago", {
     p_negocio: campo(d, "negocio"), p_plan: campo(d, "plan"), p_meses: meses, p_nota: campo(d, "nota") || null,
   });
-  const hasta = (data as { pagado_hasta?: string } | null)?.pagado_hasta;
-  volver(error, `Pago registrado: licencia activa hasta el ${hasta ? new Date(hasta).toLocaleDateString("es-DO", { day: "numeric", month: "long", year: "numeric" }) : "—"}. Sus verificadores vuelven a dar precios en su próxima revisión.`);
+  const r = data as { pagado_hasta?: string; permanente?: boolean } | null;
+  volver(error, r?.permanente ? "Pago registrado: licencia permanente, sin vencimiento."
+    : `Pago registrado: licencia activa hasta el ${r?.pagado_hasta ? new Date(r.pagado_hasta).toLocaleDateString("es-DO", { day: "numeric", month: "long", year: "numeric" }) : "—"}. Sus verificadores vuelven a dar precios en su próxima revisión.`, d);
 }
 
 export async function extenderPrueba(d: FormData) {
   const supabase = await supabaseServidor();
   const { error } = await supabase.rpc("plataforma_extender_prueba", { p_negocio: campo(d, "negocio"), p_dias: Number(campo(d, "dias")) });
-  volver(error, `Listo: ${campo(d, "dias")} días más de prueba.`);
+  volver(error, `Listo: ${campo(d, "dias")} días más de prueba.`, d);
 }
 
 export async function suspender(d: FormData) {
@@ -114,14 +119,81 @@ export async function suspender(d: FormData) {
   const negocio = campo(d, "negocio");
   if (campo(d, "accion") === "suspender") {
     const { error } = await supabase.rpc("plataforma_cambiar_plan", { p_negocio: negocio, p_plan: "suspendido" });
-    volver(error, "Negocio suspendido: sus verificadores dejan de mostrar precios en su próxima revisión.");
+    volver(error, "Negocio suspendido: sus verificadores dejan de mostrar precios en su próxima revisión.", d);
   }
-  // Quitar la suspensión: vuelve al último plan pagado (si sigue vigente) o a la prueba.
-  const { data: pagos } = await supabase.rpc("plataforma_pagos", { p_negocio: negocio });
-  const ultimo = ((pagos ?? []) as { plan: string; hasta: string }[])[0];
-  const plan = ultimo && Date.parse(ultimo.hasta) > Date.now() ? ultimo.plan : "prueba";
-  const { error } = await supabase.rpc("plataforma_cambiar_plan", { p_negocio: negocio, p_plan: plan });
+  // Quitar la suspensión: vuelve al plan que tenía (si su pago sigue vigente) o a la prueba.
+  const { data: plan, error } = await supabase.rpc("plataforma_reactivar", { p_negocio: negocio });
   volver(error, plan === "prueba"
     ? "Suspensión quitada. Volvió a su prueba: si ya venció, sigue bloqueado hasta que registres un pago o le des días de prueba."
-    : "Suspensión quitada: vuelve a funcionar con su plan pagado.");
+    : "Suspensión quitada: vuelve a funcionar con su plan pagado.", d);
+}
+
+// ---------------------------------------------------------------- solicitudes
+export async function atenderSolicitud(d: FormData) {
+  const supabase = await supabaseServidor();
+  const accion = campo(d, "accion");
+  const { error } = await supabase.rpc("plataforma_atender_solicitud", {
+    p_id: campo(d, "solicitud"), p_accion: accion, p_meses: Number(campo(d, "meses")) || null, p_respuesta: campo(d, "respuesta") || null,
+  });
+  volver(error, accion === "aprobar" ? "Solicitud aprobada: el plan quedó activo y el pago registrado."
+    : accion === "rechazar" ? "Solicitud rechazada: el negocio ve el motivo en su pantalla de Licencia." : "Marcada como contactada.", d);
+}
+
+// ---------------------------------------------------------------- planes y reglas (solo administradores)
+const numero = (d: FormData, n: string) => (campo(d, n) === "" ? "" : String(Number(campo(d, n))));
+export async function guardarPlan(d: FormData) {
+  const supabase = await supabaseServidor();
+  const plan = {
+    codigo: campo(d, "codigo").toLowerCase(), nombre: campo(d, "nombre"), descripcion: campo(d, "descripcion"),
+    precio: campo(d, "precio").replace(",", "."), periodo: campo(d, "periodo") || "mensual", permanente: d.get("permanente") === "on",
+    max_sucursales: numero(d, "max_sucursales"), max_equipos: numero(d, "max_equipos"), max_usuarios: numero(d, "max_usuarios"), max_pcs: numero(d, "max_pcs"),
+    funciones: campo(d, "funciones").split("\n").map((x) => x.trim()).filter(Boolean),
+    destacado: d.get("destacado") === "on", etiqueta: campo(d, "etiqueta"), activo: d.get("activo") === "on", orden: numero(d, "orden"),
+  };
+  const { error } = await supabase.rpc("plataforma_guardar_plan", { p: plan });
+  volver(error, `Plan «${plan.nombre}» guardado.`, d);
+}
+
+export async function borrarPlan(d: FormData) {
+  const supabase = await supabaseServidor();
+  const { data, error } = await supabase.rpc("plataforma_borrar_plan", { p_codigo: campo(d, "codigo") });
+  volver(error, data === "borrado" ? "Plan borrado." : "Ese plan lo usa algún negocio: quedó desactivado (ya no se ofrece, pero sus negocios lo conservan).", d);
+}
+
+export async function guardarAjustes(d: FormData) {
+  const supabase = await supabaseServidor();
+  const claves = ["contacto_nombre", "contacto_telefono", "contacto_whatsapp", "contacto_correo", "contacto_horario", "moneda",
+    "dias_prueba", "dias_aviso", "dias_gracia", "plazo_horas", "descuento_anual", "prueba_sucursales", "prueba_equipos", "prueba_usuarios", "prueba_pcs"];
+  const p = Object.fromEntries(claves.map((k) => [k, campo(d, k)]));
+  const { error } = await supabase.rpc("plataforma_guardar_ajustes", { p });
+  volver(error, "Reglas guardadas. Los negocios ven el contacto en su pantalla de Licencia.", d);
+}
+
+// ---------------------------------------------------------------- PCs, historial y equipo de la plataforma
+export async function liberarPc(d: FormData) {
+  const supabase = await supabaseServidor();
+  const { error } = await supabase.rpc("plataforma_liberar_pc", { p_pc: campo(d, "pc") });
+  volver(error, "PC liberada: la licencia ya se puede activar en otra PC. Si la abren en esa, les pedirá activarla de nuevo.", d);
+}
+
+/** Para la tarjeta del negocio: historial, pagos y PCs (se carga al abrirla). */
+export async function historialNegocio(negocio: string) {
+  const supabase = await supabaseServidor();
+  const { data, error } = await supabase.rpc("plataforma_historial", { p_negocio: negocio });
+  if (error) return { error: mensajeError(error) };
+  return data as { eventos: { tipo: string; detalle: Record<string, unknown>; creado: string; quien: string | null }[];
+    pcs: { id: string; nombre: string | null; version: string | null; activada: string; visto: string; liberada: string | null }[];
+    pagos: { plan: string; meses: number; hasta: string; nota: string | null; monto: number | null; creado: string }[] };
+}
+
+export async function ponerUsuario(d: FormData) {
+  const supabase = await supabaseServidor();
+  const { error } = await supabase.rpc("plataforma_poner_usuario", { p_correo: campo(d, "correo").toLowerCase(), p_rol: campo(d, "rol") });
+  volver(error, `Listo: ${campo(d, "correo")} entra a /plataforma como ${campo(d, "rol")}.`, d);
+}
+
+export async function quitarUsuario(d: FormData) {
+  const supabase = await supabaseServidor();
+  const { error } = await supabase.rpc("plataforma_quitar_usuario", { p_usuario: campo(d, "usuario") });
+  volver(error, "Quitado del equipo de la plataforma.", d);
 }

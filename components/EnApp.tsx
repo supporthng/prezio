@@ -29,6 +29,7 @@ const PANEL = [
   { clave: "apariencia", texto: "Apariencia" },
   { clave: "equipos", texto: "Equipos" },
   { clave: "usuarios", texto: "Usuarios" },
+  { clave: "licencia", texto: "Licencia" },
 ] as const;
 
 /** En la app, el mismo menú lateral de la pantalla de la app (Inicio, Base de datos, Copia automática y las secciones

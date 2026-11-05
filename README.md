@@ -233,6 +233,28 @@ npm run typecheck
 - **Requiere** ejecutar `supabase/migrations/0011_licencias.sql` (después de 0010). Los negocios que ya existían
   reciben su licencia y, si estaban en prueba, 30 días desde ese momento.
 
+## Planes, límites y solicitudes (0015)
+
+Todo se maneja en **/plataforma**, con pestañas:
+
+- **Planes**: nombre, precio (al mes o al año, o **permanente**: pago único sin vencimiento), lo que incluye, destacado y los
+  **límites**: sucursales, verificadores, usuarios y PCs con Prezcio Administrador (vacío = sin límite). Un plan que ya usa
+  algún negocio no se borra: deja de ofrecerse.
+- Los límites **se cumplen solos**: al pasar el límite, crear una sucursal, vincular un verificador o agregar un usuario
+  dice «Tu plan permite N… amplía tu plan en Licencia». Lo que ya tenían no se toca.
+- **Estados**: prueba · activa · *por vencer* (aviso desde N días antes) · *en gracia* (venció, pero todo sigue
+  funcionando N días) · vencida (solo lectura) · suspendida.
+- **Solicitudes**: cada negocio tiene la pestaña **Licencia** (también en la app Prezcio Administrador) con su plan, lo que
+  usa contra sus límites, el contacto del proveedor y los planes para pedir. La solicitud llega a la pestaña Solicitudes:
+  marcar contactada, **aprobar** (registra el pago y activa el plan) o rechazar con un motivo que el negocio ve.
+- **Reglas**: contacto que ven los negocios (teléfono, WhatsApp, correo, horario), días de prueba, días de aviso, días de
+  gracia, plazo de respuesta, descuento por pagar un año, moneda y límites de la prueba.
+- **Historial y PCs** en cada negocio: alta, pagos, cambios de plan, suspensiones, solicitudes y PCs. La licencia queda
+  amarrada a la(s) PC(s) donde se activa Prezcio Administrador (cuántas, lo dice el plan); **Liberar** una PC deja activarla
+  en otra, y la PC liberada pide activar de nuevo al abrir.
+- **Equipo** (solo administradores): quién entra a la Plataforma — *administrador* (todo), *ventas* (altas, pagos,
+  solicitudes, PCs) o *soporte* (solo mira).
+
 ## Niveles de acceso
 
 - **Plantillas de permisos** por negocio. Todos nacen con: Administrador, Gerente de sucursal, Encargado de precios,

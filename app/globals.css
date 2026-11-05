@@ -644,3 +644,80 @@ button.pl-kpi:hover { background: rgba(255,255,255,.14); transform: translateY(-
 @media (prefers-reduced-motion: reduce) { .pl-negocio, .pl-panel, .pl-cajon, .pl-velo, .pl-barra i { animation: none !important; } .pl-negocio, .pl-nuevo, button.pl-kpi { transition: none; } }
 .pl-dueno .fila > .campo { flex: 1 1 100%; }
 .pl-dueno .fila { display: grid; gap: 10px; }
+
+/* ---------- Licencia del negocio */
+.lic-estado { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 16px 28px; align-items: start; margin-bottom: 16px; border-left: 6px solid var(--bien); }
+.lic-estado h2 { margin: 2px 0 4px; font-size: 1.7rem; letter-spacing: -.02em; }
+.lic-estado .quieto.pequeno { margin: 0; }
+.lic-estado .codigo-negocio { margin: 0; }
+.lic-estado.prueba, .lic-estado.por_vencer { border-left-color: var(--etiqueta-borde); }
+.lic-estado.gracia, .lic-estado.vencida { border-left-color: var(--error); }
+.lic-estado.suspendida { border-left-color: var(--gris); }
+.lic-vigencia { font-weight: 650; margin: 0 0 6px; }
+@media (max-width: 720px) { .lic-estado { grid-template-columns: 1fr; } }
+main .tarjeta + .tarjeta { margin-top: 16px; }
+.lic-uso { list-style: none; margin: 0 0 8px; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 24px; }
+.lic-uso li > div:first-child { display: flex; justify-content: space-between; gap: 8px; font-size: .92rem; }
+.lic-uso b { font-variant-numeric: tabular-nums; }
+.lic-uso small { color: var(--gris); font-weight: 500; }
+.lic-barra { height: 8px; border-radius: 999px; background: var(--superficie); margin-top: 6px; overflow: hidden; }
+.lic-barra i { display: block; height: 100%; border-radius: inherit; background: var(--bien); }
+.lic-barra.casi i { background: var(--etiqueta-borde); }
+.lic-barra.lleno i { background: var(--error); }
+.lic-planes { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+.lic-plan { position: relative; display: flex; flex-direction: column; gap: 6px; border: 1px solid var(--linea); border-radius: 14px; padding: 18px 16px 16px; background: var(--papel); }
+.lic-plan h3 { margin: 0; font-size: 1.15rem; }
+.lic-plan .boton { margin-top: auto; }
+.lic-plan.destacado { border-color: var(--etiqueta-borde); box-shadow: 0 0 0 1px var(--etiqueta-borde); }
+.lic-plan.elegido { border-color: var(--tinta); box-shadow: 0 0 0 2px var(--tinta); }
+.lic-plan-etq { position: absolute; top: -10px; left: 14px; font-size: .74rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; background: var(--etiqueta); color: #102a43; }
+.lic-precio { margin: 0; font-size: 1.05rem; font-weight: 700; }
+.lic-incluye { margin: 0; font-size: .85rem; color: var(--tinta-2); }
+.lic-funciones { margin: 2px 0 8px; padding-left: 18px; font-size: .88rem; color: var(--tinta-2); }
+.lic-funciones li { margin: 2px 0; }
+.lic-pedir { margin-top: 16px; }
+.lic-pedir h3 { margin-top: 0; }
+.lic-pedir .etq { display: block; font-weight: 600; margin-bottom: 6px; }
+.lic-meses { display: flex; flex-wrap: wrap; gap: 6px; }
+.lic-meses button { font: inherit; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--linea); background: var(--papel); color: var(--tinta); cursor: pointer; }
+.lic-meses button.on { background: var(--tinta); color: var(--papel); border-color: var(--tinta); }
+.lic-meses button:focus-visible { outline: none; box-shadow: var(--sombra-foco); }
+.lic-total { margin: 0 0 14px; }
+.lic-solicitud { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; }
+.lic-solicitud p { margin: 0; flex: 1 1 320px; }
+.lic-contacto ul { list-style: none; margin: 0 0 8px; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px 24px; }
+.lic-contacto li { display: flex; flex-direction: column; gap: 2px; }
+.lic-contacto li span { font-size: .8rem; color: var(--gris); font-weight: 600; }
+
+/* ---------- Plataforma: pestañas, solicitudes, planes, reglas, equipo, historial */
+.pl-vistas { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 22px 0 4px; border-bottom: 1px solid var(--linea); }
+.pl-vistas button { font: inherit; font-weight: 650; padding: 10px 14px; border: 0; background: none; color: var(--gris); cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -1px; display: inline-flex; align-items: center; gap: 8px; }
+.pl-vistas button.on { color: var(--tinta); border-bottom-color: var(--etiqueta-borde); }
+.pl-vistas button:focus-visible { outline: none; box-shadow: var(--sombra-foco); border-radius: 8px 8px 0 0; }
+.pl-cuenta { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--error); color: #fff; font-size: .75rem; display: inline-grid; place-items: center; }
+.pl-rol { margin-left: auto; font-size: .85rem; color: var(--gris); }
+.pl-pide { margin: 6px 0 0; font-size: .85rem; font-weight: 650; color: #8a5a00; }
+.pl-sol .pl-sol-cabeza { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.pl-sol h3 { margin: 0; }
+.pl-sol-pide { margin: 10px 0 6px; }
+.pl-sol .pl-linea a { margin-left: 10px; }
+.pl-sol-msj { margin: 6px 0; font-style: italic; color: var(--tinta-2); }
+.pl-sol.atrasada { border-color: var(--error); }
+.pl-pasadas { margin-top: 18px; }
+.pl-pasadas summary { cursor: pointer; font-weight: 650; color: var(--gris); }
+.pl-plan.apagado { opacity: .65; }
+.pl-plan-precio { white-space: nowrap; }
+.pl-plan-form fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+.pl-plan-form textarea { width: 100%; font: inherit; }
+.pl-checks { align-items: center; gap: 10px 18px; }
+.pl-checks label { display: inline-flex; align-items: center; gap: 6px; font-size: .92rem; }
+.pl-reglas { margin-top: 16px; }
+.pl-reglas fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+.pl-reglas h2 { margin: 18px 0 4px; font-size: 1.1rem; }
+.pl-reglas h2:first-child { margin-top: 0; }
+.pl-equipo { margin-top: 16px; }
+.pl-historial .lista li { padding: 8px 0; }
+.pl-eventos { list-style: none; margin: 0; padding: 0; max-height: 320px; overflow-y: auto; }
+.pl-eventos li { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 0 10px; padding: 7px 0; border-bottom: 1px solid var(--linea); font-size: .9rem; }
+.pl-eventos time { grid-row: span 3; color: var(--gris); font-variant-numeric: tabular-nums; }
+.pl-eventos span, .pl-eventos small { grid-column: 2; }

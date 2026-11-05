@@ -3,16 +3,19 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Aviso } from "@/components/Aviso";
-import { estadoLicencia, fechaCorta, type EstadoLicencia } from "@/lib/licencia";
+import { fechaCorta, precioPlan, textoLicencia, type EstadoLic, type Limites, type Plan } from "@/lib/licencia";
 import { agregarDueno, altaNegocio, extenderPrueba, registrarPago, suspender } from "./actions";
+import { HistorialNegocio, VistaEquipo, VistaPlanes, VistaReglas, VistaSolicitudes, type DatosPl } from "./Vistas";
 
 type Dueno = { usuario: string | null; correo: string | null; confirmado: boolean };
 export type NegocioPl = {
   id: string; nombre: string; slug: string; plan: string; moneda: string; creado: string; duenos: Dueno[];
   licencia: string; prueba_hasta: string | null; pagado_hasta: string | null; bloqueado: boolean;
   usuarios: number; sucursales: number; equipos: number; equipos_activos: number; productos: number; ultima_consulta: string | null;
+  lic: EstadoLic; limites: Limites; pcs: number; solicitud: "nueva" | "contactada" | null;
 };
-type Filtro = "todos" | "activos" | "prueba" | "vencen" | "bloqueados";
+type Vista = "negocios" | "solicitudes" | "planes" | "reglas" | "equipo";
+type Filtro = "todos" | "activos" | "prueba" | "vencen" | "bloqueados" | "piden";
 type Orden = "recientes" | "vencen" | "nombre";
 
 const nf = new Intl.NumberFormat("es-DO");
@@ -32,13 +35,16 @@ function claveNueva() {
 }
 function sumarMeses(d: Date, m: number) { const r = new Date(d); r.setMonth(r.getMonth() + m); return r; }
 
-function medidor(n: NegocioPl, lic: EstadoLicencia): { pct: number; tono: "ok" | "alerta" | "mal" | "quieto"; texto: string } {
+function medidor(n: NegocioPl, lic: EstadoLic): { pct: number; tono: "ok" | "alerta" | "mal" | "quieto"; texto: string } {
   if (lic.estado === "suspendida") return { pct: 100, tono: "quieto", texto: "Suspendida a mano" };
   if (lic.estado === "vencida") { const d = Math.abs(lic.dias ?? 0); return { pct: 100, tono: "mal", texto: d > 0 ? `Venció hace ${dias(d)}` : "Venció hoy" }; }
-  if (lic.dias === null) return { pct: 100, tono: "ok", texto: "Sin fecha de vencimiento" };
+  if (lic.estado === "gracia") return { pct: 100, tono: "mal", texto: `En gracia: ${dias(lic.dias_gracia_quedan ?? 0)} para pagar` };
+  if (lic.dias === null) return { pct: 100, tono: "ok", texto: lic.permanente ? "Permanente" : "Sin fecha de vencimiento" };
   const total = n.plan === "prueba" ? 30 : 90;
-  return { pct: Math.max(5, Math.min(100, (lic.dias / total) * 100)), tono: lic.dias <= 7 ? "alerta" : "ok", texto: `Quedan ${dias(lic.dias)}` };
+  return { pct: Math.max(5, Math.min(100, (lic.dias / total) * 100)), tono: lic.dias <= lic.dias_aviso ? "alerta" : "ok", texto: `Quedan ${dias(lic.dias)}` };
 }
+const vence = (l: EstadoLic) => !l.bloqueado && (l.estado === "gracia" || (l.dias !== null && l.dias <= l.dias_aviso));
+const usoTexto = (uso: number, lim: number | null) => (lim === null ? `${uso}` : `${uso}/${lim}`);
 
 /* ---------------------------------------------------------------- piezas */
 
@@ -92,14 +98,14 @@ function CamposDueno({ id }: { id: string }) {
 }
 
 /** Cajón lateral para dar de alta un negocio, en dos pasos y con la licencia a la vista. */
-function AltaNegocio({ abierto, cerrar }: { abierto: boolean; cerrar: () => void }) {
+function AltaNegocio({ abierto, cerrar, diasPrueba }: { abierto: boolean; cerrar: () => void; diasPrueba: number }) {
   const [paso, setPaso] = useState<1 | 2>(1);
   const [nombre, setNombre] = useState("");
   const [slug, setSlug] = useState("");
   const [tocado, setTocado] = useState(false);
   const [error, setError] = useState("");
   const primero = useRef<HTMLInputElement>(null);
-  const vence = useMemo(() => fechaCorta(new Date(Date.now() + 30 * 864e5)), []);
+  const hasta = useMemo(() => fechaCorta(new Date(Date.now() + diasPrueba * 864e5)), [diasPrueba]);
 
   useEffect(() => {
     if (!abierto) return;
@@ -130,7 +136,7 @@ function AltaNegocio({ abierto, cerrar }: { abierto: boolean; cerrar: () => void
         <div className="pl-licencia-vista">
           <span>Licencia</span>
           <code>PREZCIO-XXXX-XXXX-XXXX</code>
-          <small>{nombre.trim() ? <><b>{nombre.trim()}</b> · </> : null}30 días de prueba · hasta {vence}</small>
+          <small>{nombre.trim() ? <><b>{nombre.trim()}</b> · </> : null}{diasPrueba} días de prueba · hasta {hasta}</small>
         </div>
 
         <form action={altaNegocio} onKeyDown={(e) => { if (e.key === "Enter" && paso === 1 && (e.target as HTMLElement).tagName === "INPUT") { e.preventDefault(); siguiente(); } }}>
@@ -168,24 +174,27 @@ function AltaNegocio({ abierto, cerrar }: { abierto: boolean; cerrar: () => void
   );
 }
 
-function Tarjeta({ n, ahora, indice }: { n: NegocioPl; ahora: number; indice: number }) {
-  const lic = estadoLicencia(n, ahora);
+function Tarjeta({ n, ahora, indice, planes, escribe }: { n: NegocioPl; ahora: number; indice: number; planes: Plan[]; escribe: boolean }) {
+  const lic = n.lic;
   const med = medidor(n, lic);
-  const [panel, setPanel] = useState<null | "pago" | "prueba" | "dueno">(null);
+  const [panel, setPanel] = useState<null | "pago" | "prueba" | "dueno" | "historial">(null);
   const [copiado, setCopiado] = useState(false);
   const [confirmar, setConfirmar] = useState(false);
-  const [plan, setPlan] = useState<"basico" | "profesional">(n.plan === "profesional" ? "profesional" : "basico");
+  const ofrecidos = planes.filter((p) => p.activo || p.codigo === n.plan);
+  const actual = n.plan === "suspendido" ? n.lic.plan_antes : n.plan;
+  const [plan, setPlan] = useState<string>(ofrecidos.find((p) => p.codigo === actual)?.codigo ?? ofrecidos[0]?.codigo ?? "");
+  const elPlan = planes.find((p) => p.codigo === plan);
   const [meses, setMeses] = useState<"1" | "3" | "6" | "12">("1");
   const [extra, setExtra] = useState<"7" | "15" | "30">("15");
   const suspendido = n.plan === "suspendido";
 
-  const base = n.plan !== "prueba" && n.pagado_hasta && Date.parse(n.pagado_hasta) > ahora ? new Date(n.pagado_hasta) : new Date(ahora);
+  const base = n.plan !== "prueba" && n.plan !== "suspendido" && n.pagado_hasta && Date.parse(n.pagado_hasta) > ahora ? new Date(n.pagado_hasta) : new Date(ahora);
   const nuevaFecha = fechaCorta(sumarMeses(base, Number(meses)));
 
   const copiar = async () => {
     try { await navigator.clipboard.writeText(n.licencia); setCopiado(true); setTimeout(() => setCopiado(false), 1800); } catch { /* sin portapapeles */ }
   };
-  const abrir = (p: "pago" | "prueba" | "dueno") => setPanel((a) => (a === p ? null : p));
+  const abrir = (p: "pago" | "prueba" | "dueno" | "historial") => setPanel((a) => (a === p ? null : p));
 
   return (
     <li className={`pl-negocio estado-${lic.estado}`} style={{ animationDelay: `${Math.min(indice, 10) * 45}ms` }}>
@@ -195,7 +204,9 @@ function Tarjeta({ n, ahora, indice }: { n: NegocioPl; ahora: number; indice: nu
           <h3>{n.nombre}</h3>
           <p className="quieto pequeno">/n/{n.slug} · desde {fecha(n.creado)}</p>
         </div>
-        <span className={`pl-estado ${lic.estado}`}>{lic.estado === "activa" ? "Activa" : lic.estado === "prueba" ? "En prueba" : lic.estado === "vencida" ? "Vencida" : "Suspendida"}</span>
+        <span className={`pl-estado ${lic.estado === "por_vencer" ? "activa" : lic.estado === "gracia" ? "vencida" : lic.estado}`}>
+          {{ activa: "Activa", por_vencer: "Por vencer", prueba: "En prueba", gracia: "En gracia", vencida: "Vencida", suspendida: "Suspendida" }[lic.estado]}
+        </span>
       </div>
 
       <button type="button" className={`pl-codigo${copiado ? " ok" : ""}`} onClick={copiar} title="Copiar la licencia">
@@ -204,24 +215,29 @@ function Tarjeta({ n, ahora, indice }: { n: NegocioPl; ahora: number; indice: nu
 
       <div className={`pl-medidor ${med.tono}`}>
         <div className="pl-barra" role="img" aria-label={med.texto}><i style={{ width: `${med.pct}%` }} /></div>
-        <p><b>{med.texto}</b><span>{lic.texto}</span></p>
+        <p><b>{med.texto}</b><span>{textoLicencia(lic)}</span></p>
       </div>
 
       <dl className="pl-datos">
-        <div><dt>Usuarios</dt><dd>{n.usuarios}</dd></div>
-        <div><dt>Sucursales</dt><dd>{n.sucursales}</dd></div>
-        <div><dt>Verificadores hoy</dt><dd>{n.equipos_activos}<small>/{n.equipos}</small></dd></div>
+        <div><dt>Usuarios</dt><dd>{usoTexto(n.usuarios, n.limites.usuarios)}</dd></div>
+        <div><dt>Sucursales</dt><dd>{usoTexto(n.sucursales, n.limites.sucursales)}</dd></div>
+        <div><dt>Verificadores hoy</dt><dd>{n.equipos_activos}<small>/{n.equipos}{n.limites.equipos !== null ? ` de ${n.limites.equipos}` : ""}</small></dd></div>
         <div><dt>Productos</dt><dd>{nf.format(n.productos)}</dd></div>
       </dl>
       <p className="pl-linea"><span>Dueño</span>{n.duenos.length ? n.duenos.map((d, i) => (
         <b key={i}>{d.usuario ?? d.correo}{!d.confirmado && <small className="quieto"> (invitación pendiente)</small>}</b>
       )) : <b className="error-texto">Sin dueño</b>}</p>
       <p className="pl-linea"><span>Última consulta</span><b>{fecha(n.ultima_consulta)}</b></p>
+      <p className="pl-linea"><span>PCs</span><b>{usoTexto(n.pcs, n.limites.pcs)}</b></p>
+      {n.solicitud && <p className="pl-pide">Pidió un plan · {n.solicitud === "nueva" ? "sin contactar" : "contactado"}</p>}
 
       <div className="pl-acciones">
+        {escribe && <>
         <button type="button" className={`pl-tab${panel === "pago" ? " on" : ""}`} aria-expanded={panel === "pago"} onClick={() => abrir("pago")}>Registrar pago</button>
         <button type="button" className={`pl-tab${panel === "prueba" ? " on" : ""}`} aria-expanded={panel === "prueba"} onClick={() => abrir("prueba")}>Días de prueba</button>
         <button type="button" className={`pl-tab${panel === "dueno" ? " on" : ""}`} aria-expanded={panel === "dueno"} onClick={() => abrir("dueno")}>Agregar dueño</button>
+        </>}
+        <button type="button" className={`pl-tab${panel === "historial" ? " on" : ""}`} aria-expanded={panel === "historial"} onClick={() => abrir("historial")}>Historial y PCs</button>
         <Link className="pl-tab enlace" href={`/n/${n.slug}`}>Abrir panel ›</Link>
       </div>
 
@@ -229,17 +245,25 @@ function Tarjeta({ n, ahora, indice }: { n: NegocioPl; ahora: number; indice: nu
         <form action={registrarPago} className="pl-panel">
           <input type="hidden" name="negocio" value={n.id} />
           <input type="hidden" name="plan" value={plan} />
-          <input type="hidden" name="meses" value={meses} />
+          <input type="hidden" name="meses" value={elPlan?.permanente ? "" : meses} />
           <p className="pl-et">Plan</p>
-          <Segmentos etiqueta="Plan" valor={plan} onCambia={setPlan} opciones={[["basico", "Básico"], ["profesional", "Profesional"]]} />
-          <p className="pl-et">Tiempo pagado</p>
-          <Segmentos etiqueta="Tiempo" valor={meses} onCambia={setMeses} opciones={[["1", "1 mes"], ["3", "3 meses"], ["6", "6 meses"], ["12", "1 año"]]} />
-          <p className="pl-resultado">Quedará activo hasta el <b>{nuevaFecha}</b></p>
+          {ofrecidos.length === 0 ? <p className="quieto pequeno">Crea un plan en la pestaña Planes.</p>
+            : <Segmentos etiqueta="Plan" valor={plan} onCambia={setPlan} opciones={ofrecidos.map((p) => [p.codigo, p.nombre] as [string, string])} />}
+          {elPlan && <p className="quieto pequeno">{precioPlan(elPlan)}</p>}
+          {elPlan?.permanente ? (
+            <p className="pl-resultado">Licencia <b>permanente</b>: sin vencimiento.</p>
+          ) : (
+            <>
+              <p className="pl-et">Tiempo pagado</p>
+              <Segmentos etiqueta="Tiempo" valor={meses} onCambia={setMeses} opciones={[["1", "1 mes"], ["3", "3 meses"], ["6", "6 meses"], ["12", "1 año"]]} />
+              <p className="pl-resultado">Quedará activo hasta el <b>{nuevaFecha}</b></p>
+            </>
+          )}
           <div className="campo">
             <label htmlFor={`pn-${n.id}`}>Nota <small className="quieto">(opcional)</small></label>
             <input id={`pn-${n.id}`} name="nota" maxLength={200} placeholder="Ej.: transferencia 0042" />
           </div>
-          <button className="boton" type="submit">Registrar pago</button>
+          <button className="boton" type="submit" disabled={!elPlan}>Registrar pago</button>
         </form>
       )}
       {panel === "prueba" && (
@@ -260,7 +284,9 @@ function Tarjeta({ n, ahora, indice }: { n: NegocioPl; ahora: number; indice: nu
         </form>
       )}
 
-      <form action={suspender} className="pl-suspender">
+      {panel === "historial" && <HistorialNegocio negocio={n.id} escribe={escribe} planes={planes} />}
+
+      {escribe && <form action={suspender} className="pl-suspender">
         <input type="hidden" name="negocio" value={n.id} />
         <input type="hidden" name="accion" value={suspendido ? "reactivar" : "suspender"} />
         {suspendido ? (
@@ -274,38 +300,44 @@ function Tarjeta({ n, ahora, indice }: { n: NegocioPl; ahora: number; indice: nu
         ) : (
           <button className="boton secundario peligro" type="button" onClick={() => setConfirmar(true)}>Suspender</button>
         )}
-      </form>
+      </form>}
     </li>
   );
 }
 
 /* ---------------------------------------------------------------- pantalla */
 
-export function PanelPlataforma({ negocios, ahora, error, bien, claveProblema, q }: {
-  negocios: NegocioPl[]; ahora: number; error?: string; bien?: string; claveProblema?: string | null; q?: string;
+export function PanelPlataforma({ negocios, datos, vista: vistaInicial, ahora, error, bien, claveProblema, q }: {
+  negocios: NegocioPl[]; datos: DatosPl; vista?: string; ahora: number; error?: string; bien?: string; claveProblema?: string | null; q?: string;
 }) {
+  const escribe = datos.rol !== "soporte";
+  const admin = datos.rol === "administrador";
+  const [vista, setVista] = useState<Vista>((["negocios", "solicitudes", "planes", "reglas", "equipo"] as const).find((v) => v === vistaInicial) ?? "negocios");
+  const nuevas = datos.solicitudes.filter((s) => s.estado === "nueva").length;
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [orden, setOrden] = useState<Orden>("recientes");
   const [busca, setBusca] = useState(q ?? "");
   const [alta, setAlta] = useState(false);
   const [aviso, setAviso] = useState(true);
 
-  const info = useMemo(() => negocios.map((n) => ({ n, lic: estadoLicencia(n, ahora) })), [negocios, ahora]);
+  const info = useMemo(() => negocios.map((n) => ({ n, lic: n.lic })), [negocios]);
   const cuenta = useMemo(() => ({
     todos: info.length,
-    activos: info.filter((x) => x.lic.estado === "activa").length,
+    activos: info.filter((x) => ["activa", "por_vencer"].includes(x.lic.estado)).length,
     prueba: info.filter((x) => x.lic.estado === "prueba").length,
-    vencen: info.filter((x) => !x.lic.bloqueado && x.lic.dias !== null && x.lic.dias <= 7).length,
+    vencen: info.filter((x) => vence(x.lic)).length,
     bloqueados: info.filter((x) => x.lic.bloqueado).length,
+    piden: info.filter((x) => x.n.solicitud).length,
   }), [info]);
   const equipos = negocios.reduce((t, n) => t + n.equipos_activos, 0);
 
   const lista = useMemo(() => {
     const t = quitarTildes(busca.trim().toLowerCase());
     const f = info.filter(({ n, lic }) => {
-      if (filtro === "activos" && lic.estado !== "activa") return false;
+      if (filtro === "activos" && !["activa", "por_vencer"].includes(lic.estado)) return false;
       if (filtro === "prueba" && lic.estado !== "prueba") return false;
-      if (filtro === "vencen" && !(!lic.bloqueado && lic.dias !== null && lic.dias <= 7)) return false;
+      if (filtro === "vencen" && !vence(lic)) return false;
+      if (filtro === "piden" && !n.solicitud) return false;
       if (filtro === "bloqueados" && !lic.bloqueado) return false;
       if (!t) return true;
       return quitarTildes(`${n.nombre} ${n.slug} ${n.licencia} ${n.duenos.map((d) => d.usuario ?? d.correo ?? "").join(" ")}`.toLowerCase()).includes(t);
@@ -320,10 +352,12 @@ export function PanelPlataforma({ negocios, ahora, error, bien, claveProblema, q
   const kpis: { k: string; v: number; t: string; f?: Filtro; tono: string }[] = [
     { k: "negocios", v: cuenta.todos, t: "Negocios", f: "todos", tono: "azul" },
     { k: "activos", v: cuenta.activos, t: "Con licencia activa", f: "activos", tono: "verde" },
-    { k: "vencen", v: cuenta.vencen, t: "Vencen esta semana", f: "vencen", tono: "ambar" },
+    { k: "vencen", v: cuenta.vencen, t: "Por vencer o en gracia", f: "vencen", tono: "ambar" },
     { k: "equipos", v: equipos, t: "Verificadores hoy", tono: "azul" },
   ];
-  const chips: [Filtro, string][] = [["todos", "Todos"], ["activos", "Activos"], ["prueba", "En prueba"], ["vencen", "Por vencer"], ["bloqueados", "Bloqueados"]];
+  const chips: [Filtro, string][] = [["todos", "Todos"], ["activos", "Activos"], ["prueba", "En prueba"], ["vencen", "Por vencer"], ["bloqueados", "Bloqueados"], ["piden", "Piden plan"]];
+  const pestanas: [Vista, string, number?][] = [["negocios", "Negocios"], ["solicitudes", "Solicitudes", nuevas], ["planes", "Planes"], ["reglas", "Reglas"],
+    ...(admin ? [["equipo", "Equipo"] as [Vista, string]] : [])];
 
   return (
     <main className="pl-pagina">
@@ -334,12 +368,12 @@ export function PanelPlataforma({ negocios, ahora, error, bien, claveProblema, q
             <h1>Plataforma</h1>
             <p className="pl-sub">Negocios, licencias y vigencia en un solo lugar.</p>
           </div>
-          <button type="button" className="pl-nuevo" onClick={() => setAlta(true)}><b>+</b> Nuevo negocio</button>
+          {escribe && <button type="button" className="pl-nuevo" onClick={() => setAlta(true)}><b>+</b> Nuevo negocio</button>}
         </div>
         <div className="pl-kpis">
           {kpis.map((x) => (
             x.f ? (
-              <button key={x.k} type="button" className={`pl-kpi ${x.tono}${filtro === x.f ? " on" : ""}`} onClick={() => setFiltro(x.f!)}>
+              <button key={x.k} type="button" className={`pl-kpi ${x.tono}${vista === "negocios" && filtro === x.f ? " on" : ""}`} onClick={() => { setVista("negocios"); setFiltro(x.f!); }}>
                 <b>{nf.format(x.v)}</b><span>{x.t}</span>
               </button>
             ) : (
@@ -354,7 +388,21 @@ export function PanelPlataforma({ negocios, ahora, error, bien, claveProblema, q
       )}
       {claveProblema && <p className="aviso error">{claveProblema} Sin ella no se pueden crear las cuentas de los dueños.</p>}
 
-      <section aria-label="Negocios">
+      <nav className="pl-vistas" aria-label="Secciones de la plataforma">
+        {pestanas.map(([v, t, c]) => (
+          <button key={v} type="button" aria-current={vista === v ? "page" : undefined} className={vista === v ? "on" : ""} onClick={() => setVista(v)}>
+            {t}{c ? <span className="pl-cuenta">{c}</span> : null}
+          </button>
+        ))}
+        {datos.rol !== "administrador" && <span className="pl-rol">Tu rol: {datos.rol}</span>}
+      </nav>
+
+      {vista === "solicitudes" && <VistaSolicitudes datos={datos} escribe={escribe} />}
+      {vista === "planes" && <VistaPlanes datos={datos} admin={admin} />}
+      {vista === "reglas" && <VistaReglas a={datos.ajustes} admin={admin} />}
+      {vista === "equipo" && admin && datos.equipo && <VistaEquipo equipo={datos.equipo} />}
+
+      <section aria-label="Negocios" hidden={vista !== "negocios"}>
         <div className="pl-barra-herr">
           <div className="pl-buscar">
             <input type="search" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar negocio, licencia o dueño" aria-label="Buscar" />
@@ -385,12 +433,12 @@ export function PanelPlataforma({ negocios, ahora, error, bien, claveProblema, q
           </div>
         ) : (
           <ul className="pl-lista">
-            {lista.map(({ n }, i) => <Tarjeta key={n.id} n={n} ahora={ahora} indice={i} />)}
+            {lista.map(({ n }, i) => <Tarjeta key={n.id} n={n} ahora={ahora} indice={i} planes={datos.planes} escribe={escribe} />)}
           </ul>
         )}
       </section>
 
-      <AltaNegocio abierto={alta} cerrar={() => setAlta(false)} />
+      <AltaNegocio abierto={alta} cerrar={() => setAlta(false)} diasPrueba={datos.ajustes.dias_prueba} />
     </main>
   );
 }

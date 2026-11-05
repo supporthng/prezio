@@ -235,6 +235,7 @@
       <button data-panel="apariencia"><span class="punto"></span>Apariencia</button>
       <button data-panel="equipos"><span class="punto"></span>Equipos</button>
       <button data-panel="usuarios"><span class="punto"></span>Usuarios</button>
+      <button data-panel="licencia"><span class="punto"></span>Licencia</button>
     </nav>
     <div class="pie">
       <div id="pie-equipo"></div>
@@ -260,6 +261,7 @@
           <button data-panel="apariencia"><strong>Apariencia</strong><span>Logo y colores</span></button>
           <button data-panel="equipos"><strong>Equipos</strong><span>Verificadores</span></button>
           <button data-panel="usuarios"><strong>Usuarios</strong><span>Accesos y permisos</span></button>
+          <button data-panel="licencia"><strong>Licencia</strong><span>Plan, límites y renovación</span></button>
         </div>
         <p class="aviso error" id="panel-error" role="alert" hidden></p>
       </div>
@@ -635,6 +637,9 @@ $("#f-entrar").onsubmit = async (ev) => {
   const r = await api("entrar", { modo, usuario: $("#e-usuario").value, correo: $("#e-correo").value,
     clave: $("#e-clave").value, recordar: $("#e-recordar").checked });
   ocupado(b, false);
+  if (r.error && r.estado && !r.estado.activacion) {      // le liberaron la PC: vuelve a la pantalla de activar
+    await refrescar(); $("#a-error-activar").hidden = false; $("#a-error-activar").textContent = r.error; return;
+  }
   if (r.error) { $("#e-error").hidden = false; $("#e-error").textContent = r.error; return; }
   $("#e-error").hidden = true; $("#e-clave").value = "";
   refrescar(); ir("inicio");
