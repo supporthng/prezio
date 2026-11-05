@@ -11,9 +11,9 @@
     "fecha": "2026-11-05T16:20:26+00:00"
   },
   "administrador": {
-    "version": "2.0.31",
+    "version": "2.0.32",
     "url": "https://github.com/supporthng/prezio/releases/download/administrador/Instalador_Prezio_Administrador.exe",
-    "fecha": "2026-11-05T13:56:28+00:00"
+    "fecha": "2026-11-05T16:20:27+00:00"
   },
   "conector": {
     "version": "2.0.6",
