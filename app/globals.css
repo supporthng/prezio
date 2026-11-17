@@ -856,3 +856,8 @@ main .tarjeta + .tarjeta { margin-top: 16px; }
 .pl-plan-precios small { font-size: .78rem; }
 .pl-anual { margin: -4px 0 4px; }
 .lic-anual { margin: 2px 0 0; font-size: .85rem; color: var(--bien); font-weight: 600; }
+.lic-modo { display: inline-flex; gap: 4px; padding: 4px; border-radius: 999px; background: var(--superficie); border: 1px solid var(--linea); margin: 0 0 14px; }
+.lic-modo button { font: inherit; font-weight: 700; font-size: .92rem; border: 0; background: none; color: var(--tinta); padding: 8px 18px; border-radius: 999px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+.lic-modo button.on { background: var(--tinta); color: var(--papel); }
+.lic-ahorro { font-size: .74rem; font-weight: 800; background: #1f7a4d; color: #fff; border-radius: 999px; padding: 2px 7px; }
+.lic-modo button.on .lic-ahorro { background: #ffd23f; color: #102a43; }

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useEnApp } from "@/components/EnApp";
-import { limitesPlan, precioPlan, textoAnual, totalPago, type Plan } from "@/lib/licencia";
+import { limitesPlan, precioAnual, totalPago, type Plan } from "@/lib/licencia";
 import { solicitarPlan } from "./actions";
 
 /** Elegir un plan y pedirlo al proveedor (también desde la app Prezcio Administrador). */
@@ -11,21 +11,36 @@ export function PedirPlan({ planes, actual, negocio, slug, moneda, descuento, pl
 }) {
   const enApp = useEnApp();
   const [elegido, setElegido] = useState<Plan | null>(null);
-  const [meses, setMeses] = useState(1);
-  const opciones = elegido?.periodo === "anual" ? [12, 24, 36] : [1, 3, 6, 12];
-
-  const elegir = (p: Plan) => { setElegido(p); setMeses(p.periodo === "anual" ? 12 : 1); };
+  const [modo, setModo] = useState<"mensual" | "anual">("mensual");
+  const meses = modo === "anual" ? 12 : 1;
+  const elegir = (p: Plan) => setElegido(p);
   const t = elegido ? totalPago(elegido, meses, descuento) : null;
+  const dinero = (n: number) => `${moneda} ${n.toLocaleString("es-DO", { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 })}`;
+  /** Precio grande de la tarjeta según lo que eligió (mensual o anual) y la línea chica de abajo. */
+  const precios = (p: Plan): [string, string] => {
+    const n = Number(p.precio) || 0;
+    if (!n) return ["Consultar precio", ""];
+    if (p.permanente) return [`${dinero(n)}`, "Pago único"];
+    const mes = p.periodo === "anual" ? n / 12 : n, anio = precioAnual(p, descuento) ?? n * 12;
+    return modo === "anual"
+      ? [`${dinero(anio)} al año`, `Equivale a ${dinero(Math.round((anio / 12) * 100) / 100)} al mes`]
+      : [`${dinero(mes)} al mes`, descuento > 0 ? `Anual: ${dinero(anio)} (ahorras ${descuento}%)` : `Anual: ${dinero(anio)}`];
+  };
 
   return (
     <div>
+      <div className="lic-modo" role="radiogroup" aria-label="Forma de pago">
+        <button type="button" role="radio" aria-checked={modo === "mensual"} className={modo === "mensual" ? "on" : ""} onClick={() => setModo("mensual")}>Mensual</button>
+        <button type="button" role="radio" aria-checked={modo === "anual"} className={modo === "anual" ? "on" : ""} onClick={() => setModo("anual")}>
+          Anual{descuento > 0 && <span className="lic-ahorro">−{descuento}%</span>}</button>
+      </div>
       <ul className="lic-planes">
         {planes.map((p) => (
           <li key={p.codigo} className={`lic-plan${p.destacado ? " destacado" : ""}${elegido?.codigo === p.codigo ? " elegido" : ""}`}>
             {(p.etiqueta || p.codigo === actual) && <span className="lic-plan-etq">{p.codigo === actual ? "Tu plan" : p.etiqueta}</span>}
             <h3>{p.nombre}</h3>
-            <p className="lic-precio">{precioPlan(p, moneda)}</p>
-            {textoAnual(p, descuento, moneda) && <p className="lic-anual">o {textoAnual(p, descuento, moneda)}</p>}
+            <p className="lic-precio">{precios(p)[0]}</p>
+            {precios(p)[1] && <p className="lic-anual">{precios(p)[1]}</p>}
             {p.descripcion && <p className="quieto pequeno">{p.descripcion}</p>}
             <p className="lic-incluye">{limitesPlan(p)}</p>
             {p.funciones.length > 0 && <ul className="lic-funciones">{p.funciones.map((f) => <li key={f}>{f}</li>)}</ul>}
@@ -42,21 +57,9 @@ export function PedirPlan({ planes, actual, negocio, slug, moneda, descuento, pl
           <input type="hidden" name="plan" value={elegido.codigo} />
           <input type="hidden" name="meses" value={elegido.permanente ? 0 : meses} />
           <input type="hidden" name="origen" value={enApp ? "app" : "panel"} />
-          <h3>Pedir {elegido.nombre}</h3>
-          {!elegido.permanente && (
-            <div className="campo">
-              <span className="etq">Tiempo</span>
-              <div className="lic-meses" role="radiogroup" aria-label="Tiempo">
-                {opciones.map((m) => (
-                  <button key={m} type="button" role="radio" aria-checked={meses === m} className={meses === m ? "on" : ""} onClick={() => setMeses(m)}>
-                    {m % 12 === 0 ? `${m / 12} ${m === 12 ? "año" : "años"}` : `${m} ${m === 1 ? "mes" : "meses"}`}
-                  </button>
-                ))}
-              </div>
-              {elegido.periodo === "mensual" && descuento > 0 && <p className="quieto pequeno">Pagando un año o más: {descuento}% de descuento.</p>}
-            </div>
-          )}
-          {t !== null && <p className="lic-total">Total aproximado: <strong>{moneda} {t.toLocaleString("es-DO", { maximumFractionDigits: 2 })}</strong></p>}
+          <h3>Pedir {elegido.nombre} · {modo === "anual" ? "anual" : "mensual"}</h3>
+          {!elegido.permanente && <p className="quieto pequeno">Pago {modo === "anual" ? `anual (12 meses${descuento > 0 ? `, con ${descuento}% de descuento` : ""})` : "mensual"}. Puedes cambiarlo arriba.</p>}
+          {t !== null && <p className="lic-total">Total: <strong>{dinero(t)}</strong>{!elegido.permanente && (modo === "anual" ? " por un año" : " por un mes")}</p>}
           <div className="fila">
             <div className="campo"><label htmlFor="lp-contacto">Tu nombre</label><input id="lp-contacto" name="contacto" required minLength={2} maxLength={80} /></div>
             <div className="campo"><label htmlFor="lp-telefono">Teléfono / WhatsApp</label><input id="lp-telefono" name="telefono" required inputMode="tel" maxLength={30} placeholder="809-555-1234" /></div>
