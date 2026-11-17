@@ -182,6 +182,7 @@ function Tarjeta({ n, ahora, indice, planes, escribe, sitio, cortos }: { n: Nego
   const [enlaceCopiado, setEnlaceCopiado] = useState(false);
   const enlace = cortos ? enlaceNegocio(sitio || "https://prezcio.app", n.slug) : `${sitio || "https://prezcio.app"}/n/${n.slug}`;
   const [confirmar, setConfirmar] = useState(false);
+  const [menu, setMenu] = useState(false);
   const ofrecidos = planes.filter((p) => p.activo || p.codigo === n.plan);
   const actual = n.plan === "suspendido" ? n.lic.plan_antes : n.plan;
   const [plan, setPlan] = useState<string>(ofrecidos.find((p) => p.codigo === actual)?.codigo ?? ofrecidos[0]?.codigo ?? "");
@@ -200,7 +201,8 @@ function Tarjeta({ n, ahora, indice, planes, escribe, sitio, cortos }: { n: Nego
     try { await navigator.clipboard.writeText(enlace); setEnlaceCopiado(true); setTimeout(() => setEnlaceCopiado(false), 1800); } catch { /* sin portapapeles */ }
   };
   const whatsapp = `https://wa.me/?text=${encodeURIComponent(`${n.nombre} ya está en Prezcio.\nEntra a tu panel: ${enlace}\nTu licencia: ${n.licencia}`)}`;
-  const abrir = (p: "pago" | "prueba" | "dueno" | "historial") => setPanel((a) => (a === p ? null : p));
+  const abrir = (p: "pago" | "prueba" | "dueno" | "historial") => { setPanel((a) => (a === p ? null : p)); setMenu(false); };
+  const NOMBRE_PANEL = { pago: "Registrar pago", prueba: "Días de prueba", dueno: "Agregar dueño", historial: "Historial y PCs" } as const;
 
   return (
     <li className={`pl-negocio estado-${lic.estado}`} style={{ animationDelay: `${Math.min(indice, 10) * 45}ms` }}>
@@ -220,7 +222,7 @@ function Tarjeta({ n, ahora, indice, planes, escribe, sitio, cortos }: { n: Nego
       </button>
       <div className="pl-enlace">
         <button type="button" className={`pl-codigo${enlaceCopiado ? " ok" : ""}`} onClick={copiarEnlace} title="Copiar el enlace directo del negocio">
-          <code>{enlace.replace(/^https?:\/\//, "")}</code><span>{enlaceCopiado ? "¡Copiado!" : "Copiar enlace"}</span>
+          <code title={enlace}>{enlace.replace(/^https?:\/\//, "")}</code><span>{enlaceCopiado ? "¡Copiado!" : "Copiar"}</span>
         </button>
         {cortos && escribe && (
           <form action={activarEnlace} className="pl-activar"><input type="hidden" name="slug" value={n.slug} />
@@ -248,12 +250,19 @@ function Tarjeta({ n, ahora, indice, planes, escribe, sitio, cortos }: { n: Nego
       {n.solicitud && <p className="pl-pide">Pidió un plan · {n.solicitud === "nueva" ? "sin contactar" : "contactado"}</p>}
 
       <div className="pl-acciones">
-        {escribe && <>
-        <button type="button" className={`pl-tab${panel === "pago" ? " on" : ""}`} aria-expanded={panel === "pago"} onClick={() => abrir("pago")}>Registrar pago</button>
-        <button type="button" className={`pl-tab${panel === "prueba" ? " on" : ""}`} aria-expanded={panel === "prueba"} onClick={() => abrir("prueba")}>Días de prueba</button>
-        <button type="button" className={`pl-tab${panel === "dueno" ? " on" : ""}`} aria-expanded={panel === "dueno"} onClick={() => abrir("dueno")}>Agregar dueño</button>
-        </>}
-        <button type="button" className={`pl-tab${panel === "historial" ? " on" : ""}`} aria-expanded={panel === "historial"} onClick={() => abrir("historial")}>Historial y PCs</button>
+        <div className="pl-menu">
+          <button type="button" className={`pl-tab${menu ? " on" : ""}`} aria-expanded={menu} onClick={() => setMenu((m) => !m)}>Acciones ▾</button>
+          {menu && (
+            <div className="pl-menu-lista" role="group" aria-label="Acciones">
+              {escribe && (["pago", "prueba", "dueno"] as const).map((p) => (
+                <button key={p} type="button" onClick={() => abrir(p)}>{NOMBRE_PANEL[p]}</button>
+              ))}
+              <button type="button" onClick={() => abrir("historial")}>{NOMBRE_PANEL.historial}</button>
+              {escribe && !suspendido && <button type="button" className="peligro" onClick={() => { setConfirmar(true); setMenu(false); setPanel(null); }}>Suspender…</button>}
+            </div>
+          )}
+        </div>
+        {panel && <span className="pl-abierto">{NOMBRE_PANEL[panel]} <button type="button" className="enlace-boton" onClick={() => setPanel(null)} aria-label="Cerrar">×</button></span>}
       </div>
 
       {panel === "pago" && (
@@ -301,22 +310,54 @@ function Tarjeta({ n, ahora, indice, planes, escribe, sitio, cortos }: { n: Nego
 
       {panel === "historial" && <HistorialNegocio negocio={n.id} escribe={escribe} planes={planes} />}
 
-      {escribe && <form action={suspender} className="pl-suspender">
+      {escribe && (suspendido || confirmar) && <form action={suspender} className="pl-suspender">
         <input type="hidden" name="negocio" value={n.id} />
         <input type="hidden" name="accion" value={suspendido ? "reactivar" : "suspender"} />
         {suspendido ? (
           <button className="boton" type="submit">Quitar suspensión</button>
-        ) : confirmar ? (
+        ) : (
           <>
             <span className="quieto pequeno">¿Suspender «{n.nombre}»? Sus verificadores dejarán de dar precios.</span>
             <button className="boton peligro" type="submit">Sí, suspender</button>
             <button className="boton secundario" type="button" onClick={() => setConfirmar(false)}>Cancelar</button>
           </>
-        ) : (
-          <button className="boton secundario peligro" type="button" onClick={() => setConfirmar(true)}>Suspender</button>
         )}
       </form>}
     </li>
+  );
+}
+
+/* ---------------------------------------------------------------- vista de lista */
+
+const NOMBRE_ESTADO = { activa: "Activa", por_vencer: "Por vencer", prueba: "En prueba", gracia: "En gracia", vencida: "Vencida", suspendida: "Suspendida" } as const;
+const claseEstado = (e: EstadoLic["estado"]) => (e === "por_vencer" ? "activa" : e === "gracia" ? "vencida" : e);
+
+function Fila({ n, abierta, onAbrir, ...resto }: { n: NegocioPl; abierta: boolean; onAbrir: () => void; ahora: number; planes: Plan[]; escribe: boolean; sitio: string; cortos: boolean }) {
+  const med = medidor(n, n.lic);
+  const dueno = n.duenos[0];
+  return (
+    <>
+      <tr className={`pl-fila estado-${n.lic.estado}${abierta ? " abierta" : ""}`} onClick={onAbrir}>
+        <th scope="row">
+          <button type="button" className="pl-fila-nombre" aria-expanded={abierta} onClick={(e) => { e.stopPropagation(); onAbrir(); }}>
+            <span className="pl-ini chico" aria-hidden="true">{n.nombre.trim().slice(0, 1).toUpperCase()}</span>
+            <span><b>{n.nombre}</b><small>{n.slug}</small></span>
+          </button>
+        </th>
+        <td><code className="pl-lic">{n.licencia}</code></td>
+        <td><span className={`pl-estado ${claseEstado(n.lic.estado)}`}>{NOMBRE_ESTADO[n.lic.estado]}</span></td>
+        <td className={`pl-vence ${med.tono}`}>{med.texto}</td>
+        <td className="num">{n.equipos_activos}<small>/{n.equipos}{n.limites.equipos !== null ? ` de ${n.limites.equipos}` : ""}</small></td>
+        <td className="num">{usoTexto(n.usuarios, n.limites.usuarios)}</td>
+        <td className="pl-fila-dueno">{dueno ? (dueno.correo ?? dueno.usuario) : <span className="error-texto">Sin dueño</span>}{n.solicitud && <span className="pl-pide-chip">Pide plan</span>}</td>
+        <td className="pl-fila-flecha" aria-hidden="true">{abierta ? "▴" : "▾"}</td>
+      </tr>
+      {abierta && (
+        <tr className="pl-fila-detalle"><td colSpan={8}>
+          <ul className="pl-lista una"><Tarjeta n={n} indice={0} {...resto} /></ul>
+        </td></tr>
+      )}
+    </>
   );
 }
 
@@ -334,6 +375,12 @@ export function PanelPlataforma({ negocios, datos, apps, sitio, cortos, vista: v
   const [busca, setBusca] = useState(q ?? "");
   const [alta, setAlta] = useState(false);
   const [aviso, setAviso] = useState(true);
+  const [modo, setModo] = useState<"lista" | "tarjetas">(negocios.length > 6 ? "lista" : "tarjetas");
+  const [abierta, setAbierta] = useState<string | null>(null);
+  useEffect(() => {
+    try { const m = localStorage.getItem("pl-modo"); if (m === "lista" || m === "tarjetas") setModo(m); } catch { /* sin almacenamiento */ }
+  }, []);
+  const cambiarModo = (m: "lista" | "tarjetas") => { setModo(m); try { localStorage.setItem("pl-modo", m); } catch { /* sin almacenamiento */ } };
 
   const info = useMemo(() => negocios.map((n) => ({ n, lic: n.lic })), [negocios]);
   const cuenta = useMemo(() => ({
@@ -376,41 +423,41 @@ export function PanelPlataforma({ negocios, datos, apps, sitio, cortos, vista: v
 
   return (
     <main className="pl-pagina">
-      <section className="pl-hero">
-        <div className="pl-hero-fila">
-          <div>
-            <p className="pl-sobre">Prezcio · administración</p>
-            <h1>Plataforma</h1>
-            <p className="pl-sub">Negocios, licencias y vigencia en un solo lugar.</p>
-          </div>
-          {escribe && <button type="button" className="pl-nuevo" onClick={() => setAlta(true)}><b>+</b> Nuevo negocio</button>}
-        </div>
-        <div className="pl-kpis">
-          {kpis.map((x) => (
-            x.f ? (
-              <button key={x.k} type="button" className={`pl-kpi ${x.tono}${vista === "negocios" && filtro === x.f ? " on" : ""}`} onClick={() => { setVista("negocios"); setFiltro(x.f!); }}>
-                <b>{nf.format(x.v)}</b><span>{x.t}</span>
-              </button>
-            ) : (
-              <div key={x.k} className={`pl-kpi ${x.tono}`}><b>{nf.format(x.v)}</b><span>{x.t}</span></div>
-            )
+      <aside className="pl-lado" aria-label="Secciones de la plataforma">
+        {escribe && <button type="button" className="pl-nuevo" onClick={() => setAlta(true)}><b>+</b> Nuevo negocio</button>}
+        <nav className="pl-vistas">
+          {pestanas.map(([v, t, c]) => (
+            <button key={v} type="button" aria-current={vista === v ? "page" : undefined} className={vista === v ? "on" : ""} onClick={() => setVista(v)}>
+              <span>{t}</span>{c ? <span className="pl-cuenta">{c}</span> : null}
+            </button>
           ))}
-        </div>
-      </section>
+        </nav>
+        {datos.rol !== "administrador" && <p className="pl-rol">Tu rol: {datos.rol}</p>}
+      </aside>
 
-      {aviso && (error || bien) && (
-        <div className="pl-aviso" onClick={() => setAviso(false)} title="Toca para cerrar"><Aviso error={error} bien={bien} /></div>
-      )}
-      {claveProblema && <p className="aviso error">{claveProblema} Sin ella no se pueden crear las cuentas de los dueños.</p>}
+      <div className="pl-contenido">
+        <section className="pl-hero">
+          <div>
+            <h1>Plataforma</h1>
+            <p className="pl-sub">Negocios, licencias y vigencia.</p>
+          </div>
+          <div className="pl-kpis">
+            {kpis.map((x) => (
+              x.f ? (
+                <button key={x.k} type="button" className={`pl-kpi ${x.tono}${vista === "negocios" && filtro === x.f ? " on" : ""}`} onClick={() => { setVista("negocios"); setFiltro(x.f!); }}>
+                  <b>{nf.format(x.v)}</b><span>{x.t}</span>
+                </button>
+              ) : (
+                <div key={x.k} className={`pl-kpi ${x.tono}`}><b>{nf.format(x.v)}</b><span>{x.t}</span></div>
+              )
+            ))}
+          </div>
+        </section>
 
-      <nav className="pl-vistas" aria-label="Secciones de la plataforma">
-        {pestanas.map(([v, t, c]) => (
-          <button key={v} type="button" aria-current={vista === v ? "page" : undefined} className={vista === v ? "on" : ""} onClick={() => setVista(v)}>
-            {t}{c ? <span className="pl-cuenta">{c}</span> : null}
-          </button>
-        ))}
-        {datos.rol !== "administrador" && <span className="pl-rol">Tu rol: {datos.rol}</span>}
-      </nav>
+        {aviso && (error || bien) && (
+          <div className="pl-aviso" onClick={() => setAviso(false)} title="Toca para cerrar"><Aviso error={error} bien={bien} /></div>
+        )}
+        {claveProblema && <p className="aviso error">{claveProblema} Sin ella no se pueden crear las cuentas de los dueños.</p>}
 
       {vista === "solicitudes" && <VistaSolicitudes datos={datos} escribe={escribe} />}
       {vista === "planes" && <VistaPlanes datos={datos} admin={admin} />}
@@ -423,6 +470,7 @@ export function PanelPlataforma({ negocios, datos, apps, sitio, cortos, vista: v
           <div className="pl-buscar">
             <input type="search" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar negocio, licencia o dueño" aria-label="Buscar" />
           </div>
+          <Segmentos etiqueta="Ver como" valor={modo} onCambia={cambiarModo} opciones={[["lista", "Lista"], ["tarjetas", "Tarjetas"]]} />
           <label className="pl-orden">Ordenar
             <select value={orden} onChange={(e) => setOrden(e.target.value as Orden)}>
               <option value="recientes">Más recientes</option>
@@ -447,12 +495,28 @@ export function PanelPlataforma({ negocios, datos, apps, sitio, cortos, vista: v
               ? <button type="button" className="boton" onClick={() => setAlta(true)}>Dar de alta un negocio</button>
               : <button type="button" className="boton secundario" onClick={() => { setFiltro("todos"); setBusca(""); }}>Quitar filtros</button>}
           </div>
-        ) : (
+        ) : modo === "tarjetas" ? (
           <ul className="pl-lista">
             {lista.map(({ n }, i) => <Tarjeta key={n.id} n={n} ahora={ahora} indice={i} planes={datos.planes} escribe={escribe} sitio={sitio} cortos={cortos} />)}
           </ul>
+        ) : (
+          <div className="pl-tabla-caja">
+            <table className="pl-tabla">
+              <thead><tr>
+                <th scope="col">Negocio</th><th scope="col">Licencia</th><th scope="col">Estado</th><th scope="col">Vigencia</th>
+                <th scope="col" className="num">Lectores hoy</th><th scope="col" className="num">Usuarios</th><th scope="col">Dueño</th><th scope="col"><span className="solo-lector">Abrir</span></th>
+              </tr></thead>
+              <tbody>
+                {lista.map(({ n }) => (
+                  <Fila key={n.id} n={n} abierta={abierta === n.id} onAbrir={() => setAbierta((a) => (a === n.id ? null : n.id))}
+                    ahora={ahora} planes={datos.planes} escribe={escribe} sitio={sitio} cortos={cortos} />
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
+      </div>
 
       <AltaNegocio abierto={alta} cerrar={() => setAlta(false)} diasPrueba={datos.ajustes.dias_prueba} sitio={sitio} cortos={cortos} />
     </main>
