@@ -1,20 +1,15 @@
-import { NextResponse, type NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { actualizarSesion } from "@/lib/supabase/middleware";
-import { dominioBase, subdominioDe } from "@/lib/subdominio";
+import { dominioBase, rutaDeSubdominio, subdominioDe } from "@/lib/subdominio";
 
-const SITIO = (process.env.NEXT_PUBLIC_SITE_URL || "https://prezcio.app").replace(/\/$/, "");
-const BASE = dominioBase(SITIO);
+const BASE = dominioBase((process.env.NEXT_PUBLIC_SITE_URL || "https://prezcio.app").replace(/\/$/, ""));
 
 export async function middleware(request: NextRequest) {
-  // onetech.prezcio.app → prezcio.app/n/onetech (y /verificador → /v/onetech). La sesión vive en el dominio principal.
-  const sub = subdominioDe(request.headers.get("host") ?? "", BASE);
-  if (sub) {
-    const ruta = request.nextUrl.pathname;
-    const destino = ruta === "/verificador" || ruta.startsWith("/verificador/") ? `/v/${sub}${ruta.slice("/verificador".length)}`
-      : `/n/${sub}${ruta === "/" ? "" : ruta}`;
-    return NextResponse.redirect(`${SITIO}${destino}${request.nextUrl.search}`, 307);
-  }
-  return actualizarSesion(request);
+  // onetech.prezcio.app muestra el panel de onetech sin cambiar la dirección (y /verificador, su verificador).
+  const host = request.headers.get("host") ?? "";
+  const sub = subdominioDe(host, BASE);
+  const interna = sub ? rutaDeSubdominio(sub, request.nextUrl.pathname) : null;
+  return actualizarSesion(request, interna, BASE);
 }
 
 export const config = {

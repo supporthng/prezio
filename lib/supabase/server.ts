@@ -1,5 +1,6 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { dominioBase, dominioCookies } from "@/lib/subdominio";
 import { SUPABASE_KEY, SUPABASE_URL, variablesFaltantes } from "./config";
 
 type CookieNueva = { name: string; value: string; options: CookieOptions };
@@ -10,10 +11,12 @@ export async function supabaseServidor() {
   const faltan = variablesFaltantes();
   if (faltan.length) throw new Error("Faltan en Vercel: " + faltan.join(", "));
   const almacen = await cookies();
+  const dominio = dominioCookies((await headers()).get("host") ?? "", dominioBase(process.env.NEXT_PUBLIC_SITE_URL || "https://prezcio.app"));
   return createServerClient(
     SUPABASE_URL,
     SUPABASE_KEY,
     {
+      ...(dominio ? { cookieOptions: { domain: dominio } } : {}),
       cookies: {
         getAll() {
           return almacen.getAll();
