@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Aviso } from "@/components/Aviso";
+import { enlaceNegocio } from "@/lib/subdominio";
 import { fechaCorta, precioPlan, textoLicencia, type EstadoLic, type Limites, type Plan } from "@/lib/licencia";
 import { agregarDueno, altaNegocio, extenderPrueba, registrarPago, suspender } from "./actions";
 import { HistorialNegocio, VistaDescargas, VistaEquipo, VistaPlanes, VistaReglas, VistaSolicitudes, type Apps, type DatosPl } from "./Vistas";
@@ -97,7 +98,7 @@ function CamposDueno({ id }: { id: string }) {
 }
 
 /** Cajón lateral para dar de alta un negocio, en dos pasos y con la licencia a la vista. */
-function AltaNegocio({ abierto, cerrar, diasPrueba, sitio }: { abierto: boolean; cerrar: () => void; diasPrueba: number; sitio: string }) {
+function AltaNegocio({ abierto, cerrar, diasPrueba, sitio, cortos }: { abierto: boolean; cerrar: () => void; diasPrueba: number; sitio: string; cortos: boolean }) {
   const [paso, setPaso] = useState<1 | 2>(1);
   const [nombre, setNombre] = useState("");
   const [slug, setSlug] = useState("");
@@ -156,7 +157,7 @@ function AltaNegocio({ abierto, cerrar, diasPrueba, sitio }: { abierto: boolean;
                 <input id="pl-moneda" name="moneda" defaultValue="RD$" maxLength={6} />
               </div>
             </div>
-            <p className="quieto pequeno">Su enlace directo será <code>{(sitio || "https://prezcio.app").replace(/^https?:\/\//, "")}/n/{slug || "direccion"}</code>. Nace con su sucursal Principal y todas las funciones.</p>
+            <p className="quieto pequeno">Su enlace directo será <code>{(cortos ? enlaceNegocio(sitio || "https://prezcio.app", slug || "direccion") : `${sitio || "https://prezcio.app"}/n/${slug || "direccion"}`).replace(/^https?:\/\//, "")}</code>. Nace con su sucursal Principal y todas las funciones.</p>
             {error && <p className="aviso error" role="alert">{error}</p>}
             <div className="pl-pie"><button type="button" className="boton" onClick={siguiente}>Siguiente</button></div>
           </div>
@@ -173,13 +174,13 @@ function AltaNegocio({ abierto, cerrar, diasPrueba, sitio }: { abierto: boolean;
   );
 }
 
-function Tarjeta({ n, ahora, indice, planes, escribe, sitio }: { n: NegocioPl; ahora: number; indice: number; planes: Plan[]; escribe: boolean; sitio: string }) {
+function Tarjeta({ n, ahora, indice, planes, escribe, sitio, cortos }: { n: NegocioPl; ahora: number; indice: number; planes: Plan[]; escribe: boolean; sitio: string; cortos: boolean }) {
   const lic = n.lic;
   const med = medidor(n, lic);
   const [panel, setPanel] = useState<null | "pago" | "prueba" | "dueno" | "historial">(null);
   const [copiado, setCopiado] = useState(false);
   const [enlaceCopiado, setEnlaceCopiado] = useState(false);
-  const enlace = `${sitio || "https://prezcio.app"}/n/${n.slug}`;
+  const enlace = cortos ? enlaceNegocio(sitio || "https://prezcio.app", n.slug) : `${sitio || "https://prezcio.app"}/n/${n.slug}`;
   const [confirmar, setConfirmar] = useState(false);
   const ofrecidos = planes.filter((p) => p.activo || p.codigo === n.plan);
   const actual = n.plan === "suspendido" ? n.lic.plan_antes : n.plan;
@@ -317,8 +318,8 @@ function Tarjeta({ n, ahora, indice, planes, escribe, sitio }: { n: NegocioPl; a
 
 /* ---------------------------------------------------------------- pantalla */
 
-export function PanelPlataforma({ negocios, datos, apps, sitio, vista: vistaInicial, ahora, error, bien, claveProblema, q }: {
-  negocios: NegocioPl[]; datos: DatosPl; apps: Apps; sitio: string; vista?: string; ahora: number; error?: string; bien?: string; claveProblema?: string | null; q?: string;
+export function PanelPlataforma({ negocios, datos, apps, sitio, cortos, vista: vistaInicial, ahora, error, bien, claveProblema, q }: {
+  negocios: NegocioPl[]; datos: DatosPl; apps: Apps; sitio: string; cortos: boolean; vista?: string; ahora: number; error?: string; bien?: string; claveProblema?: string | null; q?: string;
 }) {
   const escribe = datos.rol !== "soporte";
   const admin = datos.rol === "administrador";
@@ -444,12 +445,12 @@ export function PanelPlataforma({ negocios, datos, apps, sitio, vista: vistaInic
           </div>
         ) : (
           <ul className="pl-lista">
-            {lista.map(({ n }, i) => <Tarjeta key={n.id} n={n} ahora={ahora} indice={i} planes={datos.planes} escribe={escribe} sitio={sitio} />)}
+            {lista.map(({ n }, i) => <Tarjeta key={n.id} n={n} ahora={ahora} indice={i} planes={datos.planes} escribe={escribe} sitio={sitio} cortos={cortos} />)}
           </ul>
         )}
       </section>
 
-      <AltaNegocio abierto={alta} cerrar={() => setAlta(false)} diasPrueba={datos.ajustes.dias_prueba} sitio={sitio} />
+      <AltaNegocio abierto={alta} cerrar={() => setAlta(false)} diasPrueba={datos.ajustes.dias_prueba} sitio={sitio} cortos={cortos} />
     </main>
   );
 }

@@ -6,6 +6,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseServidor } from "@/lib/supabase/server";
 import { supabaseAdmin, problemaClaveSecreta, errorDeCuentas, correoDeUsuario, USUARIO_VALIDO } from "@/lib/supabase/admin";
 import { mensajeError, sitio } from "@/lib/util";
+import { enlaceNegocio } from "@/lib/subdominio";
+import { agregarSubdominio, vercelListo } from "@/lib/vercel";
 
 const campo = (d: FormData, n: string) => String(d.get(n) ?? "").trim();
 const volver = (error: unknown, bien = "", d?: FormData): never => {
@@ -82,7 +84,11 @@ export async function altaNegocio(d: FormData) {
     await supabase.rpc("plataforma_borrar_negocio", { p_negocio: negocio.id });
     volver(r.error, "", d);
   }
-  const enlace = `${sitio() || "https://prezcio.app"}/n/${negocio.slug}`;
+  let enlace = `${sitio() || "https://prezcio.app"}/n/${negocio.slug}`;
+  if (vercelListo()) {
+    const corto = enlaceNegocio(sitio(), negocio.slug);
+    if (corto.startsWith("https://") && !corto.includes("/n/") && !(await agregarSubdominio(corto.slice(8)))) enlace = corto;
+  }
   volver(null, `Negocio «${campo(d, "nombre")}» creado${campo(d, "plan") && campo(d, "plan") !== "prueba" ? "" : " en prueba"}. Su enlace directo: ${enlace} . ${r.bien}`, d);
 }
 

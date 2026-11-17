@@ -6,6 +6,7 @@ import { PanelPlataforma, type NegocioPl } from "./PanelPlataforma";
 import type { Apps, DatosPl } from "./Vistas";
 import apps from "@/public/apps.json";
 import { sitio } from "@/lib/util";
+import { vercelListo } from "@/lib/vercel";
 
 export const metadata = { title: "Plataforma" };
 export const dynamic = "force-dynamic";
@@ -25,7 +26,7 @@ export default async function Plataforma({ searchParams }: Props) {
   return (
     <>
       <Barra />
-      <PanelPlataforma negocios={negocios} datos={datos as DatosPl} apps={apps as Apps} sitio={sitio()} vista={vista} ahora={Date.now()} error={error} bien={bien} claveProblema={problemaClaveSecreta()} q={q} />
+      <PanelPlataforma negocios={negocios} datos={datos as DatosPl} apps={apps as Apps} sitio={sitio()} cortos={vercelListo()} vista={vista} ahora={Date.now()} error={error} bien={bien} claveProblema={problemaClaveSecreta()} q={q} />
     </>
   );
 }
