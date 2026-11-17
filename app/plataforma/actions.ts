@@ -206,3 +206,12 @@ export async function quitarUsuario(d: FormData) {
   const { error } = await supabase.rpc("plataforma_quitar_usuario", { p_usuario: campo(d, "usuario") });
   volver(error, "Quitado del equipo de la plataforma.", d);
 }
+
+/** Registra (otra vez) el enlace corto de un negocio en Vercel: para los negocios creados antes de activarlo. */
+export async function activarEnlace(d: FormData) {
+  await soloPlataforma();
+  const corto = enlaceNegocio(sitio(), campo(d, "slug"));
+  if (!vercelListo() || corto.includes("/n/")) volver("Los enlaces cortos no están activos (faltan VERCEL_TOKEN y VERCEL_PROJECT_ID en Vercel).", "", d);
+  const error = await agregarSubdominio(corto.slice(8));
+  volver(error ? `No se pudo activar ${corto}: ${error}` : null, `Enlace activo: ${corto} (el certificado tarda unos minutos).`, d);
+}

@@ -594,6 +594,8 @@ button.pl-kpi:hover { background: rgba(255,255,255,.14); transform: translateY(-
 .pl-enlace .pl-codigo { flex: 1; min-width: 0; padding: 8px 14px; }
 .pl-enlace .pl-codigo code { font-weight: 600; letter-spacing: 0; font-size: .9rem; }
 .pl-wa { display: inline-flex; align-items: center; padding: 0 14px; border-radius: 12px; border: 1px solid var(--linea); background: var(--superficie); color: #128c4a; font-weight: 700; font-size: .85rem; text-decoration: none; white-space: nowrap; }
+.pl-activar { display: flex; }
+.pl-activar .pl-wa { color: var(--tinta); cursor: pointer; font: inherit; font-weight: 700; font-size: .85rem; }
 .pl-wa:hover, .pl-wa:focus-visible { border-color: #128c4a; }
 .pl-codigo:hover { border-color: var(--tinta); }
 .pl-codigo.ok { border-color: #1f7a4d; background: var(--bien-fondo); } .pl-codigo.ok span { color: var(--bien); }

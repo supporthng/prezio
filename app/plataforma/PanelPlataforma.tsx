@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Aviso } from "@/components/Aviso";
 import { enlaceNegocio } from "@/lib/subdominio";
 import { fechaCorta, precioPlan, textoLicencia, type EstadoLic, type Limites, type Plan } from "@/lib/licencia";
-import { agregarDueno, altaNegocio, extenderPrueba, registrarPago, suspender } from "./actions";
+import { activarEnlace, agregarDueno, altaNegocio, extenderPrueba, registrarPago, suspender } from "./actions";
 import { HistorialNegocio, VistaDescargas, VistaEquipo, VistaPlanes, VistaReglas, VistaSolicitudes, type Apps, type DatosPl } from "./Vistas";
 
 type Dueno = { usuario: string | null; correo: string | null; confirmado: boolean };
@@ -222,6 +222,10 @@ function Tarjeta({ n, ahora, indice, planes, escribe, sitio, cortos }: { n: Nego
         <button type="button" className={`pl-codigo${enlaceCopiado ? " ok" : ""}`} onClick={copiarEnlace} title="Copiar el enlace directo del negocio">
           <code>{enlace.replace(/^https?:\/\//, "")}</code><span>{enlaceCopiado ? "¡Copiado!" : "Copiar enlace"}</span>
         </button>
+        {cortos && escribe && (
+          <form action={activarEnlace} className="pl-activar"><input type="hidden" name="slug" value={n.slug} />
+            <button type="submit" className="pl-wa" title="Registrar este enlace en Vercel (negocios creados antes)">Activar</button></form>
+        )}
         <a className="pl-wa" href={whatsapp} target="_blank" rel="noopener noreferrer" title="Enviar el enlace y la licencia por WhatsApp">WhatsApp</a>
       </div>
 
