@@ -38,6 +38,24 @@ async function equipos(): Promise<string[]> {
   return [...lista, ""];
 }
 
+/** Qué ve el token (sin mostrarlo): si es válido, qué equipos alcanza y si ve el proyecto. */
+async function diagnostico(): Promise<string> {
+  const partes: string[] = [`token de ${token().length} caracteres`];
+  try {
+    const u = await llamar("/v2/user");
+    partes.push(u.ok ? "token válido" : `token inválido (HTTP ${u.status})`);
+    const t = await llamar("/v2/teams?limit=20");
+    const lista = t.ok ? (((await t.json()) as { teams?: { slug: string }[] }).teams ?? []).map((x) => x.slug) : [];
+    partes.push(t.ok ? `equipos: ${lista.join(", ") || "ninguno"}` : `equipos: HTTP ${t.status}`);
+    const eq = process.env.VERCEL_TEAM_ID?.trim();
+    const p = await llamar(`/v9/projects/${encodeURIComponent(process.env.VERCEL_PROJECT_ID!.trim())}${eq ? `?teamId=${encodeURIComponent(eq)}` : ""}`);
+    partes.push(p.ok ? "ve el proyecto" : `proyecto: HTTP ${p.status}`);
+  } catch (e) {
+    partes.push(e instanceof Error ? e.message : "sin respuesta");
+  }
+  return partes.join(" · ");
+}
+
 export async function agregarSubdominio(host: string): Promise<string | null> {
   if (!vercelListo()) return "sin configurar";
   const proyectos = [...new Set([process.env.VERCEL_PROJECT_ID!.trim(), "prezio"])];
@@ -57,7 +75,5 @@ export async function agregarSubdominio(host: string): Promise<string | null> {
   } catch (e) {
     return e instanceof Error ? e.message : "sin respuesta";
   }
-  return rechazado
-    ? "Vercel no aceptó el token (VERCEL_TOKEN) para el proyecto: revisa que sea del equipo donde está prezio, pégalo sin espacios y vuelve a publicar"
-    : `No encontré el proyecto en Vercel (${ultimo}): revisa VERCEL_PROJECT_ID`;
+  return `${rechazado ? "Vercel no aceptó el token para el proyecto" : "No encontré el proyecto en Vercel"}. Detalle: ${ultimo} · ${await diagnostico()}`;
 }
