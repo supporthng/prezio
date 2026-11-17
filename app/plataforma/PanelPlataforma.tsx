@@ -71,25 +71,25 @@ function CamposDueno({ id }: { id: string }) {
         <label htmlFor={`${id}-nombre`}>Nombre del dueño</label>
         <input id={`${id}-nombre`} name="dueno_nombre" maxLength={80} placeholder="Ej.: Rosa Pérez" />
       </div>
-      {acceso === "usuario" ? (
+      <div className="campo">
+        <label htmlFor={`${id}-correo`}>Correo del dueño</label>
+        <input id={`${id}-correo`} name="correo" type="email" required placeholder="dueno@negocio.com" autoComplete="off" />
+        {acceso === "usuario" && <small className="quieto">Para contactarlo y avisarle de su licencia. Entra con el usuario y la clave.</small>}
+      </div>
+      {acceso === "usuario" && (
         <div className="fila">
           <div className="campo">
             <label htmlFor={`${id}-usuario`}>Usuario</label>
-            <input id={`${id}-usuario`} name="usuario" maxLength={30} pattern="[a-z0-9][a-z0-9._\-]{2,29}" placeholder="rosa" autoComplete="off" />
+            <input id={`${id}-usuario`} name="usuario" required maxLength={30} pattern="[a-z0-9][a-z0-9._\-]{2,29}" placeholder="rosa" autoComplete="off" />
           </div>
           <div className="campo">
             <label htmlFor={`${id}-clave`}>Clave (mínimo 8)</label>
             <div className="pl-clave">
-              <input id={`${id}-clave`} name="clave" type={ver ? "text" : "password"} minLength={8} autoComplete="new-password" spellCheck={false} value={clave} onChange={(e) => setClave(e.target.value)} />
+              <input id={`${id}-clave`} name="clave" required type={ver ? "text" : "password"} minLength={8} autoComplete="new-password" spellCheck={false} value={clave} onChange={(e) => setClave(e.target.value)} />
               <button type="button" className="boton secundario" onClick={() => setVer((v) => !v)}>{ver ? "Ocultar" : "Ver"}</button>
               <button type="button" className="boton secundario" onClick={() => { setClave(claveNueva()); setVer(true); }}>Generar</button>
             </div>
           </div>
-        </div>
-      ) : (
-        <div className="campo">
-          <label htmlFor={`${id}-correo`}>Correo del dueño</label>
-          <input id={`${id}-correo`} name="correo" type="email" required placeholder="dueno@negocio.com" />
         </div>
       )}
     </div>
@@ -97,7 +97,7 @@ function CamposDueno({ id }: { id: string }) {
 }
 
 /** Cajón lateral para dar de alta un negocio, en dos pasos y con la licencia a la vista. */
-function AltaNegocio({ abierto, cerrar, diasPrueba }: { abierto: boolean; cerrar: () => void; diasPrueba: number }) {
+function AltaNegocio({ abierto, cerrar, diasPrueba, sitio }: { abierto: boolean; cerrar: () => void; diasPrueba: number; sitio: string }) {
   const [paso, setPaso] = useState<1 | 2>(1);
   const [nombre, setNombre] = useState("");
   const [slug, setSlug] = useState("");
@@ -156,7 +156,7 @@ function AltaNegocio({ abierto, cerrar, diasPrueba }: { abierto: boolean; cerrar
                 <input id="pl-moneda" name="moneda" defaultValue="RD$" maxLength={6} />
               </div>
             </div>
-            <p className="quieto pequeno">Su página será <code>/n/{slug || "direccion"}</code>. Nace con su sucursal Principal y todas las funciones.</p>
+            <p className="quieto pequeno">Su enlace directo será <code>{(sitio || "https://prezcio.app").replace(/^https?:\/\//, "")}/n/{slug || "direccion"}</code>. Nace con su sucursal Principal y todas las funciones.</p>
             {error && <p className="aviso error" role="alert">{error}</p>}
             <div className="pl-pie"><button type="button" className="boton" onClick={siguiente}>Siguiente</button></div>
           </div>
@@ -173,11 +173,13 @@ function AltaNegocio({ abierto, cerrar, diasPrueba }: { abierto: boolean; cerrar
   );
 }
 
-function Tarjeta({ n, ahora, indice, planes, escribe }: { n: NegocioPl; ahora: number; indice: number; planes: Plan[]; escribe: boolean }) {
+function Tarjeta({ n, ahora, indice, planes, escribe, sitio }: { n: NegocioPl; ahora: number; indice: number; planes: Plan[]; escribe: boolean; sitio: string }) {
   const lic = n.lic;
   const med = medidor(n, lic);
   const [panel, setPanel] = useState<null | "pago" | "prueba" | "dueno" | "historial">(null);
   const [copiado, setCopiado] = useState(false);
+  const [enlaceCopiado, setEnlaceCopiado] = useState(false);
+  const enlace = `${sitio || "https://prezcio.app"}/n/${n.slug}`;
   const [confirmar, setConfirmar] = useState(false);
   const ofrecidos = planes.filter((p) => p.activo || p.codigo === n.plan);
   const actual = n.plan === "suspendido" ? n.lic.plan_antes : n.plan;
@@ -193,6 +195,10 @@ function Tarjeta({ n, ahora, indice, planes, escribe }: { n: NegocioPl; ahora: n
   const copiar = async () => {
     try { await navigator.clipboard.writeText(n.licencia); setCopiado(true); setTimeout(() => setCopiado(false), 1800); } catch { /* sin portapapeles */ }
   };
+  const copiarEnlace = async () => {
+    try { await navigator.clipboard.writeText(enlace); setEnlaceCopiado(true); setTimeout(() => setEnlaceCopiado(false), 1800); } catch { /* sin portapapeles */ }
+  };
+  const whatsapp = `https://wa.me/?text=${encodeURIComponent(`${n.nombre} ya está en Prezcio.\nEntra a tu panel: ${enlace}\nTu licencia: ${n.licencia}`)}`;
   const abrir = (p: "pago" | "prueba" | "dueno" | "historial") => setPanel((a) => (a === p ? null : p));
 
   return (
@@ -201,7 +207,7 @@ function Tarjeta({ n, ahora, indice, planes, escribe }: { n: NegocioPl; ahora: n
         <div className="pl-ini" aria-hidden="true">{n.nombre.trim().slice(0, 1).toUpperCase()}</div>
         <div className="pl-quien">
           <h3>{n.nombre}</h3>
-          <p className="quieto pequeno">/n/{n.slug} · desde {fecha(n.creado)}</p>
+          <p className="quieto pequeno">Desde {fecha(n.creado)}</p>
         </div>
         <span className={`pl-estado ${lic.estado === "por_vencer" ? "activa" : lic.estado === "gracia" ? "vencida" : lic.estado}`}>
           {{ activa: "Activa", por_vencer: "Por vencer", prueba: "En prueba", gracia: "En gracia", vencida: "Vencida", suspendida: "Suspendida" }[lic.estado]}
@@ -211,6 +217,12 @@ function Tarjeta({ n, ahora, indice, planes, escribe }: { n: NegocioPl; ahora: n
       <button type="button" className={`pl-codigo${copiado ? " ok" : ""}`} onClick={copiar} title="Copiar la licencia">
         <code>{n.licencia}</code><span>{copiado ? "¡Copiada!" : "Copiar"}</span>
       </button>
+      <div className="pl-enlace">
+        <button type="button" className={`pl-codigo${enlaceCopiado ? " ok" : ""}`} onClick={copiarEnlace} title="Copiar el enlace directo del negocio">
+          <code>{enlace.replace(/^https?:\/\//, "")}</code><span>{enlaceCopiado ? "¡Copiado!" : "Copiar enlace"}</span>
+        </button>
+        <a className="pl-wa" href={whatsapp} target="_blank" rel="noopener noreferrer" title="Enviar el enlace y la licencia por WhatsApp">WhatsApp</a>
+      </div>
 
       <div className={`pl-medidor ${med.tono}`}>
         <div className="pl-barra" role="img" aria-label={med.texto}><i style={{ width: `${med.pct}%` }} /></div>
@@ -224,7 +236,7 @@ function Tarjeta({ n, ahora, indice, planes, escribe }: { n: NegocioPl; ahora: n
         <div><dt>Productos</dt><dd>{nf.format(n.productos)}</dd></div>
       </dl>
       <p className="pl-linea"><span>Dueño</span>{n.duenos.length ? n.duenos.map((d, i) => (
-        <b key={i}>{d.usuario ?? d.correo}{!d.confirmado && <small className="quieto"> (invitación pendiente)</small>}</b>
+        <b key={i}>{d.usuario ? <>{d.usuario}{d.correo && <small className="quieto"> · {d.correo}</small>}</> : d.correo}{!d.confirmado && <small className="quieto"> (invitación pendiente)</small>}</b>
       )) : <b className="error-texto">Sin dueño</b>}</p>
       <p className="pl-linea"><span>Última consulta</span><b>{fecha(n.ultima_consulta)}</b></p>
       <p className="pl-linea"><span>PCs</span><b>{usoTexto(n.pcs, n.limites.pcs)}</b></p>
@@ -432,12 +444,12 @@ export function PanelPlataforma({ negocios, datos, apps, sitio, vista: vistaInic
           </div>
         ) : (
           <ul className="pl-lista">
-            {lista.map(({ n }, i) => <Tarjeta key={n.id} n={n} ahora={ahora} indice={i} planes={datos.planes} escribe={escribe} />)}
+            {lista.map(({ n }, i) => <Tarjeta key={n.id} n={n} ahora={ahora} indice={i} planes={datos.planes} escribe={escribe} sitio={sitio} />)}
           </ul>
         )}
       </section>
 
-      <AltaNegocio abierto={alta} cerrar={() => setAlta(false)} diasPrueba={datos.ajustes.dias_prueba} />
+      <AltaNegocio abierto={alta} cerrar={() => setAlta(false)} diasPrueba={datos.ajustes.dias_prueba} sitio={sitio} />
     </main>
   );
 }

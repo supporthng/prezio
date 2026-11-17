@@ -47,6 +47,9 @@ fila = next(x for x in lista if x["id"] == N)
 ok(fila["duenos"] == [{"usuario": "rosa", "correo": None, "confirmado": True}] and fila["sucursales"] == 1,
    f"la lista muestra dueños y conteos {fila['duenos']}")
 ok(next(x for x in lista if x["id"] == r2["id"])["duenos"][0]["correo"] == "eva@x.com", "y el correo del dueño invitado")
+valor(False, f"update auth.users set raw_user_meta_data = '{{\"correo\": \"rosa@tienda.com\"}}' where id = '{due}'")
+fila = next(x for x in json.loads(valor("pat", "select public.plataforma_negocios()")) if x["id"] == N)
+ok(fila["duenos"][0]["correo"] == "rosa@tienda.com", "el dueño con usuario y clave muestra su correo de contacto")
 
 # ---------------------------------------------------------------- suspender
 A = valor("ana", "select id from negocios where nombre = 'Tienda Precios'")

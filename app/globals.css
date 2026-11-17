@@ -590,6 +590,11 @@ button.pl-kpi:hover { background: rgba(255,255,255,.14); transform: translateY(-
 .pl-codigo { display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%; font: inherit; cursor: pointer; text-align: left; background: var(--superficie); color: var(--tinta); border: 1px dashed var(--linea); border-radius: 12px; padding: 10px 14px; transition: border-color .15s, background .15s; }
 .pl-codigo code { background: none; padding: 0; font-weight: 800; letter-spacing: .05em; font-size: .98rem; overflow-wrap: anywhere; }
 .pl-codigo span { font-size: .8rem; font-weight: 700; color: var(--gris); white-space: nowrap; }
+.pl-enlace { display: flex; gap: 8px; margin-top: 8px; }
+.pl-enlace .pl-codigo { flex: 1; min-width: 0; padding: 8px 14px; }
+.pl-enlace .pl-codigo code { font-weight: 600; letter-spacing: 0; font-size: .9rem; }
+.pl-wa { display: inline-flex; align-items: center; padding: 0 14px; border-radius: 12px; border: 1px solid var(--linea); background: var(--superficie); color: #128c4a; font-weight: 700; font-size: .85rem; text-decoration: none; white-space: nowrap; }
+.pl-wa:hover, .pl-wa:focus-visible { border-color: #128c4a; }
 .pl-codigo:hover { border-color: var(--tinta); }
 .pl-codigo.ok { border-color: #1f7a4d; background: var(--bien-fondo); } .pl-codigo.ok span { color: var(--bien); }
 .pl-barra { height: 9px; border-radius: 99px; background: var(--superficie); overflow: hidden; }

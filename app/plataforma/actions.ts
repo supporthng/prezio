@@ -51,10 +51,12 @@ async function ponerDueno(supabase: SupabaseClient, negocio: { id: string; slug:
     return error ? { error: mensajeError(error) } : { bien: aviso };
   }
   const usuario = campo(d, "usuario").toLowerCase(), clave = String(d.get("clave") ?? "");
+  const correo = campo(d, "correo").toLowerCase();
+  if (!CORREO.test(correo) || correo.endsWith(".prezio.invalid")) return { error: "Escribe el correo del dueño (para contactarlo)." };
   if (!USUARIO_VALIDO.test(usuario)) return { error: "El usuario del dueño: de 3 a 30 letras minúsculas, números, punto, guion o guion bajo." };
   if (clave.length < 8) return { error: "La clave del dueño debe tener al menos 8 caracteres." };
   const { data: creada, error: e1 } = await admin.auth.admin.createUser({
-    email: correoDeUsuario(negocio.id, usuario), password: clave, email_confirm: true, user_metadata: { nombre, usuario },
+    email: correoDeUsuario(negocio.id, usuario), password: clave, email_confirm: true, user_metadata: { nombre, usuario, correo },
   });
   if (e1 || !creada.user) return { error: /already|registered|exists/i.test(e1?.message ?? "") ? `Ya existe el usuario «${usuario}» en este negocio.` : errorDeCuentas(e1) ?? mensajeError(e1) };
   const { error: e2 } = await supabase.rpc("plataforma_poner_dueno", { p_negocio: negocio.id, p_cuenta: creada.user.id, p_usuario: usuario, p_nombre: nombre || null });
@@ -80,7 +82,8 @@ export async function altaNegocio(d: FormData) {
     await supabase.rpc("plataforma_borrar_negocio", { p_negocio: negocio.id });
     volver(r.error, "", d);
   }
-  volver(null, `Negocio «${campo(d, "nombre")}» creado${campo(d, "plan") && campo(d, "plan") !== "prueba" ? "" : " en prueba"}. ${r.bien}`, d);
+  const enlace = `${sitio() || "https://prezcio.app"}/n/${negocio.slug}`;
+  volver(null, `Negocio «${campo(d, "nombre")}» creado${campo(d, "plan") && campo(d, "plan") !== "prueba" ? "" : " en prueba"}. Su enlace directo: ${enlace} . ${r.bien}`, d);
 }
 
 export async function agregarDueno(d: FormData) {
