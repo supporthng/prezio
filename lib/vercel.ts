@@ -17,24 +17,47 @@ function token() {
   return m ? m[0] : v.replace(/^Bearer\s+/i, "");
 }
 
+type ErrorVercel = { error?: { code?: string; message?: string } } | null;
+
+async function llamar(ruta: string, init: RequestInit = {}) {
+  return fetch(`https://api.vercel.com${ruta}`, {
+    ...init,
+    cache: "no-store",
+    headers: { authorization: `Bearer ${token()}`, "content-type": "application/json" },
+    signal: AbortSignal.timeout(15000),
+  });
+}
+
+/** Equipos donde probar: el de VERCEL_TEAM_ID y los que el token puede ver (si el proyecto se movió de equipo). */
+async function equipos(): Promise<string[]> {
+  const lista = [process.env.VERCEL_TEAM_ID?.trim() ?? ""].filter(Boolean);
+  try {
+    const r = await llamar("/v2/teams?limit=20");
+    if (r.ok) for (const t of ((await r.json()) as { teams?: { id: string }[] }).teams ?? []) if (!lista.includes(t.id)) lista.push(t.id);
+  } catch { /* sigue con lo que hay */ }
+  return [...lista, ""];
+}
+
 export async function agregarSubdominio(host: string): Promise<string | null> {
   if (!vercelListo()) return "sin configurar";
-  const equipo = process.env.VERCEL_TEAM_ID ? `?teamId=${encodeURIComponent(process.env.VERCEL_TEAM_ID)}` : "";
+  const proyectos = [...new Set([process.env.VERCEL_PROJECT_ID!.trim(), "prezio"])];
+  let rechazado = false, ultimo = "";
   try {
-    const r = await fetch(`https://api.vercel.com/v10/projects/${encodeURIComponent(process.env.VERCEL_PROJECT_ID!)}/domains${equipo}`, {
-      method: "POST",
-      cache: "no-store",
-      headers: { authorization: `Bearer ${token()}`, "content-type": "application/json" },
-      body: JSON.stringify({ name: host }),
-      signal: AbortSignal.timeout(15000),
-    });
-    if (r.ok) return null;
-    const d = (await r.json().catch(() => null)) as { error?: { code?: string; message?: string } } | null;
-    if (d?.error?.code === "domain_already_in_use" || d?.error?.code === "domain_already_exists") return null;
-    if (r.status === 401 || r.status === 403 || /not authorized|forbidden/i.test(d?.error?.message ?? ""))
-      return "Vercel no aceptó el token (VERCEL_TOKEN): créalo con alcance del equipo del proyecto, pégalo sin espacios y vuelve a publicar";
-    return d?.error?.message ?? `HTTP ${r.status}`;
+    for (const equipo of await equipos()) {
+      for (const proyecto of proyectos) {
+        const r = await llamar(`/v10/projects/${encodeURIComponent(proyecto)}/domains${equipo ? `?teamId=${encodeURIComponent(equipo)}` : ""}`,
+          { method: "POST", body: JSON.stringify({ name: host }) });
+        if (r.ok) return null;
+        const d = (await r.json().catch(() => null)) as ErrorVercel;
+        if (d?.error?.code === "domain_already_in_use" || d?.error?.code === "domain_already_exists") return null;
+        if (r.status === 401 || r.status === 403 || r.status === 404) { rechazado ||= r.status !== 404; ultimo = d?.error?.message ?? `HTTP ${r.status}`; continue; }
+        return d?.error?.message ?? `HTTP ${r.status}`;
+      }
+    }
   } catch (e) {
     return e instanceof Error ? e.message : "sin respuesta";
   }
+  return rechazado
+    ? "Vercel no aceptó el token (VERCEL_TOKEN) para el proyecto: revisa que sea del equipo donde está prezio, pégalo sin espacios y vuelve a publicar"
+    : `No encontré el proyecto en Vercel (${ultimo}): revisa VERCEL_PROJECT_ID`;
 }
