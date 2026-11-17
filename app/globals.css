@@ -848,3 +848,11 @@ main .tarjeta + .tarjeta { margin-top: 16px; }
   .pl-vistas button { flex: none; }
   .pl-hero .pl-kpi { min-width: 0; flex: 1 1 130px; }
 }
+
+/* ---------- precio mensual y anual de los planes */
+.pl-plan .pl-cabeza { flex-wrap: wrap; }
+.pl-plan-precios { display: grid; gap: 1px; flex-basis: 100%; }
+.pl-plan-precios .pl-plan-precio { font-size: 1.15rem; }
+.pl-plan-precios small { font-size: .78rem; }
+.pl-anual { margin: -4px 0 4px; }
+.lic-anual { margin: 2px 0 0; font-size: .85rem; color: var(--bien); font-weight: 600; }

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Aviso } from "@/components/Aviso";
 import { enlaceNegocio } from "@/lib/subdominio";
-import { fechaCorta, precioPlan, textoLicencia, type EstadoLic, type Limites, type Plan } from "@/lib/licencia";
+import { fechaCorta, precioPlan, textoAnual, textoLicencia, totalPago, type EstadoLic, type Limites, type Plan } from "@/lib/licencia";
 import { activarEnlace, agregarDueno, altaNegocio, extenderPrueba, registrarPago, suspender } from "./actions";
 import { HistorialNegocio, VistaDescargas, VistaEquipo, VistaPlanes, VistaReglas, VistaSolicitudes, type Apps, type DatosPl } from "./Vistas";
 
@@ -174,7 +174,7 @@ function AltaNegocio({ abierto, cerrar, diasPrueba, sitio, cortos }: { abierto: 
   );
 }
 
-function Tarjeta({ n, ahora, indice, planes, escribe, sitio, cortos }: { n: NegocioPl; ahora: number; indice: number; planes: Plan[]; escribe: boolean; sitio: string; cortos: boolean }) {
+function Tarjeta({ n, ahora, indice, planes, escribe, sitio, cortos, descuento = 0, moneda = "US$" }: { n: NegocioPl; ahora: number; indice: number; planes: Plan[]; escribe: boolean; sitio: string; cortos: boolean; descuento?: number; moneda?: string }) {
   const lic = n.lic;
   const med = medidor(n, lic);
   const [panel, setPanel] = useState<null | "pago" | "prueba" | "dueno" | "historial">(null);
@@ -273,14 +273,15 @@ function Tarjeta({ n, ahora, indice, planes, escribe, sitio, cortos }: { n: Nego
           <p className="pl-et">Plan</p>
           {ofrecidos.length === 0 ? <p className="quieto pequeno">Crea un plan en la pestaña Planes.</p>
             : <Segmentos etiqueta="Plan" valor={plan} onCambia={setPlan} opciones={ofrecidos.map((p) => [p.codigo, p.nombre] as [string, string])} />}
-          {elPlan && <p className="quieto pequeno">{precioPlan(elPlan)}</p>}
+          {elPlan && <p className="quieto pequeno">{precioPlan(elPlan, moneda)}{textoAnual(elPlan, descuento, moneda) ? ` · ${textoAnual(elPlan, descuento, moneda)}` : ""}</p>}
           {elPlan?.permanente ? (
             <p className="pl-resultado">Licencia <b>permanente</b>: sin vencimiento.</p>
           ) : (
             <>
               <p className="pl-et">Tiempo pagado</p>
               <Segmentos etiqueta="Tiempo" valor={meses} onCambia={setMeses} opciones={[["1", "1 mes"], ["3", "3 meses"], ["6", "6 meses"], ["12", "1 año"]]} />
-              <p className="pl-resultado">Quedará activo hasta el <b>{nuevaFecha}</b></p>
+              <p className="pl-resultado">Quedará activo hasta el <b>{nuevaFecha}</b>
+                {elPlan && totalPago(elPlan, Number(meses), descuento) !== null && <> · cobrar <b>{moneda} {totalPago(elPlan, Number(meses), descuento)!.toLocaleString("es-DO", { maximumFractionDigits: 2 })}</b>{Number(meses) >= 12 && descuento > 0 ? ` (con ${descuento}% de descuento)` : ""}</>}</p>
             </>
           )}
           <div className="campo">
@@ -332,7 +333,7 @@ function Tarjeta({ n, ahora, indice, planes, escribe, sitio, cortos }: { n: Nego
 const NOMBRE_ESTADO = { activa: "Activa", por_vencer: "Por vencer", prueba: "En prueba", gracia: "En gracia", vencida: "Vencida", suspendida: "Suspendida" } as const;
 const claseEstado = (e: EstadoLic["estado"]) => (e === "por_vencer" ? "activa" : e === "gracia" ? "vencida" : e);
 
-function Fila({ n, abierta, onAbrir, ...resto }: { n: NegocioPl; abierta: boolean; onAbrir: () => void; ahora: number; planes: Plan[]; escribe: boolean; sitio: string; cortos: boolean }) {
+function Fila({ n, abierta, onAbrir, ...resto }: { n: NegocioPl; abierta: boolean; onAbrir: () => void; ahora: number; planes: Plan[]; escribe: boolean; sitio: string; cortos: boolean; descuento: number; moneda: string }) {
   const med = medidor(n, n.lic);
   const dueno = n.duenos[0];
   return (
@@ -497,7 +498,7 @@ export function PanelPlataforma({ negocios, datos, apps, sitio, cortos, vista: v
           </div>
         ) : modo === "tarjetas" ? (
           <ul className="pl-lista">
-            {lista.map(({ n }, i) => <Tarjeta key={n.id} n={n} ahora={ahora} indice={i} planes={datos.planes} escribe={escribe} sitio={sitio} cortos={cortos} />)}
+            {lista.map(({ n }, i) => <Tarjeta key={n.id} n={n} ahora={ahora} indice={i} planes={datos.planes} escribe={escribe} sitio={sitio} cortos={cortos} descuento={datos.ajustes.descuento_anual} moneda={datos.ajustes.moneda} />)}
           </ul>
         ) : (
           <div className="pl-tabla-caja">
@@ -509,7 +510,7 @@ export function PanelPlataforma({ negocios, datos, apps, sitio, cortos, vista: v
               <tbody>
                 {lista.map(({ n }) => (
                   <Fila key={n.id} n={n} abierta={abierta === n.id} onAbrir={() => setAbierta((a) => (a === n.id ? null : n.id))}
-                    ahora={ahora} planes={datos.planes} escribe={escribe} sitio={sitio} cortos={cortos} />
+                    ahora={ahora} planes={datos.planes} escribe={escribe} sitio={sitio} cortos={cortos} descuento={datos.ajustes.descuento_anual} moneda={datos.ajustes.moneda} />
                 ))}
               </tbody>
             </table>

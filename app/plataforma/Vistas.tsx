@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fechaCorta, limitesPlan, precioPlan, textoLicencia, type EstadoLic, type Plan } from "@/lib/licencia";
+import { fechaCorta, limitesPlan, precioPlan, textoAnual, textoLicencia, type EstadoLic, type Plan } from "@/lib/licencia";
 import { atenderSolicitud, borrarPlan, guardarAjustes, guardarPlan, historialNegocio, liberarPc, ponerUsuario, quitarUsuario } from "./actions";
 
 export type Ajustes = {
@@ -96,9 +96,12 @@ export function VistaSolicitudes({ datos, escribe }: { datos: DatosPl; escribe: 
 
 /* ---------------------------------------------------------------- planes */
 
-function FormPlan({ p, admin, onCerrar }: { p: Plan | null; admin: boolean; onCerrar?: () => void }) {
+function FormPlan({ p, admin, onCerrar, descuento, moneda }: { p: Plan | null; admin: boolean; onCerrar?: () => void; descuento: number; moneda: string }) {
   const nuevo = !p;
   const [permanente, setPermanente] = useState(p?.permanente ?? false);
+  // Planes de antes cobrados «al año»: se muestran como su equivalente mensual (precio / 12).
+  const [precio, setPrecio] = useState(p ? String(p.periodo === "anual" ? Math.round((Number(p.precio) / 12) * 100) / 100 : p.precio) : "0");
+  const anual = textoAnual({ precio: Number(precio.replace(",", ".")) || 0, periodo: "mensual", permanente }, descuento, moneda);
   return (
     <form action={guardarPlan} className="pl-plan-form">
       <Vista v="planes" />
@@ -108,10 +111,11 @@ function FormPlan({ p, admin, onCerrar }: { p: Plan | null; admin: boolean; onCe
             {nuevo ? <input id="pc-n" name="codigo" required pattern="[a-z0-9][a-z0-9\-]{1,28}[a-z0-9]" placeholder="premium" />
               : <><input id={`pc-${p.codigo}`} value={p.codigo} readOnly /><input type="hidden" name="codigo" value={p.codigo} /></>}</div>
           <div className="campo"><label htmlFor={`pn-${p?.codigo ?? "n"}`}>Nombre</label><input id={`pn-${p?.codigo ?? "n"}`} name="nombre" required minLength={2} maxLength={40} defaultValue={p?.nombre} /></div>
-          <div className="campo" style={{ flex: "0 1 120px" }}><label htmlFor={`pp-${p?.codigo ?? "n"}`}>Precio</label><input id={`pp-${p?.codigo ?? "n"}`} name="precio" inputMode="decimal" defaultValue={p ? String(p.precio) : "0"} /></div>
-          <div className="campo" style={{ flex: "0 1 150px" }}><label htmlFor={`pr-${p?.codigo ?? "n"}`}>Se cobra</label>
-            <select id={`pr-${p?.codigo ?? "n"}`} name="periodo" defaultValue={p?.periodo ?? "mensual"} disabled={permanente}><option value="mensual">Al mes</option><option value="anual">Al año</option></select></div>
+          <div className="campo" style={{ flex: "0 1 150px" }}><label htmlFor={`pp-${p?.codigo ?? "n"}`}>{permanente ? "Precio (pago único)" : "Precio mensual"}</label>
+            <input id={`pp-${p?.codigo ?? "n"}`} name="precio" inputMode="decimal" value={precio} onChange={(e) => setPrecio(e.target.value)} /></div>
+          <input type="hidden" name="periodo" value="mensual" />
         </div>
+        {!permanente && <p className="quieto pequeno pl-anual">{anual ? `Anual: ${anual}.` : "Precio 0 = «Consultar precio»."} El descuento anual se cambia en Reglas.</p>}
         <div className="campo"><label htmlFor={`pd-${p?.codigo ?? "n"}`}>Descripción</label><input id={`pd-${p?.codigo ?? "n"}`} name="descripcion" maxLength={200} defaultValue={p?.descripcion ?? ""} /></div>
         <p className="pl-et">Límites <small className="quieto">(vacío = sin límite)</small></p>
         <div className="fila">
@@ -149,7 +153,7 @@ export function VistaPlanes({ datos, admin }: { datos: DatosPl; admin: boolean }
         <p className="quieto" style={{ margin: 0, flex: 1 }}>Lo que ofreces a los negocios. Precios en {moneda}; el descuento por pagar un año está en Reglas ({datos.ajustes.descuento_anual}%).</p>
         {admin && <button type="button" className="boton" onClick={() => setAbierto(abierto === "nuevo" ? null : "nuevo")}>Nuevo plan</button>}
       </div>
-      {abierto === "nuevo" && <div className="tarjeta" style={{ marginTop: 14 }}><FormPlan p={null} admin={admin} onCerrar={() => setAbierto(null)} /></div>}
+      {abierto === "nuevo" && <div className="tarjeta" style={{ marginTop: 14 }}><FormPlan descuento={datos.ajustes.descuento_anual} moneda={moneda} p={null} admin={admin} onCerrar={() => setAbierto(null)} /></div>}
       <ul className="pl-lista">
         {datos.planes.map((p) => (
           <li key={p.codigo} className={`pl-negocio pl-plan${p.activo ? "" : " apagado"}`}>
@@ -158,7 +162,8 @@ export function VistaPlanes({ datos, admin }: { datos: DatosPl; admin: boolean }
                 <h3>{p.nombre} {p.destacado && <span className="chip etiqueta">{p.etiqueta || "Destacado"}</span>}</h3>
                 <p className="quieto pequeno">{p.codigo} · {p.negocios ?? 0} {p.negocios === 1 ? "negocio" : "negocios"}{p.activo ? "" : " · no se ofrece"}</p>
               </div>
-              <b className="pl-plan-precio">{precioPlan(p, moneda)}</b>
+              <div className="pl-plan-precios"><b className="pl-plan-precio">{precioPlan(p, moneda)}</b>
+                {textoAnual(p, datos.ajustes.descuento_anual, moneda) && <small className="quieto">{textoAnual(p, datos.ajustes.descuento_anual, moneda)}</small>}</div>
             </div>
             <p className="pl-linea"><span>Incluye</span>{limitesPlan(p)}</p>
             {p.funciones.length > 0 && <p className="quieto pequeno">{p.funciones.join(" · ")}</p>}
@@ -169,7 +174,7 @@ export function VistaPlanes({ datos, admin }: { datos: DatosPl; admin: boolean }
                   <button className="pl-tab" type="submit">{(p.negocios ?? 0) > 0 ? "Dejar de ofrecer" : "Borrar"}</button></form>
               )}
             </div>
-            {abierto === p.codigo && <div className="pl-panel"><FormPlan p={p} admin={admin} onCerrar={() => setAbierto(null)} /></div>}
+            {abierto === p.codigo && <div className="pl-panel"><FormPlan descuento={datos.ajustes.descuento_anual} moneda={moneda} p={p} admin={admin} onCerrar={() => setAbierto(null)} /></div>}
           </li>
         ))}
       </ul>

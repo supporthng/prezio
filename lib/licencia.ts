@@ -63,6 +63,31 @@ export function precioPlan(p: Pick<Plan, "precio" | "periodo" | "permanente">, m
   return p.permanente ? `${t} pago único` : `${t} ${p.periodo === "anual" ? "al año" : "al mes"}`;
 }
 
+/** Precio por un año pagando por adelantado (12 meses con el descuento anual). null si no aplica. */
+export function precioAnual(p: Pick<Plan, "precio" | "periodo" | "permanente">, descuento: number): number | null {
+  const n = Number(p.precio) || 0;
+  if (!n || p.permanente) return null;
+  if (p.periodo === "anual") return n;
+  return Math.round(n * 12 * (100 - (Number(descuento) || 0))) / 100;
+}
+
+/** «US$ 10,789.20 al año (10% de descuento)», o "" si no aplica. */
+export function textoAnual(p: Pick<Plan, "precio" | "periodo" | "permanente">, descuento: number, moneda = "US$"): string {
+  const a = precioAnual(p, descuento);
+  if (a === null || p.periodo === "anual") return "";
+  const t = `${moneda} ${a.toLocaleString("es-DO", { minimumFractionDigits: a % 1 ? 2 : 0, maximumFractionDigits: 2 })} al año`;
+  return descuento > 0 ? `${t} (${descuento}% de descuento)` : t;
+}
+
+/** Total de un pago: los meses × precio mensual, con el descuento anual desde 12 meses. */
+export function totalPago(p: Pick<Plan, "precio" | "periodo" | "permanente">, meses: number, descuento: number): number | null {
+  const n = Number(p.precio) || 0;
+  if (!n) return null;
+  if (p.permanente) return n;
+  if (p.periodo === "anual") return (n * meses) / 12;
+  return Math.round(n * meses * (meses >= 12 ? 100 - (Number(descuento) || 0) : 100)) / 100;
+}
+
 /** Lo que incluye un plan, en una línea: «1 sucursal · 3 verificadores · 5 usuarios · 1 PC». */
 export function limitesPlan(p: { max_sucursales: number | null; max_equipos: number | null; max_usuarios: number | null; max_pcs: number | null }): string {
   const u = (n: number | null, uno: string, varios: string) => (n === null ? `${varios} sin límite` : `${n} ${n === 1 ? uno : varios}`);
