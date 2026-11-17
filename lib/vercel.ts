@@ -1,18 +1,18 @@
 /**
  * Da de alta «<negocio>.prezcio.app» en el proyecto de Vercel, para que tenga su certificado.
  * Variables (Vercel › Settings › Environment Variables, marcadas como Sensitive):
- *   VERCEL_TOKEN        token con acceso al equipo del proyecto
+ *   PREZCIO_VERCEL_TOKEN  token con acceso al equipo del proyecto (también vale VERCEL_TOKEN)
  *   VERCEL_PROJECT_ID   id del proyecto (prj_…)
  *   VERCEL_TEAM_ID      id del equipo (team_…)
  * Sin ellas no hace nada: el enlace largo /n/<negocio> sigue funcionando.
  */
 export function vercelListo() {
-  return Boolean(process.env.VERCEL_TOKEN && process.env.VERCEL_PROJECT_ID);
+  return Boolean((process.env.PREZCIO_VERCEL_TOKEN || process.env.VERCEL_TOKEN) && process.env.VERCEL_PROJECT_ID);
 }
 
 /** El token tal cual, aunque se haya pegado con «Bearer», comillas o espacios. */
 function token() {
-  const v = (process.env.VERCEL_TOKEN ?? "").trim();
+  const v = (process.env.PREZCIO_VERCEL_TOKEN || process.env.VERCEL_TOKEN || "").trim();
   const m = v.match(/[A-Za-z0-9_-]{20,}(?=["'\s]*$)/);
   return m ? m[0] : v.replace(/^Bearer\s+/i, "");
 }
