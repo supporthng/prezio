@@ -1,7 +1,7 @@
 """Prezcio Plataforma: la administración del portal (tu Plataforma) como app de Windows.
 
-- Abre SITIO/plataforma en una ventana normal (maximizada), con WebView2 (el motor de Microsoft Edge).
-- La sesión queda guardada en la PC: entras una vez con tu cuenta de la Plataforma.
+- Abre SITIO/plataforma en una ventana mediana (1180×760), con WebView2 (el motor de Microsoft Edge).
+- Pide correo y clave cada vez que se abre: la sesión no queda guardada en la PC.
 - Solo navega dentro de Prezcio; los enlaces de afuera (WhatsApp, descargas) se abren en el navegador.
 - Se actualiza: al abrir y cada hora revisa SITIO/apps.json; si hay versión nueva, pregunta antes de instalarla.
 - Una sola copia abierta a la vez.
@@ -129,19 +129,17 @@ class Plataforma:
 def main():
     if ya_abierta():
         sys.exit(0)
-    os.makedirs(DATOS, exist_ok=True)
+    os.makedirs(CARPETA, exist_ok=True)
     if hasattr(webview, "settings"):
         webview.settings["OPEN_EXTERNAL_LINKS_IN_BROWSER"] = True
     app = Plataforma()
-    opciones = dict(width=1280, height=820, min_size=(900, 600), background_color="#102A43", confirm_close=False)
-    try:
-        ventana = webview.create_window(f"Prezcio Plataforma {VERSION}", DIRECCION, maximized=True, **opciones)
-    except TypeError:   # pywebview sin «maximized»: abre a 1280×820
-        ventana = webview.create_window(f"Prezcio Plataforma {VERSION}", DIRECCION, **opciones)
+    # Ventana mediana y centrada (se puede agrandar o maximizar); la entrada es una tarjeta pequeña.
+    ventana = webview.create_window(f"Prezcio Plataforma {VERSION}", DIRECCION, width=1180, height=760, min_size=(900, 600),
+                                    background_color="#102A43", confirm_close=False)
     app._ventana = ventana
     threading.Thread(target=app.revisar_cada_rato, name="revisar-actualizacion", daemon=True).start()
-    # private_mode=False + storage_path: la sesión se guarda y no hay que entrar cada vez.
-    webview.start(gui="edgechromium", private_mode=False, storage_path=DATOS, debug=False)
+    # private_mode: nada de la sesión queda guardado; cada vez que se abre pide correo y clave.
+    webview.start(gui="edgechromium", private_mode=True, debug=False)
 
 
 if __name__ == "__main__":

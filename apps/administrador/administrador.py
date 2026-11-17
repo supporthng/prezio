@@ -181,13 +181,12 @@ class Api:
 
     # ---- sesión
     def _cargar_sesion(self) -> None:
-        d = pc.leer_json(self._ruta_sesion, None)
-        if not d or not d.get("renovar"):
-            return
+        """La app pide usuario y clave cada vez que se abre: una sesión guardada por versiones anteriores se borra."""
+        self._ses = None
         try:
-            self._ses = {**d, "renovar": cifrado.revelar(d["renovar"]), "acceso": None, "vence": 0}
-        except Exception:
-            self._ses = None
+            self._ruta_sesion.unlink()
+        except OSError:
+            pass
 
     def _guardar_sesion(self) -> None:
         if not self._ses or not self._ses.get("recordar"):
@@ -395,7 +394,7 @@ class Api:
             cuenta = correo if d.get("modo") == "correo" else str(d.get("usuario") or "").strip().lower()
             self._ses = {"cuenta": cuenta,
                          "nombre": meta.get("nombre") or "", "uid": uid, "negocios": negocios,
-                         "negocio": negocios[0], "recordar": bool(d.get("recordar"))}
+                         "negocio": negocios[0], "recordar": False}   # nunca se guarda: se entra cada vez
             self._tomar_tokens(r)
             return self.estado()
         except Exception as e:
@@ -1530,8 +1529,8 @@ def main():
         webview.settings["ALLOW_DOWNLOADS"] = True
     except Exception:
         pass
-    webview.start(gui="edgechromium", private_mode=False, storage_path=str(DATOS / "web"),
-                  user_agent=AGENTE_VENTANA)
+    # private_mode: la sesión del panel no queda guardada al cerrar; al abrir otra vez se pide usuario y clave.
+    webview.start(gui="edgechromium", private_mode=True, user_agent=AGENTE_VENTANA)
 
 
 if __name__ == "__main__":

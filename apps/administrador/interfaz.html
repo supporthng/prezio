@@ -189,7 +189,6 @@
         <div class="campo"><label for="e-correo">Correo</label><input id="e-correo" type="email" autocomplete="email"></div>
       </div>
       <div class="campo"><label for="e-clave">Clave</label><input id="e-clave" type="password" autocomplete="current-password"></div>
-      <label class="casilla"><input type="checkbox" id="e-recordar" checked> Recordarme en esta PC</label>
       <button class="boton grande ancho" type="submit" id="b-entrar">Entrar</button>
       <p class="aviso error" id="e-error" role="alert" hidden></p>
       <p class="pequeno" style="margin-top: 22px"><button type="button" class="enlace" id="b-otra-licencia">Usar otra licencia en esta PC</button></p>
@@ -637,7 +636,7 @@ $("#f-entrar").onsubmit = async (ev) => {
   ev.preventDefault();
   const b = $("#b-entrar"); ocupado(b, true, "Entrando…");
   const r = await api("entrar", { modo, usuario: $("#e-usuario").value, correo: $("#e-correo").value,
-    clave: $("#e-clave").value, recordar: $("#e-recordar").checked });
+    clave: $("#e-clave").value });
   ocupado(b, false);
   if (r.error && r.estado && !r.estado.activacion) {      // le liberaron la PC: vuelve a la pantalla de activar
     await refrescar(); $("#a-error-activar").hidden = false; $("#a-error-activar").textContent = r.error; return;

@@ -17,7 +17,7 @@ export default async function Plataforma({ searchParams }: Props) {
   const { bien, error, q, vista } = await searchParams;
   const supabase = await supabaseServidor();
   const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) redirect("/entrar?siguiente=/plataforma");
+  if (!auth.user) redirect("/plataforma/entrar");
   const { data: es } = await supabase.rpc("es_plataforma");
   if (!es) notFound();
   const [{ data }, { data: datos }] = await Promise.all([supabase.rpc("plataforma_negocios"), supabase.rpc("plataforma_datos")]);
