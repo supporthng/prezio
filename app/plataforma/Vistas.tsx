@@ -304,9 +304,12 @@ export function HistorialNegocio({ negocio, escribe, planes }: { negocio: string
 /* ---------------------------------------------------------------- descargas */
 
 export type AppPublicada = { version: string; url: string; fecha: string; codigo?: number };
-export type Apps = Partial<Record<"administrador" | "windows" | "android" | "conector", AppPublicada>>;
+export type Apps = Partial<Record<"plataforma" | "administrador" | "windows" | "android" | "conector", AppPublicada>>;
 
 const DESCARGAS: { clave: keyof Apps; nombre: string; para: string; detalle: string; archivo: string }[] = [
+  { clave: "plataforma", nombre: "Prezcio Plataforma", para: "Solo para ti y tu equipo · Windows 10 u 11",
+    detalle: "Esta misma Plataforma (negocios, licencias, pagos, planes y solicitudes) como app de escritorio. Se entra con tu cuenta de la Plataforma; no es para los clientes.",
+    archivo: "Instalador_Prezcio_Plataforma.exe" },
   { clave: "administrador", nombre: "Prezcio Administrador", para: "PC de la oficina del negocio · Windows 10 u 11",
     detalle: "El panel del negocio en una app, con el conector de la base de datos (SQL Server, MySQL, PostgreSQL, Firebird) y la copia automática de precios. Se activa con la licencia del negocio.",
     archivo: "Instalador_Prezio_Administrador.exe" },

@@ -21,3 +21,7 @@ apps/windows/build/
 apps/windows/dist/
 dist_instalador/
 apps/administrador/firebird/
+apps/plataforma/.venv/
+apps/plataforma/build/
+apps/plataforma/dist/
+apps/plataforma/*.spec

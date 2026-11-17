@@ -1,0 +1,75 @@
+name: App Plataforma
+# Compila Prezcio Plataforma (la administración del portal, abre /plataforma), lo publica en Releases › «plataforma»
+# y anota la versión en public/apps.json: la app instalada la ve y ofrece actualizarse.
+# Opcional: variable PREZIO_SITIO (Settings › Variables) si Prezcio usa otro dominio.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["apps/plataforma/**", ".github/workflows/app-plataforma.yml"]
+permissions:
+  contents: write
+# Cada app en su propia fila (antes compartían una y GitHub cancelaba la que quedaba esperando);
+# el paso que anota apps.json ya reintenta si otra app lo cambió al mismo tiempo.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+jobs:
+  plataforma:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", architecture: x64 }
+      - name: Versión y dirección
+        shell: pwsh
+        env:
+          SITIO: ${{ vars.PREZIO_SITIO }}
+        run: |
+          $version = "1.0.${{ github.run_number }}"
+          $origen = "https://github.com/${{ github.repository }}/releases/download/"
+          $f = "apps/plataforma/plataforma.py"
+          $t = Get-Content $f -Raw -Encoding utf8
+          $t = $t -replace 'VERSION = "1\.0\.0"', "VERSION = `"$version`""
+          $t = $t -replace 'ORIGEN_ACTUALIZACION = "[^"]*"', "ORIGEN_ACTUALIZACION = `"$origen`""
+          if ($env:SITIO) { $t = $t -replace 'SITIO = "[^"]*"', "SITIO = `"$($env:SITIO.TrimEnd('/'))`"" }
+          Set-Content $f $t -Encoding utf8 -NoNewline
+          Select-String -Path $f -Pattern '^(SITIO|VERSION|ORIGEN_ACTUALIZACION) ='
+          "VERSION_APP=$version" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - name: Crear la app
+        shell: pwsh
+        run: ./apps/plataforma/build_windows.ps1
+      - name: Instalar Inno Setup
+        shell: pwsh
+        run: choco install innosetup -y --no-progress
+      - name: Construir instalador
+        shell: pwsh
+        run: |
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DMyAppVersion=$env:VERSION_APP" "apps\plataforma\PrezcioPlataforma.iss"
+      - uses: actions/upload-artifact@v4
+        with: { name: Prezcio-Plataforma, path: dist_instalador/Instalador_Prezcio_Plataforma.exe }
+      - name: Publicar y anotar la versión
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view plataforma >/dev/null 2>&1 || gh release create plataforma --title "Prezcio Plataforma" --notes "La administración del portal (solo para la Plataforma)." --latest=false
+          gh release upload plataforma dist_instalador/Instalador_Prezcio_Plataforma.exe --clobber
+          URL="https://github.com/${{ github.repository }}/releases/download/plataforma/Instalador_Prezcio_Plataforma.exe"
+          git checkout -- apps/plataforma/plataforma.py
+          for intento in 1 2 3; do
+            git pull --rebase --quiet origin main
+            python - "$URL" "$VERSION_APP" <<'PY'
+          import json, sys, datetime
+          p = "public/apps.json"
+          d = json.load(open(p, encoding="utf-8"))
+          d["plataforma"] = {"version": sys.argv[2], "url": sys.argv[1],
+                          "fecha": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")}
+          open(p, "w", encoding="utf-8", newline="\n").write(json.dumps(d, indent=2, ensure_ascii=False) + "\n")
+          PY
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -qam "Prezcio Plataforma $VERSION_APP publicada" && git push --quiet origin HEAD:main && break
+            sleep 5
+          done
