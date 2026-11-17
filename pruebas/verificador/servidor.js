@@ -68,7 +68,7 @@ http.createServer((req, res) => {
     }); return;
   }
   if (url.pathname === "/auth/confirm") { res.writeHead(200, { "Content-Type": "text/html" }); return res.end("<h1>Panel del negocio</h1>"); }
-  const tabla = url.pathname.match(/^\/rest\/v1\/(miembros|negocios|sucursales|inventarios)$/);
+  const tabla = url.pathname.match(/^\/rest\/v1\/(miembros|negocios|sucursales|inventarios|equipos|consultas|ofertas|productos)$/);
   if (tabla && req.method === "GET") {
     let sel = url.searchParams.get("select") || "*", junta = "";
     const emb = sel.match(/negocios\(([a-z_,]+)\)/);
@@ -79,9 +79,18 @@ http.createServer((req, res) => {
       if (k === "select" || k === "order") continue;
       const col = k.replace(/[^a-z_]/g, "");
       if (v.startsWith("eq.")) donde.push(`${col}::text = '${v.slice(3).replace(/'/g, "''")}'`);
+      else if (v.startsWith("gte.")) donde.push(`${col} >= '${decodeURIComponent(v.slice(4)).replace(/'/g, "''")}'`);
+      else if (v === "is.false") donde.push(`${col} is false`);
       else if (v.startsWith("in.(")) donde.push(`${col}::text in (${v.slice(4, -1).split(",").map((x) => `'${x.replace(/"/g, "").replace(/'/g, "''")}'`).join(",")})`);
     }
     const orden = (url.searchParams.get("order") || "").split(",").filter(Boolean).map((o) => { const [c, d] = o.split("."); return `${c.replace(/[^a-z_]/g, "")} ${d === "desc" ? "desc" : "asc"}`; }).join(", ");
+    if (/count=exact/.test(req.headers.prefer || "")) {   // conteo: «Content-Range: 0-0/N», como PostgREST
+      try {
+        const n = psql(rol(req) + `select count(*) from public.${tabla[1]}${donde.length ? " where " + donde.join(" and ") : ""};`);
+        res.writeHead(206, { "Content-Type": "application/json", "Content-Range": `0-0/${n}` }); res.end("[]");
+      } catch (e) { error(res, e); }
+      return;
+    }
     try {
       const out = psql(rol(req) + `select coalesce(json_agg(t), '[]') from (select ${cols} from public.${tabla[1]}${donde.length ? " where " + donde.join(" and ") : ""}${orden ? " order by " + orden : ""}) t;`);
       res.writeHead(200, { "Content-Type": "application/json" }); res.end(out);

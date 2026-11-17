@@ -83,7 +83,7 @@
   .lateral .marca i::before { background: var(--tinta); }
   .negocio-actual { margin: 22px 6px 18px; }
   .negocio-actual strong { display: block; font-size: 1.05rem; line-height: 1.25; }
-  .negocio-actual span { color: #9fb3c8; font-size: .84rem; }
+  .negocio-actual span { color: #9fb3c8; font-size: .84rem; display: block; overflow: hidden; text-overflow: ellipsis; }
   .lateral nav { display: flex; flex-direction: column; gap: 2px; }
   .lateral nav button { font: inherit; text-align: left; padding: 10px 12px; border-radius: 9px; border: 0; background: none; color: #c9d6e3; font-weight: 600; cursor: pointer; display: flex; gap: 10px; align-items: center; }
   .lateral nav button svg { width: 18px; height: 18px; flex: none; }
@@ -97,7 +97,47 @@
   .enlace { background: none; border: 0; padding: 0; color: var(--tinta-3); text-decoration: underline; cursor: pointer; font: inherit; }
   .lateral .pie { margin-top: auto; font-size: .82rem; color: #9fb3c8; padding: 0 6px; }
   .lateral .pie button { font: inherit; background: none; border: 0; color: #fff; text-decoration: underline; padding: 0; cursor: pointer; margin-top: 6px; }
-  .contenido { padding: 28px 34px 60px; max-width: 1060px; width: 100%; }
+  .lateral .pie .pie-botones { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 10px; }
+  .lateral .pie .pie-botones button { margin: 0; text-decoration: none; border: 1px solid rgba(255, 255, 255, .22); border-radius: 8px; padding: 7px 6px; font-size: .78rem; font-weight: 650; text-align: center; }
+  .lateral .pie .pie-botones button:hover { background: rgba(255, 255, 255, .08); }
+  .lateral .pie .pie-botones #b-salir { color: #ffd0cb; }
+  .contenido { padding: 26px 32px 60px; max-width: 1480px; width: 100%; }
+  .ini-hero { background: linear-gradient(135deg, #0c2237 0%, #163a5c 60%, #1d4d78 100%); color: #eaf1f8; border-radius: 18px; padding: 18px 20px; margin: 0 0 16px; position: relative; overflow: hidden; }
+  .ini-hero::after { content: ""; position: absolute; right: -40px; top: -60px; width: 170px; height: 170px; border-radius: 50%; background: radial-gradient(circle, rgba(255,210,63,.32), transparent 70%); pointer-events: none; }
+  .ini-cabeza { display: flex; justify-content: space-between; align-items: center; gap: 16px; position: relative; z-index: 1; }
+  .ini-cabeza h1 { font-size: 1.5rem; margin: 0; color: #fff; letter-spacing: -.01em; }
+  .ini-cabeza p { margin: 2px 0 0; color: #c9d8e6; font-size: .9rem; }
+  .ini-cabeza p::first-letter { text-transform: uppercase; }
+  .boton.claro { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.28); color: #fff; }
+  .boton.claro:hover { background: rgba(255,255,255,.18); }
+  .tablero { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 16px 0 0; position: relative; z-index: 1; }
+  .dato { font: inherit; text-align: left; color: inherit; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.16); border-radius: 14px; padding: 11px 14px; display: flex; flex-direction: column; gap: 2px; cursor: pointer; position: relative; transition: background .15s, border-color .15s, transform .15s; min-width: 0; }
+  .dato:hover { background: rgba(255,255,255,.14); transform: translateY(-1px); }
+  .dato::after { content: "›"; position: absolute; right: 12px; top: 8px; color: #9fb3c8; font-size: 1.1rem; }
+  .dato-et { font-size: .78rem; font-weight: 650; color: #c9d8e6; }
+  .dato-num { font-size: 1.5rem; line-height: 1.15; color: #fff; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+  .dato-pie { font-size: .78rem; color: #9fb3c8; overflow: hidden; text-overflow: ellipsis; }
+  .dato.alerta { border-color: rgba(255,198,92,.6); } .dato.alerta .dato-num { color: #ffc65c; } .dato.alerta .dato-pie { color: #ffe1a3; }
+  .dato.mal { border-color: rgba(255,138,128,.7); background: rgba(192,57,43,.18); } .dato.mal .dato-num { color: #ff9b91; } .dato.mal .dato-pie { color: #ffd0cb; }
+  .copia-precios { display: grid; grid-template-columns: minmax(0, 1.4fr) auto minmax(0, 1.2fr); gap: 14px 28px; align-items: center; }
+  .copia-precios .fila, .copia-precios .aviso { grid-column: 1 / -1; }
+  .copia-precios .resumen { margin: 0; }
+  .copia-estado { display: flex; gap: 12px; align-items: flex-start; }
+  .copia-estado h2 { margin: 0 0 2px; }
+  .copia-estado p { margin: 0; }
+  .semaforo { flex: none; width: 12px; height: 12px; border-radius: 50%; margin-top: 7px; background: #9aa7b4; }
+  .semaforo.bien { background: var(--bien); box-shadow: 0 0 0 4px var(--bien-fondo); }
+  .semaforo.alerta { background: #e08a00; box-shadow: 0 0 0 4px var(--aviso-fondo); }
+  .semaforo.error { background: var(--error); box-shadow: 0 0 0 4px var(--error-fondo); }
+  .interruptor { font: inherit; text-align: left; display: flex; gap: 12px; align-items: flex-start; background: none; border: 0; padding: 0; color: var(--tinta); cursor: pointer; }
+  .interruptor .perilla { flex: none; width: 42px; height: 24px; border-radius: 999px; background: #c4ced9; position: relative; transition: background .15s; margin-top: 2px; }
+  .interruptor .perilla::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform .15s; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+  .interruptor[aria-checked="true"] .perilla { background: var(--bien); }
+  .interruptor[aria-checked="true"] .perilla::after { transform: translateX(18px); }
+  .interruptor small { display: block; color: var(--gris); font-size: .82rem; }
+  .interruptor:disabled { opacity: .6; cursor: wait; }
+  @media (max-width: 980px) { .copia-precios { grid-template-columns: 1fr; } }
+  @media (prefers-reduced-motion: reduce) { .dato, .interruptor .perilla, .interruptor .perilla::after { transition: none; } }
   .contenido > h1 { font-size: 1.55rem; margin-bottom: 4px; }
   .contenido > .quieto { margin: 0 0 20px; }
   .tarjeta { background: var(--papel); border: 1px solid var(--linea); border-radius: 14px; padding: 20px 22px; margin-bottom: 16px; }
@@ -175,7 +215,7 @@
   </div>
   <div class="entrar-form">
     <form class="entrar-caja" id="f-entrar" autocomplete="on">
-      <p class="negocio-activado"><span class="quieto pequeno">Negocio</span><strong id="e-negocio-nombre"></strong><code id="e-licencia"></code></p>
+      <p class="negocio-activado"><span class="quieto pequeno">Negocio</span><strong id="e-negocio-nombre"></strong></p>
       <h2>Entrar</h2>
       <p class="quieto pequeno">Con el usuario y la clave que te dio el dueño del negocio.</p>
       <div class="pestanas" role="tablist">
@@ -239,8 +279,10 @@
     </nav>
     <div class="pie">
       <div id="pie-equipo"></div>
-      <button type="button" id="b-buscar-act">Buscar actualización</button><br>
-      <button type="button" id="b-salir">Salir</button>
+      <div class="pie-botones">
+        <button type="button" id="b-buscar-act">Buscar actualización</button>
+        <button type="button" id="b-salir">Salir</button>
+      </div>
     </div>
   </aside>
 
@@ -249,31 +291,53 @@
 
     <!-- ---------------------------------------------------------- inicio -->
     <section id="s-inicio">
-      <h1 id="saludo">Hola</h1>
-      <p class="quieto">Todo lo de tu negocio, en un solo lugar.</p>
-      <div class="tarjeta">
-        <h2>Panel del negocio</h2>
-        <p class="quieto">Se abre aquí mismo, ya con tu sesión, y el menú de la izquierda sigue a la vista para volver a Inicio, Base de datos o Copia automática.</p>
-        <div class="accesos">
-          <button class="principal" data-panel=""><strong>Resumen</strong><span>Consultas y reporte</span></button>
-          <button data-panel="sucursales"><strong>Sucursales</strong><span>Precios, ubicación y QR</span></button>
-          <button data-panel="inventarios"><strong>Inventarios</strong><span>Productos y precios</span></button>
-          <button data-panel="apariencia"><strong>Apariencia</strong><span>Logo y colores</span></button>
-          <button data-panel="equipos"><strong>Equipos</strong><span>Verificadores</span></button>
-          <button data-panel="ofertas"><strong>Ofertas</strong><span>En la pantalla del verificador</span></button>
-          <button data-panel="usuarios"><strong>Usuarios</strong><span>Accesos y permisos</span></button>
-          <button data-panel="licencia"><strong>Licencia</strong><span>Plan, límites y renovación</span></button>
-        </div>
-        <p class="aviso error" id="panel-error" role="alert" hidden></p>
+      <div class="ini-hero">
+      <div class="ini-cabeza">
+        <div><h1 id="saludo">Hola</h1><p id="ini-sub">Así está tu negocio hoy.</p></div>
+        <button class="boton claro" type="button" id="b-tablero">Actualizar</button>
       </div>
-      <div class="tarjeta">
-        <h2>Base de datos del negocio</h2>
-        <div class="resumen">
-          <div><strong id="r-fuentes">0</strong><span>bases conectadas</span></div>
-          <div><strong id="r-cada">10</strong><span>minutos entre copias</span></div>
-          <div><strong id="r-inicio">—</strong><span>con Windows</span></div>
+      <div class="tablero">
+        <button type="button" class="dato" data-panel="licencia" id="d-licencia">
+          <span class="dato-et">Licencia</span><strong class="dato-num">—</strong><span class="dato-pie">—</span>
+        </button>
+        <button type="button" class="dato" data-panel="equipos" id="d-equipos">
+          <span class="dato-et">Lectores hoy</span><strong class="dato-num">—</strong><span class="dato-pie">—</span>
+        </button>
+        <button type="button" class="dato" data-panel="" id="d-consultas">
+          <span class="dato-et">Consultas de hoy</span><strong class="dato-num">—</strong><span class="dato-pie">—</span>
+        </button>
+        <button type="button" class="dato" data-panel="ofertas" id="d-ofertas">
+          <span class="dato-et">Ofertas en pantalla</span><strong class="dato-num">—</strong><span class="dato-pie">—</span>
+        </button>
+        <button type="button" class="dato" data-panel="inventarios" id="d-productos">
+          <span class="dato-et">Productos</span><strong class="dato-num">—</strong><span class="dato-pie">En tus inventarios</span>
+        </button>
+      </div>
+      </div>
+      <p class="aviso" id="ini-aviso" role="status" hidden></p>
+      <p class="aviso error" id="panel-error" role="alert" hidden></p>
+
+      <div class="tarjeta copia-precios" id="t-copia">
+        <div class="copia-estado">
+          <span class="semaforo" id="c-semaforo" aria-hidden="true"></span>
+          <div>
+            <h2>Copia de precios</h2>
+            <p id="c-ultima" class="quieto">—</p>
+          </div>
         </div>
-        <button class="boton" data-ir="base" type="button">Conectar o revisar la base de datos</button>
+        <div class="resumen">
+          <div><strong id="c-bases">0</strong><span>bases conectadas</span></div>
+          <div><strong id="c-cada">10</strong><span>minutos entre copias</span></div>
+        </div>
+        <button type="button" class="interruptor" id="c-inicio" role="switch" aria-checked="false">
+          <span class="perilla" aria-hidden="true"></span>
+          <span><b>Copiar al encender la PC</b><small id="c-inicio-txt">Si está apagado, los precios dejan de copiarse cuando la PC se reinicia y nadie abre la app.</small></span>
+        </button>
+        <div class="fila">
+          <button class="boton" type="button" id="c-ahora">Copiar precios ahora</button>
+          <button class="boton secundario" data-ir="base" type="button">Revisar la base de datos</button>
+        </div>
+        <p class="aviso" id="c-aviso" role="status" hidden></p>
       </div>
     </section>
 
@@ -513,7 +577,6 @@ async function refrescar() {
   $("#version-activar").textContent = `Versión ${E.version} · ${E.equipo}`;
   if (!E.activacion) return vista("v-activar");
   $("#e-negocio-nombre").textContent = E.activacion.nombre;
-  $("#e-licencia").textContent = E.activacion.licencia;
   const s = E.sesion;
   if (!s || !s.negocio) return vista("v-entrar");
   vista("v-app");
@@ -521,10 +584,7 @@ async function refrescar() {
   $("#n-cuenta").textContent = s.cuenta || "";
   $("#saludo").textContent = s.nombre ? `Hola, ${s.nombre.split(" ")[0]}` : `Hola`;
   $("#pie-equipo").textContent = `${E.equipo} · versión ${E.version}`;
-  $("#r-fuentes").textContent = E.conector.fuentes;
-  api("inventarios").then((x) => { if (x.inventarios) $("#r-fuentes").textContent = x.inventarios.filter((i) => i.origen === "conector").length; });
-  $("#r-cada").textContent = E.conector.cada_min;
-  $("#r-inicio").textContent = E.conector.inicio ? "Sí" : "No";
+  $("#ini-sub").textContent = "Así está tu negocio hoy, " + new Date().toLocaleDateString("es-DO", { weekday: "long", day: "numeric", month: "long" }) + ".";
 }
 function ir(seccion) {
   ["inicio", "base", "copia", "drive"].forEach((x) => { $("#s-" + x).hidden = x !== seccion; });
@@ -532,7 +592,7 @@ function ir(seccion) {
   if (seccion === "base") cargarFuentes();
   if (seccion === "copia") cargarCopia();
   if (seccion === "drive") cargarDrive();
-  if (seccion === "inicio") refrescar();
+  if (seccion === "inicio") refrescar().then(pintarTablero);
 }
 $$("[data-ir]").forEach((b) => b.onclick = () => ir(b.dataset.ir));
 
@@ -877,6 +937,77 @@ $("#b-guardar").onclick = async () => {
   asistenteAbierto = false; paso(1);
   aviso($("#fuentes-aviso"), r, r.mensaje);
   cargarFuentes(); setTimeout(cargarFuentes, 6000); setTimeout(cargarFuentes, 20000);
+};
+
+// ============================================================ tablero de inicio
+const nfmt = new Intl.NumberFormat("es-DO");
+const haceTexto = (seg) => seg < 90 ? "hace un momento" : seg < 3600 ? `hace ${Math.round(seg / 60)} min` : seg < 86400 ? `hace ${Math.round(seg / 3600)} h` : `hace ${Math.round(seg / 86400)} días`;
+function dato(id, num, pie, tono) {
+  const d = $("#" + id);
+  d.querySelector(".dato-num").textContent = num;
+  d.querySelector(".dato-pie").textContent = pie;
+  d.className = "dato" + (tono ? " " + tono : "");
+}
+let tableroCargando = false;
+async function pintarTablero() {
+  if (tableroCargando || !E || !E.sesion || !E.sesion.negocio) return;
+  tableroCargando = true;
+  const b = $("#b-tablero"); ocupado(b, true, "Actualizando…");
+  const t = await api("tablero");
+  ocupado(b, false); tableroCargando = false;
+  if (t.error) { aviso($("#ini-aviso"), t); return; }
+  $("#ini-aviso").hidden = true;
+  const L = t.licencia;
+  if (L) {
+    const est = { prueba: "En prueba", activa: "Activa", por_vencer: "Por vencer", gracia: "En gracia", vencida: "Vencida", suspendida: "Suspendida" }[L.estado] || L.estado;
+    const dias = L.dias == null ? (L.permanente ? "Permanente" : est) : L.dias >= 0 ? `${L.dias} ${L.dias === 1 ? "día" : "días"}` : est;
+    const tono = ["vencida", "suspendida", "gracia"].includes(L.estado) ? "mal" : (L.estado === "por_vencer" || (L.dias != null && L.dias <= (L.dias_aviso || 15))) ? "alerta" : "";
+    const pie = L.estado === "prueba" ? "Quedan de prueba" : ["activa", "por_vencer"].includes(L.estado) ? `Plan ${L.plan_nombre || ""}${L.dias != null ? " · quedan" : ""}` : `Plan ${L.plan_nombre || ""}`;
+    dato("d-licencia", dias, pie, tono);
+    if (tono) { const a = $("#ini-aviso"); a.hidden = false; a.className = "aviso " + (tono === "mal" ? "error" : "nota");
+      a.textContent = tono === "mal" ? "La licencia necesita atención: los lectores pueden dejar de mostrar precios. Revisa la sección Licencia." : `La licencia vence en ${L.dias} días. Renueva desde la sección Licencia para no quedarte sin precios.`; }
+  } else dato("d-licencia", "—", "Sin permiso para verla");
+  const Q = t.equipos, lim = L && L.limites ? L.limites.equipos : null;
+  if (Q) dato("d-equipos", `${Q.hoy} de ${lim ?? Q.total}`, Q.sin_senal.length ? `Sin señal ahora: ${Q.sin_senal.join(", ")}` : Q.total ? "Todos conectados" : "Ningún lector vinculado todavía", Q.sin_senal.length ? "alerta" : "");
+  else dato("d-equipos", "—", "Sin permiso para verlos");
+  const C = t.consultas;
+  if (C) dato("d-consultas", nfmt.format(C.total), C.no_encontrados ? `${nfmt.format(C.no_encontrados)} no encontrados (¿productos sin precio?)` : C.total ? "Todos encontrados" : "Todavía nadie ha escaneado hoy", C.no_encontrados ? "alerta" : "");
+  else dato("d-consultas", "—", "Sin permiso para el reporte");
+  const O = t.ofertas;
+  if (O) dato("d-ofertas", nfmt.format(O.vigentes), O.vence ? `«${O.vence.nombre}» vence ${new Date(O.vence.hasta).toLocaleDateString("es-DO", { day: "numeric", month: "short" })}` : O.total ? `${O.total} creadas en total` : "Crea una para mostrarla junto al lector");
+  else dato("d-ofertas", "—", "Sin permiso para verlas");
+  dato("d-productos", t.productos == null ? "—" : nfmt.format(t.productos), "En tus inventarios");
+  pintarCopia(t.copia);
+}
+function pintarCopia(c) {
+  if (!c) return;
+  $("#c-bases").textContent = c.bases; $("#c-cada").textContent = c.cada_min;
+  const u = c.ultimo_intento, ahora = Date.now() / 1000;
+  let tono = "bien", texto;
+  if (!c.bases) { tono = "quieto"; texto = "Todavía no hay una base de datos conectada: conéctala para que los precios se copien solos."; }
+  else if (u && u.error) { tono = "error"; texto = `El último intento falló (${haceTexto(ahora - u.hora)}): ${u.error}`; }
+  else if (c.ultima) { const s = ahora - c.ultima; texto = `Última copia: ${haceTexto(s)}.` + (s > Math.max(3, c.cada_min * 3) * 60 ? " Lleva un rato sin copiar." : ""); if (s > Math.max(3, c.cada_min * 3) * 60 && !(u && !u.error)) tono = "alerta"; }
+  else { tono = "alerta"; texto = "Esta PC todavía no ha copiado precios."; }
+  if (u && !u.error && u.hora) texto = `Última revisión: ${haceTexto(ahora - u.hora)} · ${u.enviados || 0} enviados, ${u.sin_cambios || 0} sin cambios.`;
+  $("#c-semaforo").className = "semaforo " + tono;
+  $("#c-ultima").textContent = texto;
+  const sw = $("#c-inicio");
+  sw.setAttribute("aria-checked", c.inicio ? "true" : "false");
+  $("#c-inicio-txt").textContent = c.inicio ? "Encendido: copia los precios aunque nadie abra la app." : "Apagado: si la PC se reinicia y nadie abre la app, los precios dejan de copiarse.";
+}
+$("#b-tablero").onclick = () => pintarTablero();
+$("#c-ahora").onclick = async () => {
+  const b = $("#c-ahora"); ocupado(b, true, "Copiando…");
+  const r = await api("enviar_ahora"); ocupado(b, false);
+  aviso($("#c-aviso"), r, r.error ? "" : `Listo: ${r.enviados} enviados, ${r.sin_cambios} sin cambios${r.errores ? ", " + r.errores + " con error" : ""}.`);
+  pintarTablero();
+};
+$("#c-inicio").onclick = async () => {
+  const sw = $("#c-inicio"), activar = sw.getAttribute("aria-checked") !== "true";
+  sw.disabled = true; $("#c-inicio-txt").textContent = "Esperando el permiso de Windows…";
+  const r = await api("arranque", activar); sw.disabled = false;
+  if (r.error) aviso($("#c-aviso"), r);
+  pintarTablero();
 };
 
 // ============================================================ copia automática

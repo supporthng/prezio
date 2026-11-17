@@ -15,6 +15,7 @@ Las credenciales de la base de datos se guardan cifradas en esta PC y nunca se e
   PrezioAdministrador.exe --instalar      (crea esa tarea; pide permiso de administrador)
   PrezioAdministrador.exe --desinstalar   (la quita)
 """
+import datetime
 import json
 import os
 import platform
@@ -121,6 +122,18 @@ class Prezio:
         if metodo != "GET":
             cab["Prefer"] = "return=representation"
         return self._pedir(metodo, f"{self.publico()['supabase_url']}/rest/v1/{ruta}", cuerpo, cab)
+
+    def contar(self, ruta: str, token: str) -> int | None:
+        """Cuántas filas hay (sin traerlas): PostgREST responde «Content-Range: 0-0/N». None si no se pudo."""
+        cab = {**self._cab(token), "Prefer": "count=exact", "Range-Unit": "items", "Range": "0-0",
+               "User-Agent": f"PrezioAdministrador/{VERSION}"}
+        pedido = urllib.request.Request(f"{self.publico()['supabase_url']}/rest/v1/{ruta}", method="GET", headers=cab)
+        try:
+            with self._abrir(pedido, timeout=20) as r:
+                total = (r.headers.get("Content-Range") or "").rsplit("/", 1)[-1]
+                return int(total) if total.isdigit() else None
+        except Exception:
+            return None
 
     def enlace_panel(self, token: str) -> str:
         r = self._pedir("POST", f"{self.sitio}/api/sesion-app", {}, {"Authorization": f"Bearer {token}"})
@@ -680,6 +693,64 @@ class Api:
                           "productos": e.get("productos"), "hora": e.get("hora")})
         return {"ok": True, "fuentes": lista, "ultimo": self._ultimo_envio, "cada_min": cfg.get("cada_min", 10),
                 "inicio": self._tarea_instalada()}
+
+    def tablero(self):
+        """Inicio: cómo está el negocio hoy. Cada parte por separado: si falta un permiso, esa tarjeta sale vacía."""
+        try:
+            n = self._negocio()
+            token = self._token()
+        except Exception as e:
+            return {"error": mensaje(e)}
+        nid = n["id"]
+        ahora = datetime.datetime.now(datetime.timezone.utc)
+        local = ahora.astimezone(datetime.timezone(datetime.timedelta(hours=-4)))
+        hoy = local.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+        r: dict = {"ok": True}
+
+        def parte(clave, funcion):
+            try:
+                r[clave] = funcion()
+            except Exception:
+                r[clave] = None
+        parte("licencia", lambda: self._prezio.rpc("licencia_detalle", {"p_negocio": nid}, token))
+
+        def equipos():
+            filas = self._prezio.tabla("GET", f"equipos?select=nombre,visto&negocio_id=eq.{nid}&order=nombre", token) or []
+            def hace(f):
+                try:
+                    return (ahora - datetime.datetime.fromisoformat(str(f["visto"]).replace("Z", "+00:00"))).total_seconds()
+                except Exception:
+                    return None
+            lista = [{"nombre": f["nombre"], "hace": hace(f)} for f in filas]
+            return {"total": len(lista), "hoy": sum(1 for x in lista if x["hace"] is not None and x["hace"] < 86400),
+                    "sin_senal": [x["nombre"] for x in lista if x["hace"] is None or x["hace"] > 3 * 3600][:6]}
+        parte("equipos", equipos)
+
+        def consultas():
+            base = f"consultas?select=id&negocio_id=eq.{nid}&creado=gte.{urllib.parse.quote(hoy)}"
+            total = self._prezio.contar(base, token)
+            return None if total is None else {"total": total, "no_encontrados": self._prezio.contar(base + "&encontrado=is.false", token) or 0}
+        parte("consultas", consultas)
+
+        def ofertas():
+            filas = self._prezio.tabla("GET", f"ofertas?select=nombre,activa,desde,hasta&negocio_id=eq.{nid}", token) or []
+            def fecha(v):
+                return datetime.datetime.fromisoformat(str(v).replace("Z", "+00:00")) if v else None
+            vigentes = [f for f in filas if f.get("activa") and (not f.get("desde") or fecha(f["desde"]) <= ahora)
+                        and (not f.get("hasta") or fecha(f["hasta"]) > ahora)]
+            pronto = sorted((f for f in vigentes if f.get("hasta") and (fecha(f["hasta"]) - ahora).total_seconds() < 3 * 86400),
+                            key=lambda f: f["hasta"])
+            return {"total": len(filas), "vigentes": len(vigentes),
+                    "vence": {"nombre": pronto[0]["nombre"], "hasta": pronto[0]["hasta"]} if pronto else None}
+        parte("ofertas", ofertas)
+        parte("productos", lambda: self._prezio.contar(f"productos?select=codigo&negocio_id=eq.{nid}", token))
+
+        cfg = self._cfg()
+        est = pc.leer_json(pc.ESTADO, {}) or {}
+        horas = [float(v.get("hora") or 0) for v in est.values() if isinstance(v, dict)]
+        r["copia"] = {"bases": len(cfg.get("inventarios") or {}), "cada_min": cfg.get("cada_min", 10), "inicio": self._tarea_instalada(),
+                      "ultima": max(horas) if horas else None, "ultimo_intento": self._ultimo_envio or None}
+        return r
 
     def quitar_fuente(self, iid):
         cfg = self._cfg()
@@ -1343,7 +1414,7 @@ def _solo(permitido):
 
 
 for _n in ("estado", "activar", "desactivar", "entrar", "elegir_negocio", "abrir_panel", "buscar_servidores", "autorizar", "tablas",
-           "columnas", "muestra", "inventarios", "adoptar_fuente", "drive_estado", "drive_conectar", "drive_desconectar", "drive_guardar", "drive_respaldar", "respaldo_carpeta", "respaldo_abrir_carpeta", "restaurar_archivo", "restaurar_drive_lista", "restaurar_drive_elegir", "restaurar_aplicar", "guardar_fuente", "fuentes", "quitar_fuente", "enviar_ahora", "guardar_frecuencia",
+           "columnas", "muestra", "inventarios", "adoptar_fuente", "drive_estado", "drive_conectar", "drive_desconectar", "drive_guardar", "drive_respaldar", "respaldo_carpeta", "respaldo_abrir_carpeta", "restaurar_archivo", "restaurar_drive_lista", "restaurar_drive_elegir", "restaurar_aplicar", "guardar_fuente", "fuentes", "tablero", "quitar_fuente", "enviar_ahora", "guardar_frecuencia",
            "arranque", "registro", "version_nueva", "actualizar", "abrir_enlace"):
     setattr(Api, _n, _solo(Api._desde_la_app)(getattr(Api, _n)))
 for _n in ("salir", "ir_app", "mostrar_inicio", "abrir_en_navegador", "google_token", "google_elegir"):
