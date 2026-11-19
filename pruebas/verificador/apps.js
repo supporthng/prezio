@@ -75,10 +75,23 @@ const crypto = require('crypto');
   await a.click('text=Cancelar'); await a.waitForTimeout(200);
   await a.keyboard.type('7501055363063'); await a.keyboard.press('Enter'); await a.waitForTimeout(300);
   t(await a.$('.pz-etiqueta'), 'tras cancelar, el lector sigue funcionando');
+  // ---- la X también en «Vincula este equipo» (equipo sin vincular)
+  const ctxV = await b.newContext({ viewport: { width: 1280, height: 800 } });
+  await ctxV.addInitScript(() => { window.pywebview = { api: { version: async () => '1.0.9', cerrar: async () => { window.__cerro = (window.__cerro || 0) + 1; }, salir: async () => {}, buscarActualizacion: async () => {} } }; });
+  const v = await ctxV.newPage(); v.on('pageerror', e => errores.push(e.message));
+  await v.goto('http://localhost:8787/equipo'); await v.waitForSelector('.equipo-opciones');
+  await v.waitForSelector('.vincular-cerrar .x', { timeout: 5000 });
+  await v.click('.vincular-cerrar .x'); await v.waitForTimeout(200);
+  t(await v.isVisible('text=¿Cerrar Prezcio?') && !(await v.evaluate(() => window.__cerro)), 'vincular: la X pregunta antes de cerrar');
+  await v.screenshot({ path: 'vincular-cerrar.png' });
+  await v.click('.vincular-cerrar >> text=No'); await v.waitForTimeout(150);
+  t(await v.isVisible('.vincular-cerrar .x'), 'vincular: «No» deja todo igual');
+  await v.click('.vincular-cerrar .x'); await v.click('text=Sí, cerrar'); await v.waitForTimeout(200);
+  t(await v.evaluate(() => window.__cerro) === 1, 'vincular: «Sí, cerrar» cierra la app');
   // ---- navegador normal: sin cambios
   const n = await (await b.newContext()).newPage();
   await n.goto('http://localhost:8787/equipo'); await n.waitForSelector('.equipo-opciones');
-  t(!(await n.$('text=Salir de la app')) && !(await n.$('.verificador-esquina [aria-label="Cerrar la app"]')), 'en el navegador normal no hay botones de la app (ni la X)');
+  t(!(await n.$('text=Salir de la app')) && !(await n.$('.verificador-esquina [aria-label="Cerrar la app"]')) && !(await n.$('.vincular-cerrar')), 'en el navegador normal no hay botones de la app (ni la X)');
   t(errores.length === 0, 'sin errores ' + errores.join(' | '));
   console.log(`${ok} bien, ${mal} mal`); await b.close();
 })();

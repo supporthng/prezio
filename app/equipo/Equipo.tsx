@@ -47,6 +47,7 @@ export function Equipo({ sitio }: { sitio: string }) {
   const [claveSalida, setClaveSalida] = useState("");
   const [errorSalida, setErrorSalida] = useState("");
   const [confirmarCierre, setConfirmarCierre] = useState(false);
+  const [cerrarVinculo, setCerrarVinculo] = useState(false);
   const [menu, setMenu] = useState<null | { productos: number; pendientes: number; sincronizado: string | null }>(null);
   // Ofertas: todas las que mandó Prezcio (también las que empiezan después) y las vigentes ahora (se revisa cada 30 s).
   const ofertas = useRef<{ version: string; ofertas: Oferta[] }>({ version: "", ofertas: [] });
@@ -365,6 +366,20 @@ export function Equipo({ sitio }: { sitio: string }) {
     const c = codigo?.codigo;
     return (
       <div className="equipo-vincular">
+        {/* Cerrar la app (solo Windows/Android): aún no hay clave de salida, así que se confirma aquí mismo. */}
+        {nativa && (
+          <div className="vincular-cerrar">
+            {cerrarVinculo ? (
+              <>
+                <span>¿Cerrar Prezcio?</span>
+                <button type="button" className="si" onClick={cerrarApp}>Sí, cerrar</button>
+                <button type="button" onClick={() => setCerrarVinculo(false)}>No</button>
+              </>
+            ) : (
+              <button type="button" className="x" title="Cerrar la app" aria-label="Cerrar la app" onClick={() => setCerrarVinculo(true)}>✕</button>
+            )}
+          </div>
+        )}
         <div className="equipo-vincular-caja">
           <p className="equipo-marca">Prezcio</p>
           <h1>Vincula este equipo</h1>
