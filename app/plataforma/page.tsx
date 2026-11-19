@@ -19,7 +19,12 @@ export default async function Plataforma({ searchParams }: Props) {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) redirect("/plataforma/entrar");
   const { data: es } = await supabase.rpc("es_plataforma");
-  if (!es) notFound();
+  if (!es) {
+    // Cuenta de la Plataforma sin el código de verificación: a pedirlo.
+    const { data: m } = await supabase.rpc("plataforma_miembro");
+    if (m) redirect("/plataforma/verificar");
+    notFound();
+  }
   const [{ data }, { data: datos }] = await Promise.all([supabase.rpc("plataforma_negocios"), supabase.rpc("plataforma_datos")]);
   const negocios = (data ?? []) as NegocioPl[];
 

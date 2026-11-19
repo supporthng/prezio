@@ -14,10 +14,11 @@ export async function entrarPlataforma(d: FormData) {
     password: String(d.get("clave") ?? ""),
   });
   if (error) volver(/invalid/i.test(error.message) ? "Correo o clave incorrectos." : mensajeError(error));
-  const { data: es } = await supabase.rpc("es_plataforma");
-  if (!es) {
+  const { data: m } = await supabase.rpc("plataforma_miembro");
+  if (!m) {
     await supabase.auth.signOut();
     volver("Esta cuenta no es de la Plataforma de Prezcio.");
   }
-  redirect("/plataforma");
+  // Segundo paso: el código de la app de autenticación (o configurarla la primera vez).
+  redirect("/plataforma/verificar");
 }

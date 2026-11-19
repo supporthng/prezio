@@ -8,7 +8,7 @@ def sql(quien, consulta):
     pre = ""
     if quien:
         pre = (f"set role authenticated; select set_config('request.jwt.claim.sub', '{U[quien]}', false), "
-               f"set_config('request.jwt.claims', '{json.dumps({'sub': U[quien], 'email': MAIL[quien]})}', false) \\g /dev/null\n")
+               f"set_config('request.jwt.claims', '{json.dumps({'sub': U[quien], 'email': MAIL[quien], 'aal': 'aal2'})}', false) \\g /dev/null\n")
     elif quien is None:
         pre = "set role anon;\n"
     # En GitHub Actions: PREZIO_PSQL="psql postgresql://…/prezio"; en local, el PostgreSQL de pruebas.

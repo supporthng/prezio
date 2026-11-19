@@ -861,3 +861,12 @@ main .tarjeta + .tarjeta { margin-top: 16px; }
 .lic-modo button.on { background: var(--tinta); color: var(--papel); }
 .lic-ahorro { font-size: .74rem; font-weight: 800; background: #1f7a4d; color: #fff; border-radius: 999px; padding: 2px 7px; }
 .lic-modo button.on .lic-ahorro { background: #ffd23f; color: #102a43; }
+/* ---------- verificación en dos pasos de la Plataforma */
+.pv-pasos { margin: 8px 0; padding-left: 20px; font-size: .92rem; display: grid; gap: 4px; }
+.pv-qr { display: grid; place-items: center; min-height: 196px; margin: 4px 0 8px; }
+.pv-qr img { background: #fff; padding: 8px; border-radius: 12px; border: 1px solid var(--linea); }
+.pv-manual { margin: 0 0 8px; font-size: .88rem; }
+.pv-manual code { display: block; font-size: .95rem; letter-spacing: .06em; word-break: break-all; margin-top: 4px; }
+.pv-codigo { font-size: 1.4rem; letter-spacing: .3em; text-align: center; font-variant-numeric: tabular-nums; }
+.pe-salir { color: #ffd23f; margin-left: 6px; }
+.pe-salir { font: inherit; background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }

@@ -93,4 +93,17 @@ r3 = json.loads(valor("pat", "select public.plataforma_crear_negocio('Alta falli
 ok(puede("pat", f"select public.plataforma_borrar_negocio('{r3['id']}')"), "se puede deshacer un alta recién creada")
 ok(not puede("pat", f"select public.plataforma_borrar_negocio('{A}')"), "un negocio con datos no se borra (se suspende)")
 
+# ---------------------------------------------------------------- verificación en dos pasos
+def pat_sin_codigo(q):
+    return c.sql(False, "set role authenticated; select set_config('request.jwt.claim.sub', '" + c.U["pat"] + "', false), "
+                 "set_config('request.jwt.claims', '{\"sub\": \"" + c.U["pat"] + "\", \"aal\": \"aal1\"}', false) \\g /dev/null\n" + q)
+ok(pat_sin_codigo("select public.es_plataforma()")[1] == "f", "con solo la clave (sin código) la cuenta no es de la Plataforma")
+ok(not pat_sin_codigo("select public.plataforma_negocios()")[0], "sin código no ve los negocios")
+ok(not pat_sin_codigo("select public.plataforma_crear_negocio('Sin codigo')")[0], "sin código no crea negocios")
+m = json.loads(pat_sin_codigo("select public.plataforma_miembro()")[1])
+ok(m == {"rol": "administrador", "verificado": False}, "pero sabe que debe pedir el código (plataforma_miembro)")
+ok(json.loads(valor("pat", "select public.plataforma_miembro()"))["verificado"] is True, "con el código: verificada")
+ok(valor("ana", "select public.plataforma_miembro()") == "", "una cuenta de negocio no es de la Plataforma")
+ok(not puede(None, "select public.crear_perfil()"), "crear_perfil no se puede llamar desde fuera")
+
 print(f"{c.bien} bien, {c.mal} mal")
