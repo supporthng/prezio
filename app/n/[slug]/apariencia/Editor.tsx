@@ -109,7 +109,7 @@ export function Editor({ negocioId, slug, negocio, sucursal, inicial, moneda: mo
                 {a.logo ? <img src={a.logo} alt="Logo actual" /> : <span className="quieto pequeno">Sin logo</span>}
                 {a.logo && puedeEditar && <button type="button" className="enlace-boton" onClick={() => void quitar("logo")}>Quitar</button>}
               </div>
-              <input id="logo" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onChange={(e) => void subir("logo", e.target.files?.[0])} />
+              <input id="logo" type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => void subir("logo", e.target.files?.[0])} />
               {!a.logo && <p className="aviso error" style={{ margin: "8px 0 0" }}>Todavía no has subido el logo: las pantallas muestran solo el nombre.</p>}
               {a.logo && !a.mostrar_logo && <p className="aviso error" style={{ margin: "8px 0 0" }}>El logo está oculto: marca «Logo del negocio» abajo y guarda.</p>}
             </div>
@@ -119,7 +119,7 @@ export function Editor({ negocioId, slug, negocio, sucursal, inicial, moneda: mo
                 {a.qr ? <img src={a.qr} alt="QR actual" /> : <span className="quieto pequeno">Sin QR</span>}
                 {a.qr && puedeEditar && <button type="button" className="enlace-boton" onClick={() => void quitar("qr")}>Quitar</button>}
               </div>
-              <input id="qr" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onChange={(e) => void subir("qr", e.target.files?.[0])} />
+              <input id="qr" type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => void subir("qr", e.target.files?.[0])} />
               <p className="quieto pequeno" style={{ margin: "6px 0 0" }}>O usa el QR de la consulta desde el celular: Sucursales › Enlace y QR.</p>
             </div>
           </div>

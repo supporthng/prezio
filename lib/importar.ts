@@ -71,7 +71,7 @@ function codigoValido(c: string): string {
   return limpio.length >= 2 ? limpio : `sucursal-${limpio || "1"}`;
 }
 
-const TIPOS_IMAGEN: Record<string, string> = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp", svg: "image/svg+xml" };
+const TIPOS_IMAGEN: Record<string, string> = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp" };   // SVG no: el almacén ya no lo acepta (puede llevar código)
 
 export async function leerRespaldo(datos: Uint8Array): Promise<Plan> {
   let zip: Zip;
