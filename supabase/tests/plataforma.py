@@ -67,7 +67,7 @@ est = json.loads(valor(False, f"select public.equipo_estado('{clave_eq}')"))
 ok(est["negocio"]["suspendido"] is True and est["version"] == "suspendido", "el verificador se entera de que está suspendido")
 ok(json.loads(valor(False, f"select public.equipo_catalogo('{clave_eq}')"))["productos"] == [], "y no recibe precios")
 ok(not puede("ana", f"select public.consultar_precio('{pri}', array['7501055363063'])"), "suspendido: el verificador en línea no da precios")
-valor(False, f"update negocios set consulta_movil = true where id = '{A}'")
+valor(False, f"update negocios set movil_contratada = true, consulta_movil = true where id = '{A}'")
 ok(json.loads(valor(None, f"select public.consulta_movil('{pri}', array['7501055363063'], null, null)")).get("error") == "inactiva",
    "suspendido: la consulta desde el celular se apaga")
 slug = valor(False, f"select slug from negocios where id = '{A}'")

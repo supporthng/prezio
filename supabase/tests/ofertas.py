@@ -90,7 +90,7 @@ ok("ofertas" in e3 and e3["version"] != e["version"], "si cambian, sí")
 ok(valor(None, f"select public.equipo_ofertas('{'0' * 64}')").startswith("ERROR"), "con una clave falsa: nada")
 
 # ---------------------------------------------------------------- consulta móvil
-valor(False, f"update negocios set consulta_movil = true where id = '{A}'")
+valor(False, f"update negocios set movil_contratada = true, consulta_movil = true where id = '{A}'")
 m = J(None, f"select public.consulta_movil('{pri}', array['{REF}'])")
 ok(m["oferta"]["precio_oferta"] == 99, "la consulta desde el celular también trae la oferta")
 
@@ -99,7 +99,7 @@ ok(not puede("dani", f"select public.borrar_oferta('{o1['id']}')"), "sin el perm
 ok(puede("ana", f"select public.borrar_oferta('{o1['id']}')"), "la dueña sí")
 
 # Deja la base como estaba para las pruebas que siguen.
-valor(False, f"update negocios set consulta_movil = false where id = '{A}'")
+valor(False, f"update negocios set consulta_movil = false, movil_contratada = false where id = '{A}'")
 valor(False, f"delete from consultas where negocio_id = '{A}' and canal = 'movil'")
 valor(False, f"delete from equipos where negocio_id = '{A}' and nombre = 'Caja ofertas'")
 valor(False, f"delete from ofertas where negocio_id = '{A}'")

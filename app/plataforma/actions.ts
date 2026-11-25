@@ -123,6 +123,14 @@ export async function extenderPrueba(d: FormData) {
   volver(error, `Listo: ${campo(d, "dias")} días más de prueba.`, d);
 }
 
+/** Consulta desde el celular: servicio adicional que la Plataforma activa o quita (al quitarlo se apaga). */
+export async function cambiarMovil(d: FormData) {
+  const supabase = await supabaseServidor();
+  const activa = campo(d, "activa") === "si";
+  const { error } = await supabase.rpc("plataforma_movil", { p_negocio: campo(d, "negocio"), p_activa: activa });
+  volver(error, activa ? "Consulta desde el celular contratada: el negocio ya puede activarla en Sucursales." : "Consulta desde el celular quitada y apagada.", d);
+}
+
 export async function suspender(d: FormData) {
   const supabase = await supabaseServidor();
   const negocio = campo(d, "negocio");

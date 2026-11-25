@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Aviso } from "@/components/Aviso";
 import { enlaceNegocio } from "@/lib/subdominio";
 import { fechaCorta, precioPlan, textoAnual, textoLicencia, totalPago, type EstadoLic, type Limites, type Plan } from "@/lib/licencia";
-import { activarEnlace, agregarDueno, altaNegocio, extenderPrueba, registrarPago, suspender } from "./actions";
+import { activarEnlace, agregarDueno, altaNegocio, cambiarMovil, extenderPrueba, registrarPago, suspender } from "./actions";
 import { HistorialNegocio, VistaDescargas, VistaEquipo, VistaPlanes, VistaReglas, VistaSolicitudes, type Apps, type DatosPl } from "./Vistas";
 
 type Dueno = { usuario: string | null; correo: string | null; confirmado: boolean };
@@ -13,6 +13,7 @@ export type NegocioPl = {
   licencia: string; prueba_hasta: string | null; pagado_hasta: string | null; bloqueado: boolean;
   usuarios: number; sucursales: number; equipos: number; equipos_activos: number; productos: number; ultima_consulta: string | null;
   lic: EstadoLic; limites: Limites; pcs: number; solicitud: "nueva" | "contactada" | null;
+  movil?: { contratada: boolean; activa: boolean };
 };
 type Vista = "negocios" | "solicitudes" | "planes" | "reglas" | "descargas" | "equipo";
 type Filtro = "todos" | "activos" | "prueba" | "vencen" | "bloqueados" | "piden";
@@ -247,6 +248,7 @@ function Tarjeta({ n, ahora, indice, planes, escribe, sitio, cortos, descuento =
       )) : <b className="error-texto">Sin dueño</b>}</p>
       <p className="pl-linea"><span>Última consulta</span><b>{fecha(n.ultima_consulta)}</b></p>
       <p className="pl-linea"><span>PCs</span><b>{usoTexto(n.pcs, n.limites.pcs)}</b></p>
+      <p className="pl-linea"><span>Consulta por celular</span><b>{n.movil?.contratada ? (n.movil.activa ? "Contratada · activa" : "Contratada · apagada") : "No contratada"}</b></p>
       {n.solicitud && <p className="pl-pide">Pidió un plan · {n.solicitud === "nueva" ? "sin contactar" : "contactado"}</p>}
 
       <div className="pl-acciones">
@@ -258,6 +260,13 @@ function Tarjeta({ n, ahora, indice, planes, escribe, sitio, cortos, descuento =
                 <button key={p} type="button" onClick={() => abrir(p)}>{NOMBRE_PANEL[p]}</button>
               ))}
               <button type="button" onClick={() => abrir("historial")}>{NOMBRE_PANEL.historial}</button>
+              {escribe && (
+                <form action={cambiarMovil} style={{ display: "contents" }}>
+                  <input type="hidden" name="negocio" value={n.id} /><input type="hidden" name="vista" value="negocios" />
+                  <input type="hidden" name="activa" value={n.movil?.contratada ? "no" : "si"} />
+                  <button type="submit">{n.movil?.contratada ? "Quitar consulta por celular" : "Activar consulta por celular"}</button>
+                </form>
+              )}
               {escribe && !suspendido && <button type="button" className="peligro" onClick={() => { setConfirmar(true); setMenu(false); setPanel(null); }}>Suspender…</button>}
             </div>
           )}

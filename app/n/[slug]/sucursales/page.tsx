@@ -21,13 +21,14 @@ export default async function Sucursales({ params, searchParams }: Props) {
     supabase.from("sucursales").select("id, nombre, codigo, es_principal, activa, fuente, geo_activa, latitud, longitud, radio_m")
       .eq("negocio_id", negocio.id).order("es_principal", { ascending: false }).order("nombre"),
     supabase.from("inventarios").select("id, nombre").eq("negocio_id", negocio.id).order("nombre"),
-    supabase.from("negocios").select("consulta_movil, apariencia").eq("id", negocio.id).maybeSingle(),
+    supabase.from("negocios").select("consulta_movil, movil_contratada, apariencia").eq("id", negocio.id).maybeSingle(),
   ]);
   const todas = (suc ?? []) as Sucursal[];
   // Quien tiene permisos solo en algunas sucursales ve esas.
   const sucursales = alcance === null ? todas : todas.filter((s) => alcance.includes(s.id) || puede("sucursales", s.id));
   const inventarios = (inv ?? []) as { id: string; nombre: string }[];
   const movilActiva = Boolean((neg as { consulta_movil?: boolean } | null)?.consulta_movil);
+  const movilContratada = Boolean((neg as { movil_contratada?: boolean } | null)?.movil_contratada);
   const puedeApariencia = puede("apariencia");
   const ap = ((neg as { apariencia?: { logo?: string | null; mostrar_logo?: boolean } } | null)?.apariencia) ?? {};
   const faltaLogo = !ap.logo || ap.mostrar_logo === false;
@@ -46,10 +47,11 @@ export default async function Sucursales({ params, searchParams }: Props) {
             <h2 id="t-movil">Consulta desde el celular</h2>
             <p className="quieto" style={{ margin: 0 }}>
               Tus clientes escanean el QR de la sucursal con su celular y ven el precio con la cámara, sin instalar nada.
-              {movilActiva ? " Está activa." : " Está apagada: actívala para que el enlace y el QR funcionen."}
+              {!movilContratada ? " Es un servicio adicional: pídelo a tu proveedor de Prezcio y, al activarlo, aparece aquí el botón."
+                : movilActiva ? " Está activa." : " Está apagada: actívala para que el enlace y el QR funcionen."}
             </p>
           </div>
-          {puedeApariencia ? (
+          {!movilContratada ? <span className="chip">Servicio adicional</span> : puedeApariencia ? (
             <form action={cambiarConsultaMovil}>
               <input type="hidden" name="slug" value={slug} />
               <input type="hidden" name="negocio" value={negocio.id} />
@@ -114,7 +116,7 @@ export default async function Sucursales({ params, searchParams }: Props) {
                       geo={{ activa: s.geo_activa, latitud: s.latitud, longitud: s.longitud, radio_m: s.radio_m }} />
                   )}
                   <details className="ubicacion">
-                    <summary>Enlace y QR para el celular <span className="quieto pequeno">· {movilActiva ? (s.activa ? "activo" : "sucursal inactiva") : "consulta apagada"}</span></summary>
+                    <summary>Enlace y QR para el celular <span className="quieto pequeno">· {!movilContratada ? "servicio adicional" : movilActiva ? (s.activa ? "activo" : "sucursal inactiva") : "consulta apagada"}</span></summary>
                     <div className="ubicacion-cuerpo">
                       {!movilActiva && <p className="aviso error" style={{ marginTop: 0 }}>La consulta desde el celular está apagada: el enlace dirá que no está activa. Actívala arriba.</p>}
                       <QrSucursal url={enlace} negocio={negocio.nombre} sucursal={s.nombre} archivo={`${slug}-${s.codigo}`}
