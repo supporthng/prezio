@@ -34,6 +34,14 @@ export function FuenteGoogle({ negocioId, slug, nombresUsados, cuentas = [], dri
     setLista({ cuenta: id, archivos: r.ok ? r.archivos : [], buscar, error: r.ok ? undefined : r.error });
   };
   const conectar = () => {
+    // En la app Prezcio Administrador (Windows) Google no deja iniciar sesión dentro de la ventana:
+    // se conecta en el navegador del equipo; la conexión queda guardada para el negocio y aquí se ve al actualizar.
+    const app = (window as unknown as { pywebview?: { api?: { abrir_en_navegador?: (u: string) => Promise<unknown> } } }).pywebview?.api;
+    if (typeof app?.abrir_en_navegador === "function") {
+      void app.abrir_en_navegador(`${window.location.origin}/n/${slug}/inventarios#t-google`);
+      setEstado({ tipo: "bien", texto: "Se abrió tu navegador: entra a Prezcio si te lo pide y toca «Conectar Google Drive» ahí. Cuando termines, vuelve aquí y toca Actualizar (o recarga esta sección)." });
+      return;
+    }
     const volver = window.location.pathname + "#t-google";
     window.location.assign(`/api/google/conectar?negocio=${encodeURIComponent(negocioId)}&volver=${encodeURIComponent(volver)}`);
   };
