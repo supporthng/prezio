@@ -106,6 +106,20 @@ async function pedirPermiso(): Promise<string | null> {
   });
 }
 
+/** Google solo acepta el selector en las direcciones registradas en Google Cloud (prezcio.app), no en la dirección
+ *  propia de cada negocio (onetech.prezcio.app). Desde ahí se pasa a la misma página en prezcio.app: la sesión es
+ *  la misma porque la cookie vale para todo prezcio.app. Devuelve la dirección a la que hay que ir, o "" si no hace falta. */
+export function paginaParaDrive(): string {
+  if (typeof window === "undefined") return "";
+  const { hostname, pathname, search, protocol } = window.location;
+  const partes = hostname.split(".");
+  if (partes.length < 3 || partes[0] === "www" || /^\d+$/.test(partes[partes.length - 1])) return "";
+  const slug = partes[0], base = partes.slice(1).join(".");
+  const ruta = pathname.startsWith(`/n/${slug}`) ? pathname : `/n/${slug}${pathname === "/" ? "" : pathname}`;
+  const q = new URLSearchParams(search); q.set("drive", "1");
+  return `${protocol}//${base}${ruta}?${q.toString()}`;
+}
+
 /** Abre el selector de Google Drive. Devuelve el archivo elegido, o null si la persona cancela. */
 export async function elegirArchivoDrive(): Promise<ArchivoDrive | null> {
   if (!driveConfigurado()) throw new Error("Falta configurar Google Drive en Prezcio.");
@@ -120,6 +134,8 @@ export async function elegirArchivoDrive(): Promise<ArchivoDrive | null> {
   }
   const aviso = revisarConfiguracionDrive();
   if (aviso) throw new Error(aviso);
+  const ir = paginaParaDrive();
+  if (ir) { window.location.assign(ir); return new Promise<null>(() => {}); }   // la página se va; el toque se repite allá
   // Si Google ya está cargado, la ventana se abre en este mismo toque (sin esperar nada antes).
   const token = googleListo()
     ? await pedirPermiso()

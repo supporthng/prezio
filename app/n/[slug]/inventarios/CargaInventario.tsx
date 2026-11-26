@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { AvisoDrive } from "@/components/AvisoDrive";
 import { supabaseNavegador } from "@/lib/supabase/browser";
 import { detectarColumnas, leerArchivo, productos, type Columnas, type Filas } from "@/lib/hoja";
 import { descargarDeDrive, driveConfigurado, elegirArchivoDrive, prepararDrive } from "@/lib/googleDrive";
@@ -137,6 +138,7 @@ export function CargaInventario({ negocioId, inventarios, moneda }: Props) {
           Mientras tanto puedes pegar el enlace del archivo.
         </p>
       )}
+      {driveConfigurado() && <AvisoDrive />}
       {driveConfigurado() && (
         <p style={{ margin: "12px 0 0" }}>
           <button className="boton secundario" type="button" onClick={elegirDeDrive} disabled={trabajando}>
