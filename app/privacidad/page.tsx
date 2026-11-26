@@ -7,7 +7,7 @@ export default function Privacidad() {
   return (
     <main className="contenido" style={{ maxWidth: 720 }}>
       <h1>Política de privacidad</h1>
-      <p className="quieto pequeno">Última actualización: 26 de octubre de 2026</p>
+      <p className="quieto pequeno">Última actualización: 26 de noviembre de 2026</p>
 
       <h2>Qué es Prezcio</h2>
       <p>Prezcio permite a un comercio mostrar a sus clientes el precio de un producto al escanear su código de barras.</p>
@@ -43,11 +43,23 @@ export default function Privacidad() {
       <h2>Uso y compartición</h2>
       <p>
         Usamos los datos solo para prestar el servicio. No los vendemos ni los compartimos con terceros, salvo con los
-        proveedores técnicos necesarios para operar Prezcio (alojamiento y base de datos).
+        proveedores técnicos necesarios para operar Prezcio (alojamiento y base de datos). Nunca usamos los datos de un
+        negocio en otro negocio, en demostraciones ni en materiales de venta.
+      </p>
+
+      <h2>Acceso a tu información</h2>
+      <p>
+        Los datos de cada negocio están aislados: solo los ven las personas que ese negocio autoriza. El equipo de Prezcio
+        no ve tus precios, productos ni ofertas desde su plataforma de administración. El acceso técnico directo a la base
+        de datos lo tiene un único administrador autorizado, solo para restablecer el servicio, para soporte que pidas por
+        escrito o por orden legal; cada acceso queda registrado y te informamos de él.
       </p>
 
       <h2>Tus derechos</h2>
-      <p>Puedes pedir en cualquier momento que corrijamos o eliminemos los datos de tu negocio escribiendo a tu proveedor de Prezcio.</p>
+      <p>
+        Puedes descargar un respaldo de tus datos desde el panel, y pedir en cualquier momento que los corrijamos o los
+        eliminemos escribiendo a tu proveedor de Prezcio. Si detectamos un acceso no autorizado, te avisaremos sin demora.
+      </p>
 
       <p style={{ marginTop: 28 }}><Link href="/">‹ Volver a Prezcio</Link></p>
     </main>
