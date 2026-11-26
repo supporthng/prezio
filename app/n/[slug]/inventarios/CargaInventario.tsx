@@ -8,12 +8,12 @@ import { detectarColumnas, leerArchivo, productos, type Columnas, type Filas } f
 import { descargarDeDrive, driveConfigurado, elegirArchivoDrive, esIos, prepararDrive } from "@/lib/googleDrive";
 
 type Inventario = { id: string; nombre: string; usos: string[] };
-type Props = { negocioId: string; inventarios: Inventario[]; moneda: string };
+type Props = { negocioId: string; inventarios: Inventario[]; moneda: string; driveServidor?: boolean };
 
 const LOTE = 1000;
 
 /** Cargar un Excel o CSV: leerlo en el navegador, revisar columnas y elegir en qué inventario se guarda. */
-export function CargaInventario({ negocioId, inventarios, moneda }: Props) {
+export function CargaInventario({ negocioId, inventarios, moneda, driveServidor = false }: Props) {
   const router = useRouter();
   const [archivo, setArchivo] = useState<string>("");
   const [filas, setFilas] = useState<Filas>([]);
@@ -132,21 +132,26 @@ export function CargaInventario({ negocioId, inventarios, moneda }: Props) {
           {archivo ? "Toca para elegir otro" : "o arrástralo aquí"}
         </span>
       </label>
-      {!driveConfigurado() && (
+      {driveServidor && (
+        <p className="quieto pequeno" style={{ margin: "12px 0 0" }}>
+          ¿Tu lista está en Google Drive? Usa <a href="#t-google"><b>Inventario desde Google</b></a> (más abajo): conectas tu Drive, eliges la hoja de la lista y se actualiza sola.
+        </p>
+      )}
+      {!driveServidor && !driveConfigurado() && (
         <p className="quieto pequeno" style={{ margin: "12px 0 0" }}>
           Google Drive todavía no está conectado a Prezcio. Quien administra Prezcio debe agregar en Vercel las variables
           <code> NEXT_PUBLIC_GOOGLE_CLIENT_ID</code>, <code>NEXT_PUBLIC_GOOGLE_API_KEY</code> y <code>NEXT_PUBLIC_GOOGLE_APP_ID</code> y volver a publicar.
           Mientras tanto puedes pegar el enlace del archivo.
         </p>
       )}
-      {driveConfigurado() && <AvisoDrive />}
-      {driveConfigurado() && ios && (
+      {!driveServidor && driveConfigurado() && <AvisoDrive />}
+      {!driveServidor && driveConfigurado() && ios && (
         <p className="quieto pequeno" style={{ margin: "12px 0 0" }}>
           <b>En Safari del iPhone o iPad</b> Google no deja mostrar la lista de tus archivos. Abre esta página en <b>Chrome</b> para elegirlo de la lista, o toca <b>Elige un archivo › Explorar › Drive</b> (con la app Google Drive instalada).
           Si quieres que los precios se actualicen solos, usa «Inventario desde Google» más abajo pegando el enlace.
         </p>
       )}
-      {driveConfigurado() && (
+      {!driveServidor && driveConfigurado() && (
         <p style={{ margin: "12px 0 0" }}>
           <button className="boton secundario" type="button" onClick={elegirDeDrive} disabled={trabajando}>
             Elegir de Google Drive

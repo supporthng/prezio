@@ -163,7 +163,7 @@ export default async function Inventarios({ params, searchParams }: Props) {
         {administra ? (
           <>
             {/* Los de Google y del conector se llenan solos: el Excel solo actualiza los de carga manual. */}
-            <CargaInventario negocioId={negocio.id} moneda={negocio.moneda}
+            <CargaInventario negocioId={negocio.id} moneda={negocio.moneda} driveServidor={driveServidorListo()}
               inventarios={inventarios.filter((i) => !i.origen?.tipo).map((i) => ({ id: i.id, nombre: i.nombre, usos: usos(i.id) }))} />
             <FuenteGoogle negocioId={negocio.id} slug={slug} nombresUsados={inventarios.map((i) => i.nombre)}
               cuentas={cuentasDrive} driveServidor={driveServidorListo()} />
