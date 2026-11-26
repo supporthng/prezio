@@ -98,8 +98,8 @@ export function FuenteGoogle({ negocioId, slug, nombresUsados }: Props) {
       </p>
       {driveConfigurado() && ios && (
         <p className="quieto pequeno" style={{ margin: "0 0 14px" }}>
-          <b>En Safari del iPhone o iPad</b> Google no deja mostrar la lista de tus hojas: abre esta página en <b>Chrome</b> para elegirla de la lista, o abre la hoja en la app de Google (Hojas de cálculo o Drive), toca <b>Compartir › Acceso general › Cualquier persona con el enlace</b>,
-          copia el enlace y pégalo abajo, si el botón de Google Drive no te deja entrar (en Safari, Google puede bloquear su ventana).
+          <b>En Safari del iPhone o iPad</b> Google no deja mostrar la lista de tus hojas. Abre esta página en <b>Chrome</b> para elegirla de la lista,
+          o pega el enlace: en la app de Google (Hojas de cálculo o Drive) toca <b>Compartir › Acceso general › Cualquier persona con el enlace</b> y copia el enlace.
         </p>
       )}
       {driveConfigurado() && (
