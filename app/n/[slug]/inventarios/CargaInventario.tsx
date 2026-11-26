@@ -139,14 +139,14 @@ export function CargaInventario({ negocioId, inventarios, moneda }: Props) {
           Mientras tanto puedes pegar el enlace del archivo.
         </p>
       )}
-      {driveConfigurado() && !ios && <AvisoDrive />}
+      {driveConfigurado() && <AvisoDrive />}
       {driveConfigurado() && ios && (
         <p className="quieto pequeno" style={{ margin: "12px 0 0" }}>
           <b>En Safari del iPhone o iPad</b> Google no deja mostrar la lista de tus archivos. Abre esta página en <b>Chrome</b> para elegirlo de la lista, o toca <b>Elige un archivo › Explorar › Drive</b> (con la app Google Drive instalada).
           Si quieres que los precios se actualicen solos, usa «Inventario desde Google» más abajo pegando el enlace.
         </p>
       )}
-      {driveConfigurado() && !ios && (
+      {driveConfigurado() && (
         <p style={{ margin: "12px 0 0" }}>
           <button className="boton secundario" type="button" onClick={elegirDeDrive} disabled={trabajando}>
             Elegir de Google Drive

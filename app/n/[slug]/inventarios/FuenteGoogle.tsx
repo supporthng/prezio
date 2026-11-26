@@ -99,10 +99,10 @@ export function FuenteGoogle({ negocioId, slug, nombresUsados }: Props) {
       {driveConfigurado() && ios && (
         <p className="quieto pequeno" style={{ margin: "0 0 14px" }}>
           <b>En Safari del iPhone o iPad</b> Google no deja mostrar la lista de tus hojas: abre esta página en <b>Chrome</b> para elegirla de la lista, o abre la hoja en la app de Google (Hojas de cálculo o Drive), toca <b>Compartir › Acceso general › Cualquier persona con el enlace</b>,
-          copia el enlace y pégalo abajo. (El botón de Google Drive funciona en la computadora y en Android.)
+          copia el enlace y pégalo abajo, si el botón de Google Drive no te deja entrar (en Safari, Google puede bloquear su ventana).
         </p>
       )}
-      {driveConfigurado() && !ios && (
+      {driveConfigurado() && (
         <p style={{ margin: "0 0 14px" }}>
           <button className="boton" type="button" onClick={elegirDeDrive} disabled={trabajando}>Elegir de Google Drive</button>
           <span className="quieto pequeno" style={{ marginLeft: 10 }}>o pega el enlace abajo</span>
