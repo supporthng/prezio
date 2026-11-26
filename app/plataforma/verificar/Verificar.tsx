@@ -6,7 +6,7 @@ import { supabaseNavegador } from "@/lib/supabase/browser";
 type Alta = { factorId: string; qr: string; secreto: string };
 
 /** Código de 6 dígitos. La primera vez muestra el QR para agregar la cuenta a la app de autenticación. */
-export function Verificar({ inscribir, correo }: { inscribir: boolean; correo: string }) {
+export function Verificar({ inscribir, correo, siguiente = "/plataforma" }: { inscribir: boolean; correo: string; siguiente?: string }) {
   const [alta, setAlta] = useState<Alta | null>(null);
   const [codigo, setCodigo] = useState("");
   const [error, setError] = useState("");
@@ -39,7 +39,7 @@ export function Verificar({ inscribir, correo }: { inscribir: boolean; correo: s
     if (!factorId) { setTrabajando(false); setError("No hay una app de autenticación configurada. Recarga la página."); return; }
     const { error } = await sb.auth.mfa.challengeAndVerify({ factorId, code: codigo.replace(/\s/g, "") });
     if (error) { setTrabajando(false); setCodigo(""); setError(/invalid|expired/i.test(error.message) ? "Código incorrecto o vencido. Escribe el que muestra la app ahora." : error.message); return; }
-    window.location.replace("/plataforma");
+    window.location.replace(siguiente);
   }
 
   return (

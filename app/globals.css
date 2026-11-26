@@ -877,3 +877,8 @@ main .tarjeta + .tarjeta { margin-top: 16px; }
 .vincular-cerrar button:hover { background: rgba(255, 255, 255, .22); }
 .vincular-cerrar .x { width: 44px; height: 44px; padding: 0; font-size: 20px; display: inline-flex; align-items: center; justify-content: center; }
 .vincular-cerrar .si { background: #ffd23f; border-color: #ffd23f; color: #102a43; }
+/* ---------- «¿Olvidaste tu clave?» en la entrada de la Plataforma */
+.pe-olvido { margin-top: 16px; border-top: 1px solid var(--linea); padding-top: 12px; }
+.pe-olvido summary { cursor: pointer; font-weight: 600; font-size: .92rem; min-height: 32px; display: flex; align-items: center; }
+.pe-olvido form { margin-top: 10px; display: grid; gap: 8px; }
+.pe-olvido p { margin: 0; }
