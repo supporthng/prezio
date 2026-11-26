@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AvisoDrive } from "@/components/AvisoDrive";
 import { FRECUENCIAS, NO_COMPARTIDA, type ColumnasGuardadas } from "@/lib/fuentes";
 import {
   compartirPorEnlace, driveConfigurado, elegirArchivoDrive, prepararDrive, enlaceDeArchivo, nombreSinExtension, type ArchivoDrive,
@@ -96,7 +95,6 @@ export function FuenteGoogle({ negocioId, slug, nombresUsados }: Props) {
         Una hoja de Google o un Excel guardado en Google Drive que se actualiza solo. Elígelo desde Google Drive o,
         en Google, toca <strong>Compartir › Acceso general › Cualquier persona con el enlace</strong> y pega el enlace.
       </p>
-      {driveConfigurado() && <AvisoDrive />}
       {driveConfigurado() && (
         <p style={{ margin: "0 0 14px" }}>
           <button className="boton" type="button" onClick={elegirDeDrive} disabled={trabajando}>Elegir de Google Drive</button>
