@@ -69,7 +69,9 @@ export function prepararDrive(): void {
 /** iPhone o iPad: Safari no deja al selector de Google Drive (que va dentro de un recuadro) usar la sesión de Google
  *  («No se puede acceder a tu cuenta de Google»). Ahí se usa la app Archivos o el enlace pegado. */
 export const esIos = (): boolean =>
-  typeof navigator !== "undefined" && (/iPhone|iPad|iPod/i.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1));
+  typeof navigator !== "undefined" && (/iPhone|iPad|iPod/i.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1))
+  // Chrome, Firefox y Edge del iPhone no aplican el bloqueo de Safari: ahí se intenta el selector normal.
+  && !/CriOS|FxiOS|EdgiOS/i.test(navigator.userAgent);
 
 const googleListo = () => Boolean((window as any).google?.accounts?.oauth2 && (window as any).gapi);
 

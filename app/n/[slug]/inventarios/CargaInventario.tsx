@@ -142,7 +142,7 @@ export function CargaInventario({ negocioId, inventarios, moneda }: Props) {
       {driveConfigurado() && !ios && <AvisoDrive />}
       {driveConfigurado() && ios && (
         <p className="quieto pequeno" style={{ margin: "12px 0 0" }}>
-          <b>En iPhone o iPad:</b> para subir un Excel de Google Drive, toca <b>Elige un archivo › Explorar › Drive</b> (con la app Google Drive instalada).
+          <b>En Safari del iPhone o iPad</b> Google no deja mostrar la lista de tus archivos. Abre esta página en <b>Chrome</b> para elegirlo de la lista, o toca <b>Elige un archivo › Explorar › Drive</b> (con la app Google Drive instalada).
           Si quieres que los precios se actualicen solos, usa «Inventario desde Google» más abajo pegando el enlace.
         </p>
       )}

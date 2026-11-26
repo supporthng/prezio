@@ -98,7 +98,7 @@ export function FuenteGoogle({ negocioId, slug, nombresUsados }: Props) {
       </p>
       {driveConfigurado() && ios && (
         <p className="quieto pequeno" style={{ margin: "0 0 14px" }}>
-          <b>En iPhone o iPad:</b> abre la hoja en la app de Google (Hojas de cálculo o Drive), toca <b>Compartir › Acceso general › Cualquier persona con el enlace</b>,
+          <b>En Safari del iPhone o iPad</b> Google no deja mostrar la lista de tus hojas: abre esta página en <b>Chrome</b> para elegirla de la lista, o abre la hoja en la app de Google (Hojas de cálculo o Drive), toca <b>Compartir › Acceso general › Cualquier persona con el enlace</b>,
           copia el enlace y pégalo abajo. (El botón de Google Drive funciona en la computadora y en Android.)
         </p>
       )}
