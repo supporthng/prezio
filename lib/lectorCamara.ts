@@ -205,6 +205,8 @@ export async function abrirLector(caja: HTMLElement, alLeer: (codigo: string) =>
     video.setAttribute("playsinline", ""); video.muted = true; video.autoplay = true; video.srcObject = stream;
     caja.prepend(video);
     await video.play().catch(() => {});
+    // Con la cámara encendida, Safari permite sonar sin que la persona toque: se activa el pitido aquí.
+    activarSonido();
     const pista = stream.getVideoTracks()[0];
     try {
       const cap = (pista.getCapabilities?.() ?? {}) as {

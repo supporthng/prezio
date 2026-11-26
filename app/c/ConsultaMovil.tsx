@@ -56,10 +56,7 @@ export function ConsultaMovil({ negocio, moneda, sucursal, color, logo, clase }:
 
   // Safari solo deja sonar el pitido después de un toque: cualquier toque en la página lo activa.
   const [conSonido, setConSonido] = useState(true);
-  const sonidoRef = useRef(true);
-  sonidoRef.current = conSonido;
   useEffect(() => {
-    setConSonido(sonidoListo());
     const quitar = alActivarSonido(() => setConSonido(true));
     const tocar = () => activarSonido();
     document.addEventListener("pointerdown", tocar, true);
@@ -177,8 +174,9 @@ export function ConsultaMovil({ negocio, moneda, sucursal, color, logo, clase }:
     if (!caja.current) return;
     lector.current?.detener();
     try {
-      lector.current = await abrirLector(caja.current, (codigo) => { lector.current = null; void consultar(codigo, true); }, setGuia,
-        () => sonidoRef.current || sonidoListo());   // no lee hasta que el pitido esté activo
+      lector.current = await abrirLector(caja.current, (codigo) => { lector.current = null; void consultar(codigo, true); }, setGuia);
+      // Normalmente el pitido queda activo solo al encender la cámara; si el teléfono no lo permite, se pide un toque.
+      setTimeout(() => { if (!sonidoListo()) setConSonido(false); }, 1500);
     } catch {
       lector.current = null;   // sin permiso o sin cámara: queda la opción de escribir el código
       setSinCamara(true);
@@ -206,11 +204,7 @@ export function ConsultaMovil({ negocio, moneda, sucursal, color, logo, clase }:
               <span className="mv-esquinas" aria-hidden="true"><i /><i /><i /><i /></span>
               <div className="laser" />
               {!conSonido && (
-                <button type="button" className="mv-empezar" onClick={(e) => { e.stopPropagation(); activarSonido(); }}>
-                  <span className="mv-empezar-dedo" aria-hidden="true">👆</span>
-                  <strong>Toca aquí para empezar</strong>
-                  <span>Así suena el pitido al leer cada código</span>
-                </button>
+                <button type="button" className="mv-sonido" onClick={(e) => { e.stopPropagation(); activarSonido(); }}>🔇 Toca para activar el pitido</button>
               )}
             </div>
             <p className="mv-guia" role="status">{guia}</p>

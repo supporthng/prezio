@@ -975,12 +975,7 @@ button.enlace { background: none; border: 0; padding: 0; color: inherit; text-de
   background: #ffd43b; color: #5a3b00; font-weight: 800; font-size: .85rem; letter-spacing: .04em; box-shadow: 0 4px 10px rgba(0, 0, 0, .25);
   animation: mv-sello .45s 1s cubic-bezier(.3, 1.6, .5, 1) both; }
 @keyframes mv-sello { from { opacity: 0; transform: rotate(35deg) scale(2.2); } to { opacity: 1; transform: rotate(35deg) scale(1); } }
-.mv-empezar { position: absolute; inset: 0; z-index: 3; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
-  border: 0; padding: 20px; font: inherit; color: #fff; text-align: center; background: rgba(8, 20, 40, .62); backdrop-filter: blur(2px); cursor: pointer; }
-.mv-empezar strong { font-size: 1.45rem; }
-.mv-empezar span:last-child { font-size: .95rem; opacity: .85; }
-.mv-empezar-dedo { font-size: 3rem; animation: mv-dedo 1.1s ease-in-out infinite; }
-@keyframes mv-dedo { 50% { transform: translateY(8px) scale(.92); } }
-@media (prefers-reduced-motion: reduce) { .mv-empezar-dedo { animation: none; } }
+.mv-sonido { position: absolute; left: 50%; bottom: 14px; z-index: 2; transform: translateX(-50%); white-space: nowrap;
+  padding: 9px 16px; border: 0; border-radius: 999px; font: inherit; font-weight: 700; font-size: .95rem; background: rgba(255, 255, 255, .92); color: #102a43; }
 @media (prefers-reduced-motion: reduce) { .mv-hilo, .mv-gira, .mv-gira .mv-precio, .mv-brillo, .mv-sello { animation: none; } .mv-brillo { display: none; } }
 .mv-etiqueta.con-oferta .mv-nombre { padding: 0 30px; }
