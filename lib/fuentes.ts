@@ -5,7 +5,8 @@
 import { detectarColumnas, leerCsv, leerXlsx, normalizar, productos, type Columnas, type Filas, type Producto } from "@/lib/hoja";
 
 export type ColumnasGuardadas = { codigo: string; nombre: string; precio: string };
-export type OrigenGoogle = { tipo: "google"; url: string; columnas?: ColumnasGuardadas; cada_min?: number };
+/** cuenta: conexión de Google Drive del negocio (google_cuentas). Con ella la hoja se lee sin compartirla por enlace. */
+export type OrigenGoogle = { tipo: "google"; url: string; columnas?: ColumnasGuardadas; cada_min?: number; cuenta?: string };
 
 export const FRECUENCIAS = [
   { min: 15, texto: "cada 15 minutos" },
@@ -51,14 +52,34 @@ export function enlaceGoogle(texto: string): string {
 
 const MAX_BYTES = 40 * 1024 * 1024;
 
-/** Descarga y lee la hoja: devuelve sus filas (la primera hoja del Excel, o la pestaña del enlace). */
-export async function descargarGoogle(url: string, hacerFetch: typeof fetch = fetch): Promise<Filas> {
-  const destino = enlaceGoogle(url);
+/** Dirección para leer el archivo CON el permiso de la cuenta de Google conectada (sin compartirlo por enlace). */
+export function descargaConPermiso(url: string): string {
+  enlaceGoogle(url);   // valida que sea de Google
+  const u = new URL(url.trim());
+  const hoja = u.pathname.match(/^\/spreadsheets\/d\/([\w-]{20,})/)?.[1];
+  if (hoja && !u.pathname.startsWith("/spreadsheets/d/e/")) {
+    const gid = u.searchParams.get("gid") ?? u.hash.match(/gid=(\d+)/)?.[1] ?? null;
+    if (!gid) return `https://www.googleapis.com/drive/v3/files/${hoja}/export?mimeType=text%2Fcsv`;   // primera pestaña
+    const d = new URL(`https://docs.google.com/spreadsheets/d/${hoja}/export`);
+    d.searchParams.set("format", "csv");
+    d.searchParams.set("gid", gid);
+    return d.toString();
+  }
+  const archivo = u.pathname.match(/^\/file\/d\/([\w-]{20,})/)?.[1] ?? u.searchParams.get("id");
+  if (archivo && /^[\w-]{20,}$/.test(archivo)) return `https://www.googleapis.com/drive/v3/files/${archivo}?alt=media&supportsAllDrives=true`;
+  return enlaceGoogle(url);
+}
+
+/** Descarga y lee la hoja: devuelve sus filas (la primera hoja del Excel, o la pestaña del enlace).
+ *  acceso: permiso de la cuenta de Google conectada; sin él, la hoja debe estar compartida por enlace. */
+export async function descargarGoogle(url: string, hacerFetch: typeof fetch = fetch, acceso?: string): Promise<Filas> {
+  const destino = acceso ? descargaConPermiso(url) : enlaceGoogle(url);
   const control = new AbortController();
   const t = setTimeout(() => control.abort(), 40000);
   let r: Response;
   try {
-    r = await hacerFetch(destino, { redirect: "follow", cache: "no-store", signal: control.signal });
+    r = await hacerFetch(destino, { redirect: "follow", cache: "no-store", signal: control.signal,
+      ...(acceso ? { headers: { Authorization: `Bearer ${acceso}` } } : {}) });
   } catch {
     throw new Error("Google no respondió. Se intentará de nuevo en la próxima vuelta.");
   } finally {
@@ -66,7 +87,8 @@ export async function descargarGoogle(url: string, hacerFetch: typeof fetch = fe
   }
   // Tras las redirecciones debe seguir siendo Google (protege al servidor de enlaces trucados).
   const final = r.url ? new URL(r.url).hostname : "docs.google.com";
-  if (!/(^|\.)(google\.com|googleusercontent\.com)$/.test(final)) throw new Error("El enlace salió de Google.");
+  if (!/(^|\.)(google\.com|googleusercontent\.com|googleapis\.com)$/.test(final)) throw new Error("El enlace salió de Google.");
+  if (acceso && (r.status === 401 || r.status === 403 || r.status === 404)) throw new Error("La cuenta de Google conectada no puede abrir ese archivo (¿se borró o dejaron de compartírtelo?).");
   if (r.status === 401 || r.status === 403 || r.status === 404) throw new Error(NO_COMPARTIDA);
   if (!r.ok) throw new Error(`Google respondió con un error (${r.status}).`);
   const datos = new Uint8Array(await r.arrayBuffer());
@@ -98,8 +120,8 @@ export function nombresDeColumnas(filas: Filas, c: Columnas): ColumnasGuardadas 
 }
 
 /** Lee la hoja de un origen y devuelve los productos listos para guardar. */
-export async function productosDeGoogle(origen: OrigenGoogle, hacerFetch?: typeof fetch): Promise<Producto[]> {
-  const filas = await descargarGoogle(origen.url, hacerFetch);
+export async function productosDeGoogle(origen: OrigenGoogle, hacerFetch?: typeof fetch, acceso?: string): Promise<Producto[]> {
+  const filas = await descargarGoogle(origen.url, hacerFetch, acceso);
   if (!filas.length) throw new Error("La hoja está vacía.");
   const { lista } = productos(filas, columnasDe(filas, origen.columnas));
   if (!lista.length) throw new Error("La hoja no tiene productos con código, nombre y precio.");

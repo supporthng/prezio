@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { enviarEnPartes, productosDeGoogle, type OrigenGoogle } from "@/lib/fuentes";
 import { rpcAnonimo } from "@/lib/rpc";
+import { accesoDesde } from "@/lib/googleServidor";
 
 // La llama la tarea programada de Supabase cada 15 minutos (pg_cron + pg_net), con la clave interna de la base
 // en el encabezado «x-prezio-tareas». Prezcio no guarda esa clave: se la devuelve a la base, que la comprueba.
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-type Pendiente = { id: string; origen: OrigenGoogle };
+type Pendiente = { id: string; origen: OrigenGoogle; cifrado?: string | null };
 
 export async function POST(request: Request) {
   const secreto = request.headers.get("x-prezio-tareas") ?? "";
@@ -23,7 +24,8 @@ export async function POST(request: Request) {
   for (const p of pendientes) {
     if (Date.now() - inicio > 45000) break;   // lo que falte, en la próxima vuelta
     try {
-      const lista = await productosDeGoogle(p.origen);
+      if (p.origen.cuenta && !p.cifrado) throw new Error("La conexión con Google Drive de este inventario se quitó. Vuelve a conectar Google Drive en Inventarios.");
+      const lista = await productosDeGoogle(p.origen, fetch, p.cifrado ? await accesoDesde(p.cifrado) : undefined);
       const n = await enviarEnPartes(lista, (lote, parte, fin) => rpcAnonimo<number>("google_aplicar", {
         p_secreto: secreto, p_inventario: p.id, p_lote: lote, p_productos: parte, p_fin: fin,
       }, 60000));

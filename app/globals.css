@@ -935,3 +935,15 @@ main .tarjeta + .tarjeta { margin-top: 16px; }
 .ini-alerta.alerta { background: rgba(255,198,92,.15); color: #ffe1a3; }
 .ini-alerta.mal { background: rgba(192,57,43,.25); color: #ffd0cb; }
 @media (max-width: 520px) { .ini-hero .tablero { grid-template-columns: 1fr 1fr; } .ini-hero .dato:first-child { grid-column: 1 / -1; } }
+/* ---------- Google Drive conectado (lista propia de Prezcio) */
+.drive-cuenta { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--linea); border-radius: 12px; margin-bottom: 8px; }
+.drive-cuenta b { overflow-wrap: anywhere; }
+.drive-lista { border: 1px solid var(--linea); border-radius: 14px; padding: 12px; margin: 0 0 16px; background: var(--papel); }
+.drive-archivos { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 6px; max-height: 420px; overflow-y: auto; }
+.drive-archivos button { width: 100%; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; text-align: left; font: inherit; color: inherit; background: none; border: 1px solid var(--linea); border-radius: 10px; padding: 10px 12px; min-height: 48px; cursor: pointer; }
+.drive-archivos button:hover, .drive-archivos button:focus-visible { border-color: #102a43; background: rgba(16, 42, 67, .04); outline: none; }
+.drive-nombre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.drive-fecha { color: var(--gris); font-size: .8rem; white-space: nowrap; }
+.drive-tipo { font-size: .72rem; font-weight: 700; padding: 3px 8px; border-radius: 6px; color: #fff; }
+.drive-tipo.hoja { background: #0f9d58; } .drive-tipo.xlsx { background: #1d6f42; } .drive-tipo.csv { background: #607d8b; }
+button.enlace { background: none; border: 0; padding: 0; color: inherit; text-decoration: underline; cursor: pointer; font: inherit; }

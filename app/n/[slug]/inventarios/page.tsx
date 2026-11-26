@@ -9,6 +9,7 @@ import { FuenteGoogle } from "./FuenteGoogle";
 import { Conectores, type ConectorFila } from "./Conectores";
 import { FRECUENCIAS, type OrigenGoogle } from "@/lib/fuentes";
 import { sitio } from "@/lib/util";
+import { driveServidorListo } from "@/lib/googleServidor";
 
 import apps from "@/public/apps.json";
 
@@ -39,13 +40,15 @@ export default async function Inventarios({ params, searchParams }: Props) {
   const { bien, error } = await searchParams;
   const { supabase, negocio, puede, administra: adminCompleto } = await cargarNegocio(slug, `/n/${slug}/inventarios`);
   const administra = puede("inventarios");
-  const [{ data: inv }, { data: suc }, { data: con }] = await Promise.all([
+  const [{ data: inv }, { data: suc }, { data: con }, { data: ctas }] = await Promise.all([
     supabase.from("inventarios").select("id, nombre, actualizado, origen, estado").eq("negocio_id", negocio.id).order("nombre"),
     supabase.from("sucursales").select("id, nombre, es_principal, fuente").eq("negocio_id", negocio.id),
     administra
       ? supabase.from("conectores").select("id, nombre, visto, version, equipo, error").eq("negocio_id", negocio.id).order("creado")
       : Promise.resolve({ data: [] }),
+    administra ? supabase.rpc("google_cuentas_de", { p_negocio: negocio.id }) : Promise.resolve({ data: [] }),
   ]);
+  const cuentasDrive = (ctas ?? []) as { id: string; correo: string }[];
   const inventarios = (inv ?? []) as Inventario[];
   const sucursales = (suc ?? []) as Sucursal[];
   const conectores: ConectorFila[] = ((con ?? []) as Omit<ConectorFila, "inventarios">[]).map((c) => ({
@@ -162,7 +165,8 @@ export default async function Inventarios({ params, searchParams }: Props) {
             {/* Los de Google y del conector se llenan solos: el Excel solo actualiza los de carga manual. */}
             <CargaInventario negocioId={negocio.id} moneda={negocio.moneda}
               inventarios={inventarios.filter((i) => !i.origen?.tipo).map((i) => ({ id: i.id, nombre: i.nombre, usos: usos(i.id) }))} />
-            <FuenteGoogle negocioId={negocio.id} slug={slug} nombresUsados={inventarios.map((i) => i.nombre)} />
+            <FuenteGoogle negocioId={negocio.id} slug={slug} nombresUsados={inventarios.map((i) => i.nombre)}
+              cuentas={cuentasDrive} driveServidor={driveServidorListo()} />
             <Conectores negocioId={negocio.id} slug={slug} conectores={conectores} sitio={sitio() || "https://prezcio.app"}
               descarga={DESCARGA_CONECTOR} nombresUsados={inventarios.map((i) => i.nombre)} />
           </>

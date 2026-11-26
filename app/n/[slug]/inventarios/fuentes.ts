@@ -9,6 +9,7 @@ import {
   type ColumnasGuardadas, type OrigenGoogle,
 } from "@/lib/fuentes";
 import { productos } from "@/lib/hoja";
+import { accesoDesde, listarHojas, revocar, type ArchivoLista } from "@/lib/googleServidor";
 
 const campo = (d: FormData, n: string) => String(d.get(n) ?? "").trim();
 const frecuencia = (v: unknown) => FRECUENCIAS.some((f) => f.min === Number(v)) ? Number(v) : 60;
@@ -18,11 +19,12 @@ export type Revision =
   | { ok: false; error: string };
 
 /** Lee la hoja y propone las columnas, para revisar antes de crear el inventario. */
-export async function revisarGoogle(url: string): Promise<Revision> {
-  const { data: auth } = await (await supabaseServidor()).auth.getUser();
+export async function revisarGoogle(url: string, cuenta?: string): Promise<Revision> {
+  const supabase = await supabaseServidor();
+  const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return { ok: false, error: "Vuelve a entrar a Prezcio." };
   try {
-    const filas = await descargarGoogle(url);
+    const filas = await descargarGoogle(url, fetch, cuenta ? await accesoDeCuenta(supabase, cuenta) : undefined);
     if (!filas.length) return { ok: false, error: "La hoja está vacía." };
     const c = columnasDe(filas);
     const r = productos(filas, c);
@@ -41,10 +43,37 @@ export async function revisarGoogle(url: string): Promise<Revision> {
 
 type Supabase = Awaited<ReturnType<typeof supabaseServidor>>;
 
+/** Permiso de una hora de la cuenta de Google conectada (la base comprueba que sea de un negocio tuyo). */
+async function accesoDeCuenta(supabase: Supabase, cuenta: string): Promise<string> {
+  const { data, error } = await supabase.rpc("google_cuenta_cifrada", { p_cuenta: cuenta });
+  if (error || !data) throw new Error(error ? mensajeError(error) : "Esa conexión de Google Drive ya no existe.");
+  return accesoDesde(String(data));
+}
+
+/** Las hojas y Excel de la cuenta de Google conectada (más recientes primero; con búsqueda por nombre). */
+export async function listarDrive(cuenta: string, buscar = ""): Promise<{ ok: true; archivos: ArchivoLista[] } | { ok: false; error: string }> {
+  try {
+    const supabase = await supabaseServidor();
+    return { ok: true, archivos: await listarHojas(await accesoDeCuenta(supabase, cuenta), buscar) };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "No se pudo ver la lista de Google Drive." };
+  }
+}
+
+/** Desconectar Google Drive: se borra de Prezcio y se revoca el permiso en Google. */
+export async function quitarGoogleDrive(datos: FormData) {
+  const slug = campo(datos, "slug");
+  const supabase = await supabaseServidor();
+  const { data, error } = await supabase.rpc("google_quitar_cuenta", { p_cuenta: campo(datos, "cuenta") });
+  if (!error && data) await revocar(String(data));
+  revalidatePath(`/n/${slug}/inventarios`);
+  redirect(`/n/${slug}/inventarios?${error ? "error=" + encodeURIComponent(mensajeError(error)) : "bien=" + encodeURIComponent("Google Drive desconectado. Los inventarios que usaban esa cuenta dejarán de actualizarse hasta que la vuelvas a conectar.")}`);
+}
+
 /** Descarga la hoja y la guarda con la sesión del usuario (solo dueño o admin, lo decide la base). */
 async function cargarDesdeGoogle(supabase: Supabase, inventario: string, origen: OrigenGoogle): Promise<number> {
   try {
-    const lista = await productosDeGoogle(origen);
+    const lista = await productosDeGoogle(origen, fetch, origen.cuenta ? await accesoDeCuenta(supabase, origen.cuenta) : undefined);
     return await enviarEnPartes(lista, async (lote, parte, fin) => {
       const { data, error } = await supabase.rpc("cargar_inventario", {
         p_inventario: inventario, p_lote: lote, p_productos: parte, p_fin: fin,
@@ -62,10 +91,11 @@ async function cargarDesdeGoogle(supabase: Supabase, inventario: string, origen:
 }
 
 export async function crearGoogle(datos: {
-  negocioId: string; slug: string; nombre: string; url: string; columnas: ColumnasGuardadas; cada_min: number;
+  negocioId: string; slug: string; nombre: string; url: string; columnas: ColumnasGuardadas; cada_min: number; cuenta?: string;
 }): Promise<{ ok: true; productos: number } | { ok: false; error: string }> {
   const supabase = await supabaseServidor();
-  const origen: OrigenGoogle = { tipo: "google", url: datos.url.trim(), columnas: datos.columnas, cada_min: frecuencia(datos.cada_min) };
+  const origen: OrigenGoogle = { tipo: "google", url: datos.url.trim(), columnas: datos.columnas, cada_min: frecuencia(datos.cada_min),
+    ...(datos.cuenta && /^[0-9a-f-]{36}$/.test(datos.cuenta) ? { cuenta: datos.cuenta } : {}) };
   const { data, error } = await supabase.from("inventarios")
     .insert({ negocio_id: datos.negocioId, nombre: datos.nombre.trim(), origen }).select("id").single();
   if (error) return { ok: false, error: mensajeError(error) };
@@ -116,13 +146,13 @@ export async function ajustarGoogle(datos: FormData) {
     if (url !== actual.url) {
       // Hoja nueva: se revisa que se pueda leer y se toman sus columnas.
       try {
-        const filas = await descargarGoogle(url);
+        const filas = await descargarGoogle(url, fetch, actual.cuenta ? await accesoDeCuenta(supabase, actual.cuenta) : undefined);
         try { columnasDe(filas, columnas); } catch { columnas = nombresDeColumnas(filas, columnasDe(filas)); }
       } catch (e) { error = e instanceof Error ? e.message : "No se pudo leer la hoja nueva."; }
     }
     if (error) destino = "error=" + encodeURIComponent(error);
     else {
-      const origen: OrigenGoogle = { tipo: "google", url, columnas, cada_min: frecuencia(campo(datos, "cada_min")) };
+      const origen: OrigenGoogle = { tipo: "google", url, columnas, cada_min: frecuencia(campo(datos, "cada_min")), ...(actual.cuenta ? { cuenta: actual.cuenta } : {}) };
       const { error: e } = await supabase.from("inventarios").update({ origen }).eq("id", id);
       destino = e ? "error=" + encodeURIComponent(mensajeError(e)) : "bien=" + encodeURIComponent("Ajustes guardados.");
     }
