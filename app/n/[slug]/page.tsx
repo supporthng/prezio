@@ -5,6 +5,7 @@ import { supabaseServidor } from "@/lib/supabase/server";
 import { ROLES, sitio } from "@/lib/util";
 import { PERMISOS, resumenPermisos } from "@/lib/permisos";
 import { SubNav } from "@/components/SubNav";
+import { InstalarApp } from "@/components/InstalarApp";
 import { CodigoNegocio } from "@/components/CodigoNegocio";
 import { textoLicencia, type EstadoLic } from "@/lib/licencia";
 import { Reporte, type Resumen } from "./Reporte";
@@ -80,6 +81,7 @@ export default async function PanelNegocio({ params, searchParams }: Props) {
       <Barra negocio={{ nombre: negocio.nombre, slug: negocio.slug }} />
       <main className="contenido">
         <Aviso error={error} bien={bien} />
+        <InstalarApp titulo="Administra tu negocio desde el celular" nombre={negocio.slug.toUpperCase().slice(0, 14)} clave={`instalar-${negocio.slug}`} />
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
           <h1>{negocio.nombre}</h1>
           {lic && <a href={`/n/${negocio.slug}/licencia`} className={`chip${lic.bloqueado || lic.estado === "gracia" ? " plan-suspendido" : lic.estado === "prueba" || lic.estado === "por_vencer" ? " etiqueta" : ""}`}>{textoLicencia(lic)}</a>}

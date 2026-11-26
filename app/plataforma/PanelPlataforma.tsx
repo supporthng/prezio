@@ -5,7 +5,7 @@ import { Aviso } from "@/components/Aviso";
 import { enlaceNegocio } from "@/lib/subdominio";
 import { fechaCorta, precioPlan, textoAnual, textoLicencia, totalPago, type EstadoLic, type Limites, type Plan } from "@/lib/licencia";
 import { activarEnlace, agregarDueno, altaNegocio, cambiarMovil, extenderPrueba, registrarPago, suspender } from "./actions";
-import { InstalarApp } from "./InstalarApp";
+import { InstalarApp } from "@/components/InstalarApp";
 import { HistorialNegocio, VistaDescargas, VistaEquipo, VistaPlanes, VistaReglas, VistaSolicitudes, type Apps, type DatosPl } from "./Vistas";
 
 type Dueno = { usuario: string | null; correo: string | null; confirmado: boolean };
@@ -451,7 +451,7 @@ export function PanelPlataforma({ negocios, datos, apps, sitio, cortos, vista: v
       </aside>
 
       <div className="pl-contenido">
-        <InstalarApp />
+        <InstalarApp titulo="Ten la Plataforma en tu celular" nombre="Plataforma" clave="pl-instalar" />
         <section className="pl-hero">
           <div>
             <h1>Plataforma</h1>
