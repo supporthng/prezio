@@ -897,3 +897,6 @@ main .tarjeta + .tarjeta { margin-top: 16px; }
 .pl-prop-campos { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 0 14px; }
 .pl-prop-msg summary { cursor: pointer; font-weight: 600; font-size: .9rem; }
 .pl-wa { background: #1f9d55; border-color: #1f9d55; color: #fff; }
+/* ---------- Plataforma · eliminar cliente */
+.pl-eliminar { border: 2px solid var(--error); background: color-mix(in srgb, var(--error) 8%, transparent); }
+.pl-eliminar-t { margin: 0; color: var(--error); }

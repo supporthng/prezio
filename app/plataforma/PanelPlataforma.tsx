@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Aviso } from "@/components/Aviso";
 import { enlaceNegocio } from "@/lib/subdominio";
 import { fechaCorta, precioPlan, textoAnual, textoLicencia, totalPago, type EstadoLic, type Limites, type Plan } from "@/lib/licencia";
-import { activarEnlace, agregarDueno, altaNegocio, cambiarMovil, extenderPrueba, registrarPago, suspender } from "./actions";
+import { activarEnlace, agregarDueno, altaNegocio, cambiarMovil, eliminarNegocio, extenderPrueba, registrarPago, suspender } from "./actions";
 import { InstalarApp } from "@/components/InstalarApp";
 import { HistorialNegocio, VistaDescargas, VistaPropuestas, VistaEquipo, VistaPlanes, VistaReglas, VistaSolicitudes, type Apps, type DatosPl } from "./Vistas";
 
@@ -176,7 +176,7 @@ function AltaNegocio({ abierto, cerrar, diasPrueba, sitio, cortos }: { abierto: 
   );
 }
 
-function Tarjeta({ n, ahora, indice, planes, escribe, sitio, cortos, descuento = 0, moneda = "US$" }: { n: NegocioPl; ahora: number; indice: number; planes: Plan[]; escribe: boolean; sitio: string; cortos: boolean; descuento?: number; moneda?: string }) {
+function Tarjeta({ n, ahora, indice, planes, escribe, admin = false, sitio, cortos, descuento = 0, moneda = "US$" }: { n: NegocioPl; ahora: number; indice: number; planes: Plan[]; escribe: boolean; admin?: boolean; sitio: string; cortos: boolean; descuento?: number; moneda?: string }) {
   const lic = n.lic;
   const med = medidor(n, lic);
   const [panel, setPanel] = useState<null | "pago" | "prueba" | "dueno" | "historial">(null);
@@ -184,6 +184,8 @@ function Tarjeta({ n, ahora, indice, planes, escribe, sitio, cortos, descuento =
   const [enlaceCopiado, setEnlaceCopiado] = useState(false);
   const enlace = cortos ? enlaceNegocio(sitio || "https://prezcio.app", n.slug) : `${sitio || "https://prezcio.app"}/n/${n.slug}`;
   const [confirmar, setConfirmar] = useState(false);
+  const [borrar, setBorrar] = useState(false);
+  const [escrito, setEscrito] = useState("");
   const [menu, setMenu] = useState(false);
   const ofrecidos = planes.filter((p) => p.activo || p.codigo === n.plan);
   const actual = n.plan === "suspendido" ? n.lic.plan_antes : n.plan;
@@ -269,6 +271,7 @@ function Tarjeta({ n, ahora, indice, planes, escribe, sitio, cortos, descuento =
                 </form>
               )}
               {escribe && !suspendido && <button type="button" className="peligro" onClick={() => { setConfirmar(true); setMenu(false); setPanel(null); }}>Suspender…</button>}
+              {admin && <button type="button" className="peligro" onClick={() => { setBorrar(true); setEscrito(""); setMenu(false); setPanel(null); setConfirmar(false); }}>Eliminar cliente…</button>}
             </div>
           )}
         </div>
@@ -321,6 +324,26 @@ function Tarjeta({ n, ahora, indice, planes, escribe, sitio, cortos, descuento =
 
       {panel === "historial" && <HistorialNegocio negocio={n.id} escribe={escribe} planes={planes} />}
 
+      {admin && borrar && (
+        <form action={eliminarNegocio} className="pl-panel pl-eliminar">
+          <input type="hidden" name="negocio" value={n.id} /><input type="hidden" name="vista" value="negocios" />
+          <p className="pl-eliminar-t"><b>Eliminar «{n.nombre}» para siempre</b></p>
+          <p className="pequeno" style={{ margin: 0 }}>
+            Se borran sus {n.sucursales} sucursal{n.sucursales === 1 ? "" : "es"}, {nf.format(n.productos)} productos, ofertas, {n.equipos} verificador{n.equipos === 1 ? "" : "es"}, usuarios, pagos y su enlace propio.
+            Los verificadores dejan de funcionar. Esto no se puede deshacer.
+          </p>
+          <p className="quieto pequeno" style={{ margin: 0 }}>Si solo quieres pausarlo, usa «Suspender…»: conserva todo.</p>
+          <div className="campo">
+            <label htmlFor={`el-${n.id}`}>Para confirmar, escribe el nombre del negocio: <b>{n.nombre}</b></label>
+            <input id={`el-${n.id}`} name="confirmacion" value={escrito} onChange={(e) => setEscrito(e.target.value)} autoComplete="off" autoCapitalize="off" spellCheck={false} />
+          </div>
+          <div className="fila">
+            <button className="boton peligro" type="submit" disabled={escrito.trim().toLowerCase() !== n.nombre.trim().toLowerCase()}>Eliminar para siempre</button>
+            <button className="boton secundario" type="button" onClick={() => setBorrar(false)}>Cancelar</button>
+          </div>
+        </form>
+      )}
+
       {escribe && (suspendido || confirmar) && <form action={suspender} className="pl-suspender">
         <input type="hidden" name="negocio" value={n.id} />
         <input type="hidden" name="accion" value={suspendido ? "reactivar" : "suspender"} />
@@ -343,7 +366,7 @@ function Tarjeta({ n, ahora, indice, planes, escribe, sitio, cortos, descuento =
 const NOMBRE_ESTADO = { activa: "Activa", por_vencer: "Por vencer", prueba: "En prueba", gracia: "En gracia", vencida: "Vencida", suspendida: "Suspendida" } as const;
 const claseEstado = (e: EstadoLic["estado"]) => (e === "por_vencer" ? "activa" : e === "gracia" ? "vencida" : e);
 
-function Fila({ n, abierta, onAbrir, ...resto }: { n: NegocioPl; abierta: boolean; onAbrir: () => void; ahora: number; planes: Plan[]; escribe: boolean; sitio: string; cortos: boolean; descuento: number; moneda: string }) {
+function Fila({ n, abierta, onAbrir, ...resto }: { n: NegocioPl; abierta: boolean; onAbrir: () => void; ahora: number; planes: Plan[]; escribe: boolean; admin: boolean; sitio: string; cortos: boolean; descuento: number; moneda: string }) {
   const med = medidor(n, n.lic);
   const dueno = n.duenos[0];
   return (
@@ -514,7 +537,7 @@ export function PanelPlataforma({ negocios, datos, apps, sitio, cortos, vista: v
           </div>
         ) : modo === "tarjetas" ? (
           <ul className="pl-lista">
-            {lista.map(({ n }, i) => <Tarjeta key={n.id} n={n} ahora={ahora} indice={i} planes={datos.planes} escribe={escribe} sitio={sitio} cortos={cortos} descuento={datos.ajustes.descuento_anual} moneda={datos.ajustes.moneda} />)}
+            {lista.map(({ n }, i) => <Tarjeta key={n.id} n={n} ahora={ahora} indice={i} planes={datos.planes} escribe={escribe} admin={admin} sitio={sitio} cortos={cortos} descuento={datos.ajustes.descuento_anual} moneda={datos.ajustes.moneda} />)}
           </ul>
         ) : (
           <div className="pl-tabla-caja">
@@ -525,7 +548,7 @@ export function PanelPlataforma({ negocios, datos, apps, sitio, cortos, vista: v
               </tr></thead>
               <tbody>
                 {lista.map(({ n }) => (
-                  <Fila key={n.id} n={n} abierta={abierta === n.id} onAbrir={() => setAbierta((a) => (a === n.id ? null : n.id))}
+                  <Fila key={n.id} n={n} abierta={abierta === n.id} onAbrir={() => setAbierta((a) => (a === n.id ? null : n.id))} admin={admin}
                     ahora={ahora} planes={datos.planes} escribe={escribe} sitio={sitio} cortos={cortos} descuento={datos.ajustes.descuento_anual} moneda={datos.ajustes.moneda} />
                 ))}
               </tbody>

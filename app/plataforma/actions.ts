@@ -6,8 +6,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseServidor } from "@/lib/supabase/server";
 import { supabaseAdmin, problemaClaveSecreta, errorDeCuentas, correoDeUsuario, USUARIO_VALIDO } from "@/lib/supabase/admin";
 import { mensajeError, sitio } from "@/lib/util";
-import { enlaceNegocio } from "@/lib/subdominio";
-import { agregarSubdominio, vercelListo } from "@/lib/vercel";
+import { dominioBase, enlaceNegocio } from "@/lib/subdominio";
+import { agregarSubdominio, quitarSubdominio, vercelListo } from "@/lib/vercel";
 
 const campo = (d: FormData, n: string) => String(d.get(n) ?? "").trim();
 const volver = (error: unknown, bien = "", d?: FormData): never => {
@@ -143,6 +143,44 @@ export async function suspender(d: FormData) {
   volver(error, plan === "prueba"
     ? "Suspensión quitada. Volvió a su prueba: si ya venció, sigue bloqueado hasta que registres un pago o le des días de prueba."
     : "Suspensión quitada: vuelve a funcionar con su plan pagado.", d);
+}
+
+/** Borra todos los archivos de una carpeta del bucket «marcas» (logo, ofertas, QR del negocio). */
+async function vaciarCarpeta(admin: SupabaseClient, carpeta: string, nivel = 0): Promise<void> {
+  if (nivel > 4) return;
+  const { data } = await admin.storage.from("marcas").list(carpeta, { limit: 1000 });
+  const archivos: string[] = [];
+  for (const x of data ?? []) {
+    if (x.id) archivos.push(`${carpeta}/${x.name}`);
+    else await vaciarCarpeta(admin, `${carpeta}/${x.name}`, nivel + 1);
+  }
+  if (archivos.length) await admin.storage.from("marcas").remove(archivos);
+}
+
+/**
+ * Elimina un negocio y todo lo suyo (solo administrador, confirmando con el nombre).
+ * La base borra en cascada y deja constancia; aquí se limpian archivos, subdominio y cuentas «usuario» huérfanas.
+ */
+export async function eliminarNegocio(d: FormData) {
+  const supabase = await supabaseServidor();
+  const { data, error } = await supabase.rpc("plataforma_eliminar_negocio", { p_negocio: campo(d, "negocio"), p_confirmacion: campo(d, "confirmacion") });
+  if (error) volver(error, "", d);
+  const r = data as { id: string; slug: string; nombre: string; cuentas: string[] };
+  const pendientes: string[] = [];
+  if (!problemaClaveSecreta()) {
+    const admin = supabaseAdmin();
+    try { await vaciarCarpeta(admin, r.id); } catch { pendientes.push("archivos"); }
+    for (const id of r.cuentas ?? []) {
+      const { error: e } = await admin.auth.admin.deleteUser(id);
+      if (e) pendientes.push("cuentas de usuario");
+    }
+  } else if ((r.cuentas ?? []).length) pendientes.push("cuentas de usuario");
+  const base = dominioBase(sitio());
+  if (base && r.slug) {
+    const e = await quitarSubdominio(`${r.slug}.${base}`);
+    if (e) pendientes.push("enlace propio en Vercel");
+  }
+  volver(null, `«${r.nombre}» eliminado con todos sus datos.${pendientes.length ? ` No se pudo limpiar: ${[...new Set(pendientes)].join(", ")}.` : ""}`, d);
 }
 
 // ---------------------------------------------------------------- solicitudes

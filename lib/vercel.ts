@@ -77,3 +77,24 @@ export async function agregarSubdominio(host: string): Promise<string | null> {
   }
   return `${rechazado ? "Vercel no aceptó el token para el proyecto" : "No encontré el proyecto en Vercel"}. Detalle: ${ultimo} · ${await diagnostico()}`;
 }
+
+/** Quita «<negocio>.prezcio.app» del proyecto (al eliminar un negocio). null = listo o no existía. */
+export async function quitarSubdominio(host: string): Promise<string | null> {
+  if (!vercelListo()) return null;
+  const proyectos = [...new Set([process.env.VERCEL_PROJECT_ID!.trim(), "prezio"])];
+  try {
+    for (const equipo of await equipos()) {
+      for (const proyecto of proyectos) {
+        const r = await llamar(`/v9/projects/${encodeURIComponent(proyecto)}/domains/${encodeURIComponent(host)}${equipo ? `?teamId=${encodeURIComponent(equipo)}` : ""}`,
+          { method: "DELETE" });
+        if (r.ok) return null;
+        if (r.status === 401 || r.status === 403 || r.status === 404) continue;
+        const d = (await r.json().catch(() => null)) as ErrorVercel;
+        return d?.error?.message ?? `HTTP ${r.status}`;
+      }
+    }
+  } catch (e) {
+    return e instanceof Error ? e.message : "sin respuesta";
+  }
+  return null;
+}
