@@ -83,16 +83,66 @@ function crearWav(segundos: number, conTono: boolean): string {
 }
 
 let sonido: { bip: HTMLAudioElement; tono: string; silencio: string; listo: boolean } | null = null;
+let ctx: AudioContext | null = null;
+const avisosSonido = new Set<() => void>();
+
+/** ¿Ya se puede pitar? (Safari solo deja sonar después de un toque en la página). */
+export function sonidoListo(): boolean {
+  return ctx?.state === "running" || !!sonido?.listo;
+}
+/** Avisa cuando el sonido queda activado. Devuelve la función para dejar de escuchar. */
+export function alActivarSonido(fn: () => void): () => void {
+  avisosSonido.add(fn);
+  return () => avisosSonido.delete(fn);
+}
+const sonidoActivado = () => avisosSonido.forEach((f) => f());
+
 /** Llamar dentro de un toque del usuario (los navegadores exigen un toque para permitir sonido). */
 export function activarSonido(): void {
   if (typeof window === "undefined") return;
+  // iPhone (iOS 17+): que el pitido suene aunque el teléfono esté en silencio, como una app de caja.
+  try { const ses = (navigator as unknown as { audioSession?: { type: string } }).audioSession; if (ses) ses.type = "playback"; } catch { /* nada */ }
+  try {
+    const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (AC) {
+      ctx ??= new AC();
+      if (ctx.state !== "running") {
+        // Un sonido mudo dentro del toque desbloquea el audio en Safari.
+        const b = ctx.createBuffer(1, 1, 22050), f = ctx.createBufferSource();
+        f.buffer = b; f.connect(ctx.destination); f.start(0);
+        void ctx.resume().then(() => { if (ctx?.state === "running") sonidoActivado(); });
+      }
+    }
+  } catch { ctx = null; }
+  // Respaldo para navegadores sin Web Audio.
   if (!sonido) { const tono = crearWav(0.12, true); sonido = { bip: new Audio(tono), tono, silencio: crearWav(0.05, false), listo: false }; }
   if (sonido.listo) return;
   const s = sonido;
   s.bip.src = s.silencio;
-  s.bip.play().then(() => { s.listo = true; s.bip.pause(); s.bip.src = s.tono; s.bip.load(); }).catch(() => { s.bip.src = s.tono; });
+  s.bip.play().then(() => { s.listo = true; s.bip.pause(); s.bip.src = s.tono; s.bip.load(); sonidoActivado(); }).catch(() => { s.bip.src = s.tono; });
 }
+
+/** Pitido de caja: dos tonos cortos y claros. */
 function pitido() {
+  if (ctx && ctx.state !== "running") void ctx.resume().catch(() => {});
+  if (ctx?.state === "running") {
+    try {
+      const t = ctx.currentTime + 0.01;
+      const tono = (frec: number, ini: number, dur: number) => {
+        const o = ctx!.createOscillator(), g = ctx!.createGain();
+        o.type = "square"; o.frequency.value = frec;
+        g.gain.setValueAtTime(0.0001, ini);
+        g.gain.exponentialRampToValueAtTime(0.35, ini + 0.008);
+        g.gain.setValueAtTime(0.35, ini + dur - 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, ini + dur);
+        o.connect(g).connect(ctx!.destination);
+        o.start(ini); o.stop(ini + dur + 0.02);
+      };
+      tono(2700, t, 0.09);
+      tono(3300, t + 0.1, 0.07);
+      return;
+    } catch { /* sigue con el respaldo */ }
+  }
   if (!sonido) return;
   try { sonido.bip.currentTime = 0; } catch { /* nada */ }
   sonido.bip.play().catch(() => {});

@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { llamar, ErrorEquipo } from "@/lib/equipo";
 import { variantes } from "@/lib/codigos";
 import { legible, mezclar, sobre } from "@/lib/apariencia";
-import { abrirLector, activarSonido, type Lector } from "@/lib/lectorCamara";
+import { abrirLector, activarSonido, alActivarSonido, sonidoListo, type Lector } from "@/lib/lectorCamara";
 
 type Sucursal = { id: string; codigo: string; nombre: string; ubicacion: boolean; radio_m: number };
 type Props = { negocio: string; moneda: string; sucursal: Sucursal; color: string; logo: string | null; clase?: string };
@@ -53,6 +53,40 @@ export function ConsultaMovil({ negocio, moneda, sucursal, color, logo, clase }:
     return () => { lector.current?.detener(); lector.current = null; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Safari solo deja sonar el pitido después de un toque: cualquier toque en la página lo activa.
+  const [conSonido, setConSonido] = useState(true);
+  useEffect(() => {
+    setConSonido(sonidoListo());
+    const quitar = alActivarSonido(() => setConSonido(true));
+    const tocar = () => activarSonido();
+    document.addEventListener("pointerdown", tocar, true);
+    document.addEventListener("touchend", tocar, true);
+    return () => { quitar(); document.removeEventListener("pointerdown", tocar, true); document.removeEventListener("touchend", tocar, true); };
+  }, []);
+
+  // El precio sube rápido desde cero hasta el valor real (sin movimiento si el teléfono pide menos animación).
+  const entero = useRef<HTMLSpanElement>(null);
+  const precioFinal = vista.tipo === "producto" ? vista.precio : null;
+  const clavePrecio = vista.tipo === "producto" ? vista.vez : 0;
+  useEffect(() => {
+    const el = entero.current;
+    if (!el || precioFinal === null) return;
+    const final = formato.format(precioFinal).split(".")[0];
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) { el.textContent = final; return; }
+    const total = Math.floor(precioFinal), inicio = performance.now(), dur = 750;
+    const fmt = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
+    let id = 0;
+    const paso = (t: number) => {
+      const x = Math.min(1, (t - inicio - 350) / dur);       // espera a que la etiqueta llegue
+      if (x < 0) { el.textContent = "0"; id = requestAnimationFrame(paso); return; }
+      const e = 1 - Math.pow(1 - x, 4);
+      el.textContent = x >= 1 ? final : fmt.format(Math.floor(total * e));
+      if (x < 1) id = requestAnimationFrame(paso);
+    };
+    id = requestAnimationFrame(paso);
+    return () => { cancelAnimationFrame(id); el.textContent = final; };
+  }, [clavePrecio, precioFinal]);
 
   // El precio siempre cabe a lo ancho de la etiqueta, tenga las cifras que tenga.
   const precio = useRef<HTMLParagraphElement>(null);
@@ -168,6 +202,9 @@ export function ConsultaMovil({ negocio, moneda, sucursal, color, logo, clase }:
             <div ref={caja} className="movil-lector mv-visor" onClick={() => activarSonido()}>
               <span className="mv-esquinas" aria-hidden="true"><i /><i /><i /><i /></span>
               <div className="laser" />
+              {!conSonido && (
+                <button type="button" className="mv-sonido" onClick={(e) => { e.stopPropagation(); activarSonido(); }}>🔇 Toca para activar el pitido</button>
+              )}
             </div>
             <p className="mv-guia" role="status">{guia}</p>
             <button className="mv-boton claro" type="button" onClick={aEscribir}>Escribir el código</button>
@@ -181,10 +218,14 @@ export function ConsultaMovil({ negocio, moneda, sucursal, color, logo, clase }:
           </section>
         ) : v.tipo === "producto" ? (
           <>
-            <section key={v.vez} className="mv-etiqueta mv-entra" aria-live="polite">
+            <div key={v.vez} className="mv-colgar">
+            <span className="mv-hilo" aria-hidden="true" />
+            <section className={`mv-etiqueta mv-gira${v.oferta ? " con-oferta" : ""}`} aria-live="polite">
               <span className="mv-hoyo" aria-hidden="true" />
+              <span className="mv-brillo" aria-hidden="true" />
+              {v.oferta && <span className="mv-sello" aria-hidden="true">Oferta</span>}
               <p className="mv-nombre movil-nombre">{v.nombre}</p>
-              <p ref={precio} className="mv-precio movil-precio"><span className="mv-moneda moneda">{moneda}</span>{formato.format(v.precio).split(".")[0]}<span className="mv-centavos">.{formato.format(v.precio).split(".")[1]}</span></p>
+              <p ref={precio} className="mv-precio movil-precio"><span className="mv-moneda moneda">{moneda}</span><span ref={entero}>{formato.format(v.precio).split(".")[0]}</span><span className="mv-centavos">.{formato.format(v.precio).split(".")[1]}</span></p>
               {v.oferta && (
                 <p className="mv-oferta"><span>{v.oferta.texto}</span>
                   {v.oferta.antes !== undefined && <> Antes <s>{moneda} {formato.format(v.oferta.antes)}</s></>}</p>
@@ -192,6 +233,7 @@ export function ConsultaMovil({ negocio, moneda, sucursal, color, logo, clase }:
               <p className="mv-codigo">Código {v.codigo}</p>
               <div className="mv-cuenta" aria-hidden="true"><span style={{ animationDuration: `${VUELTA.producto}s` }} /></div>
             </section>
+            </div>
             <button className="mv-boton" type="button" onClick={otra}>{usoCamara.current && !sinCamara ? "Escanear otro ahora" : "Consultar otro"}</button>
             <p className="mv-pie-nota">{usoCamara.current && !sinCamara ? "La cámara vuelve sola en unos segundos." : "Se borra solo en unos segundos."}</p>
           </>
