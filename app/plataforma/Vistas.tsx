@@ -386,3 +386,70 @@ export function VistaDescargas({ apps, sitio }: { apps: Apps; sitio: string }) {
     </section>
   );
 }
+
+/** Número para wa.me: solo dígitos; los de 10 cifras de RD (809/829/849) llevan el 1 delante. */
+function numeroWhatsApp(t: string): string {
+  const d = t.replace(/\D/g, "");
+  return d.length === 10 && /^(809|829|849)/.test(d) ? "1" + d : d;
+}
+
+/** Propuestas: enlace personalizado para cada cliente y envío por WhatsApp. */
+export function VistaPropuestas({ sitio, ajustes }: { sitio: string; ajustes: Ajustes }) {
+  const [para, setPara] = useState("");
+  const [tel, setTel] = useState("");
+  const base = sitio || "https://prezcio.app";
+  const hoy = new Date();
+  const f = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-${String(hoy.getDate()).padStart(2, "0")}`;
+  const q = new URLSearchParams();
+  if (para.trim()) q.set("para", para.trim());
+  q.set("f", f);
+  if (ajustes.contacto_nombre) q.set("c", ajustes.contacto_nombre);
+  if (ajustes.contacto_whatsapp) q.set("w", numeroWhatsApp(ajustes.contacto_whatsapp));
+  if (ajustes.contacto_correo) q.set("e", ajustes.contacto_correo);
+  const enlace = `${base}/propuesta.html?${q.toString()}`;
+  const pdf = `${base}/propuesta-prezcio.pdf`;
+  const saludo = para.trim() ? `Hola, ${para.trim()}` : "Hola";
+  const mensaje = `${saludo}. Te comparto la propuesta de Prezcio, los verificadores de precios de ONETECH: tus clientes escanean y ven el precio correcto al instante, con tus ofertas en pantalla.\n\nPuedes probarlo 30 días sin costo.\n\nPropuesta: ${enlace}\nEn PDF: ${pdf}`;
+  const numero = numeroWhatsApp(tel);
+  const wa = `https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}`;
+  const sinContacto = !ajustes.contacto_whatsapp && !ajustes.contacto_correo;
+  return (
+    <section aria-label="Propuestas">
+      <p className="quieto" style={{ margin: "14px 0 0" }}>
+        Envía la propuesta comercial a un cliente: el enlace abre la propuesta con su nombre y la fecha de hoy (válida 30 días).
+      </p>
+      <ul className="pl-lista una pl-propuestas">
+        <li className="pl-negocio">
+          <div className="pl-cabeza">
+            <div className="pl-quien"><h3>Propuesta comercial</h3><p className="quieto pequeno">Página animada con planes mensual y anual · también en PDF</p></div>
+            <span className="pl-estado activa">Precios al día</span>
+          </div>
+          <div className="pl-prop-campos">
+            <div className="campo">
+              <label htmlFor="prop-para">Para (negocio o persona)</label>
+              <input id="prop-para" value={para} onChange={(e) => setPara(e.target.value.slice(0, 60))} placeholder="Supermercado La Esquina" autoComplete="off" />
+            </div>
+            <div className="campo">
+              <label htmlFor="prop-tel">WhatsApp del cliente (opcional)</label>
+              <input id="prop-tel" value={tel} onChange={(e) => setTel(e.target.value)} placeholder="809 555 1234" inputMode="tel" autoComplete="off" />
+            </div>
+          </div>
+          <details className="pl-prop-msg">
+            <summary>Ver el mensaje</summary>
+            <p className="pequeno" style={{ whiteSpace: "pre-wrap", margin: "8px 0 0" }}>{mensaje}</p>
+          </details>
+          <div className="fila">
+            <a className="boton pl-wa" href={wa} target="_blank" rel="noopener noreferrer">Enviar por WhatsApp</a>
+            <a className="boton secundario" href={enlace} target="_blank" rel="noopener noreferrer">Ver propuesta</a>
+            <a className="boton secundario" href={pdf} target="_blank" rel="noopener noreferrer">PDF</a>
+            <Copiar texto={enlace} />
+          </div>
+          <p className="quieto pequeno" style={{ margin: 0 }}>
+            {numero ? "Abre WhatsApp con el chat de ese número y el mensaje listo." : "Sin número, WhatsApp te deja elegir el contacto."}
+            {sinContacto ? " Consejo: pon tu WhatsApp y correo en Reglas → «Contacto que ven los negocios» para que la propuesta muestre el botón «Agendar la demo»." : ""}
+          </p>
+        </li>
+      </ul>
+    </section>
+  );
+}
