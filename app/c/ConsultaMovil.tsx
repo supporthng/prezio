@@ -16,7 +16,9 @@ type Vista =
   | { tipo: "buscando"; codigo: string }
   | { tipo: "producto"; codigo: string; nombre: string; precio: number; vez: number; oferta?: { texto: string; antes?: number } }
   | { tipo: "no"; codigo: string; vez: number }
-  | { tipo: "error"; titulo: string; texto: string; reintentar?: boolean };
+  | { tipo: "error"; titulo: string; texto: string; reintentar?: boolean }
+  | { tipo: "comprobando" }
+  | { tipo: "fuera"; motivo: "lejos" | "permiso" | "sin_gps"; distancia?: number; radio: number };
 
 /** Segundos que se ve el resultado antes de volver solo a la cámara. */
 const VUELTA = { producto: 9, no: 5 } as const;
@@ -48,8 +50,9 @@ export function ConsultaMovil({ negocio, moneda, sucursal, color, logo, clase }:
 
   // La cámara se abre sola al entrar (el navegador pide permiso la primera vez).
   const abierta = useRef(false);
+  // Si la sucursal exige estar dentro, primero se comprueba la ubicación: lejos de la tienda no se puede leer nada.
   useEffect(() => {
-    if (!abierta.current) { abierta.current = true; void escanear(); }
+    if (!abierta.current) { abierta.current = true; void empezar(); }
     return () => { lector.current?.detener(); lector.current = null; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -128,6 +131,29 @@ export function ConsultaMovil({ negocio, moneda, sucursal, color, logo, clase }:
     });
   }
 
+  async function empezar() {
+    if (!sucursal.ubicacion) { void escanear(); return; }
+    lector.current?.detener(); lector.current = null;
+    setVista({ tipo: "comprobando" });
+    let lat: number, lon: number;
+    try { ({ lat, lon } = await ubicacion()); } catch (e) {
+      const m = (e as Error).message;
+      setVista({ tipo: "fuera", motivo: m === "permiso" ? "permiso" : "sin_gps", radio: sucursal.radio_m });
+      return;
+    }
+    try {
+      const r = await llamar<{ ok?: boolean; error?: string; distancia_m?: number; radio_m?: number }>("consulta_movil_lugar", { p_sucursal: sucursal.id, p_lat: lat, p_lon: lon });
+      if (r.error === "lejos") { setVista({ tipo: "fuera", motivo: "lejos", distancia: r.distancia_m, radio: r.radio_m ?? sucursal.radio_m }); return; }
+      if (r.error === "ubicacion") { setVista({ tipo: "fuera", motivo: "sin_gps", radio: sucursal.radio_m }); return; }
+      if (r.error) { setVista({ tipo: "error", titulo: "No disponible", texto: "La consulta desde el celular no está disponible ahora." }); return; }
+    } catch {
+      setVista({ tipo: "error", titulo: "Sin conexión", reintentar: true, texto: "Revisa el internet del celular y vuelve a intentar." });
+      return;
+    }
+    void escanear();
+  }
+  const comprobarOtraVez = () => { posicion.current = null; void empezar(); };
+
   async function consultar(leido: string, deCamara: boolean) {
     const codigo = leido.trim();
     if (!codigo || codigo.length > 64) return;
@@ -136,10 +162,7 @@ export function ConsultaMovil({ negocio, moneda, sucursal, color, logo, clase }:
     let lat: number | null = null, lon: number | null = null;
     if (sucursal.ubicacion) {
       try { ({ lat, lon } = await ubicacion()); } catch (e) {
-        setVista({ tipo: "error", titulo: "Necesitamos tu ubicación",
-          texto: (e as Error).message === "permiso"
-            ? `Los precios se consultan dentro de ${sucursal.nombre}. Permite la ubicación para esta página (candado junto a la dirección › Ubicación › Permitir) y vuelve a intentar.`
-            : "No pudimos saber dónde estás. Activa la ubicación del celular y vuelve a intentar.", reintentar: true });
+        setVista({ tipo: "fuera", motivo: (e as Error).message === "permiso" ? "permiso" : "sin_gps", radio: sucursal.radio_m });
         return;
       }
     }
@@ -147,10 +170,9 @@ export function ConsultaMovil({ negocio, moneda, sucursal, color, logo, clase }:
       const r = await llamar<Respuesta>("consulta_movil", { p_sucursal: sucursal.id, p_formas: variantes(codigo).slice(0, 16), p_lat: lat, p_lon: lon });
       vez.current++;
       if (r.error === "lejos") {
-        setVista({ tipo: "error", titulo: "Estás lejos de la tienda", reintentar: true,
-          texto: `Esta consulta funciona dentro de ${sucursal.nombre} (hasta ${distancia(r.radio_m ?? sucursal.radio_m)}). Estás a ${distancia(r.distancia_m ?? 0)}.` });
+        setVista({ tipo: "fuera", motivo: "lejos", distancia: r.distancia_m, radio: r.radio_m ?? sucursal.radio_m });
       } else if (r.error === "ubicacion") {
-        setVista({ tipo: "error", titulo: "Necesitamos tu ubicación", texto: "Activa la ubicación y vuelve a intentar.", reintentar: true });
+        setVista({ tipo: "fuera", motivo: "sin_gps", radio: sucursal.radio_m });
       } else if (r.error) {
         setVista({ tipo: "error", titulo: "No disponible", texto: r.error === "limite" ? "Hay muchas consultas en este momento. Intenta en un minuto." : "La consulta desde el celular no está disponible ahora." });
       } else if (r.encontrado) {
@@ -249,11 +271,47 @@ export function ConsultaMovil({ negocio, moneda, sucursal, color, logo, clase }:
             </section>
             <button className="mv-boton" type="button" onClick={otra}>{usoCamara.current && !sinCamara ? "Escanear otro ahora" : "Consultar otro"}</button>
           </>
+        ) : v.tipo === "comprobando" ? (
+          <section className="mv-tarjeta mv-comprobando" aria-live="polite">
+            <span className="mv-pin" aria-hidden="true">📍</span>
+            <h1>Comprobando que estás en la tienda…</h1>
+            <p className="mv-texto">Los precios de {sucursal.nombre} solo se consultan dentro de la tienda. Si el celular lo pide, permite la ubicación.</p>
+            <div className="mv-cargando oscuro" aria-hidden="true"><span /></div>
+          </section>
+        ) : v.tipo === "fuera" ? (
+          <section className="mv-fuera" role="alert">
+            <span className="mv-fuera-icono" aria-hidden="true">{v.motivo === "lejos" ? "🚫" : "📍"}</span>
+            {v.motivo === "lejos" ? (
+              <>
+                <h1>No estás en la tienda</h1>
+                {v.distancia !== undefined && <p className="mv-fuera-dato">Estás a <strong>{distancia(v.distancia)}</strong></p>}
+                <p className="mv-fuera-texto">Los precios de {negocio} solo se pueden consultar dentro de <strong>{sucursal.nombre}</strong> (a menos de {distancia(v.radio)}).</p>
+              </>
+            ) : v.motivo === "permiso" ? (
+              <>
+                <h1>Activa tu ubicación</h1>
+                <p className="mv-fuera-texto">Para consultar precios tienes que estar dentro de <strong>{sucursal.nombre}</strong>, y para saberlo necesitamos tu ubicación.</p>
+                <ol className="mv-fuera-pasos">
+                  <li>Toca <strong>aA</strong> o el candado junto a la dirección.</li>
+                  <li>Entra en <strong>Ubicación</strong> y elige <strong>Permitir</strong>.</li>
+                  <li>Vuelve aquí y toca el botón.</li>
+                </ol>
+              </>
+            ) : (
+              <>
+                <h1>No sabemos dónde estás</h1>
+                <p className="mv-fuera-texto">Activa la ubicación del celular (Ajustes › Privacidad › Localización) para consultar precios dentro de <strong>{sucursal.nombre}</strong>.</p>
+              </>
+            )}
+            <button className="mv-boton fuera" type="button" onClick={comprobarOtraVez}>
+              {v.motivo === "lejos" ? "Ya estoy en la tienda" : "Comprobar otra vez"}
+            </button>
+          </section>
         ) : v.tipo === "error" ? (
           <section className="mv-tarjeta" role="alert">
             <h1>{v.titulo}</h1>
             <p className="mv-texto">{v.texto}</p>
-            <button className="mv-boton" type="button" onClick={() => setVista({ tipo: "inicio" })}>{v.reintentar ? "Volver a intentar" : "Volver"}</button>
+            <button className="mv-boton" type="button" onClick={() => (v.reintentar ? comprobarOtraVez() : setVista({ tipo: "inicio" }))}>{v.reintentar ? "Volver a intentar" : "Volver"}</button>
           </section>
         ) : (
           <section className="mv-tarjeta">

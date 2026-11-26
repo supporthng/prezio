@@ -979,3 +979,22 @@ button.enlace { background: none; border: 0; padding: 0; color: inherit; text-de
   padding: 9px 16px; border: 0; border-radius: 999px; font: inherit; font-weight: 700; font-size: .95rem; background: rgba(255, 255, 255, .92); color: #102a43; }
 @media (prefers-reduced-motion: reduce) { .mv-hilo, .mv-gira, .mv-gira .mv-precio, .mv-brillo, .mv-sello { animation: none; } .mv-brillo { display: none; } }
 .mv-etiqueta.con-oferta .mv-nombre { padding: 0 30px; }
+.mv-tarjeta h1 { color: var(--tinta); }
+
+/* fuera de la tienda: bloquea la página entera hasta comprobar que está dentro */
+.mv-comprobando { text-align: center; }
+.mv-pin { display: block; font-size: 2.6rem; margin-bottom: 6px; }
+.mv-cargando.oscuro { background: #e3e9f0; }
+.mv-cargando.oscuro span { background: var(--m-texto); }
+.mv-fuera { min-height: 62vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  padding: 34px 24px; border-radius: 26px; text-align: center; color: #fff;
+  background: linear-gradient(160deg, #d62839, #9b1424); box-shadow: 0 24px 48px -20px rgba(155, 20, 36, .7); }
+.mv-fuera h1 { margin: 0; font-size: 2rem; line-height: 1.1; color: #fff; }
+.mv-fuera-icono { display: grid; place-items: center; width: 104px; height: 104px; border-radius: 50%; background: #fff; box-shadow: 0 8px 20px rgba(0,0,0,.25); font-size: 3.6rem; line-height: 1; animation: mv-fuera 2.4s ease-in-out infinite; }
+@keyframes mv-fuera { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+.mv-fuera-dato { margin: 0; font-size: 1.15rem; }
+.mv-fuera-dato strong { display: block; font-size: 2.6rem; line-height: 1.1; }
+.mv-fuera-texto { margin: 0; font-size: 1.05rem; line-height: 1.45; max-width: 32ch; color: rgba(255, 255, 255, .92); }
+.mv-fuera-pasos { margin: 4px 0 0; padding-left: 1.3em; text-align: left; line-height: 1.6; }
+.mv-boton.fuera { margin-top: 14px; background: #fff; color: #9b1424; box-shadow: 0 5px 0 rgba(0, 0, 0, .2); }
+@media (prefers-reduced-motion: reduce) { .mv-fuera-icono { animation: none; } }
