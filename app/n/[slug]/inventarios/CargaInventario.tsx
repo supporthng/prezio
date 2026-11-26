@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { AvisoDrive } from "@/components/AvisoDrive";
 import { supabaseNavegador } from "@/lib/supabase/browser";
 import { detectarColumnas, leerArchivo, productos, type Columnas, type Filas } from "@/lib/hoja";
-import { descargarDeDrive, driveConfigurado, elegirArchivoDrive, prepararDrive } from "@/lib/googleDrive";
+import { descargarDeDrive, driveConfigurado, elegirArchivoDrive, esIos, prepararDrive } from "@/lib/googleDrive";
 
 type Inventario = { id: string; nombre: string; usos: string[] };
 type Props = { negocioId: string; inventarios: Inventario[]; moneda: string };
@@ -50,7 +50,8 @@ export function CargaInventario({ negocioId, inventarios, moneda }: Props) {
     }
   }
 
-  useEffect(() => { prepararDrive(); }, []);
+  const [ios, setIos] = useState(false);
+  useEffect(() => { setIos(esIos()); prepararDrive(); }, []);
 
   /** Elegir el Excel desde Google Drive (selector de Google) y leerlo igual que uno subido. */
   async function elegirDeDrive() {
@@ -138,8 +139,14 @@ export function CargaInventario({ negocioId, inventarios, moneda }: Props) {
           Mientras tanto puedes pegar el enlace del archivo.
         </p>
       )}
-      {driveConfigurado() && <AvisoDrive />}
-      {driveConfigurado() && (
+      {driveConfigurado() && !ios && <AvisoDrive />}
+      {driveConfigurado() && ios && (
+        <p className="quieto pequeno" style={{ margin: "12px 0 0" }}>
+          <b>En iPhone o iPad:</b> para subir un Excel de Google Drive, toca <b>Elige un archivo › Explorar › Drive</b> (con la app Google Drive instalada).
+          Si quieres que los precios se actualicen solos, usa «Inventario desde Google» más abajo pegando el enlace.
+        </p>
+      )}
+      {driveConfigurado() && !ios && (
         <p style={{ margin: "12px 0 0" }}>
           <button className="boton secundario" type="button" onClick={elegirDeDrive} disabled={trabajando}>
             Elegir de Google Drive

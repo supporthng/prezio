@@ -66,6 +66,11 @@ export function prepararDrive(): void {
   Promise.all([cargarScript("https://accounts.google.com/gsi/client"), cargarScript("https://apis.google.com/js/api.js")]).catch(() => {});
 }
 
+/** iPhone o iPad: Safari no deja al selector de Google Drive (que va dentro de un recuadro) usar la sesión de Google
+ *  («No se puede acceder a tu cuenta de Google»). Ahí se usa la app Archivos o el enlace pegado. */
+export const esIos = (): boolean =>
+  typeof navigator !== "undefined" && (/iPhone|iPad|iPod/i.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1));
+
 const googleListo = () => Boolean((window as any).google?.accounts?.oauth2 && (window as any).gapi);
 
 /** iPhone o iPad con Prezcio abierto desde el ícono de la pantalla de inicio. */
