@@ -510,8 +510,9 @@ const TEXTO_INSTAGRAM = "¿Tus clientes siguen preguntando «¿cuánto cuesta?»
 /** Materiales de venta: propuesta, videos e imagen, listos para ver, descargar, copiar o mandar por WhatsApp. */
 function MaterialesVenta({ base }: { base: string }) {
   const lista = [
-    { nombre: "Propuesta comercial (página)", para: "Animada, con planes mensual y anual", url: `${base}/propuesta.html`, descarga: false },
+    { nombre: "Propuesta comercial (página)", para: "Animada, con planes mensual y anual · arriba la envías personalizada", url: `${base}/propuesta.html`, descarga: false },
     { nombre: "Propuesta comercial (PDF)", para: "4 páginas A4 · para imprimir o adjuntar", url: `${base}/propuesta-prezcio.pdf`, descarga: true },
+    { nombre: "Presentación comercial (PDF)", para: "14 láminas · para presentar en reunión o enviar", url: `${base}/presentacion-prezcio.pdf`, descarga: true },
     { nombre: "Video promocional (horizontal)", para: "1920×1080 · 69 s · WhatsApp, YouTube, pantallas", url: `${base}/prezcio-promo.mp4`, descarga: true },
     { nombre: "Video para Instagram (vertical)", para: "1080×1920 · Reels, Historias y TikTok", url: `${base}/prezcio-reel.mp4`, descarga: true },
     { nombre: "Portada del Reel", para: "Imagen 1080×1920", url: `${base}/prezcio-reel-portada.jpg`, descarga: true },
