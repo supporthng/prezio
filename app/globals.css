@@ -882,3 +882,14 @@ main .tarjeta + .tarjeta { margin-top: 16px; }
 .pe-olvido summary { cursor: pointer; font-weight: 600; font-size: .92rem; min-height: 32px; display: flex; align-items: center; }
 .pe-olvido form { margin-top: 10px; display: grid; gap: 8px; }
 .pe-olvido p { margin: 0; }
+/* ---------- aviso «Ten la Plataforma en tu celular» */
+.pl-instalar { background: #ffd23f; color: #102a43; border-radius: 18px; padding: 16px 18px; margin-bottom: 14px; display: grid; gap: 10px; }
+.pl-instalar-cabeza { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: start; }
+.pl-instalar-icono { font-size: 1.6rem; line-height: 1; }
+.pl-instalar h2 { margin: 0; font-size: 1.05rem; color: #102a43; }
+.pl-instalar p { margin: 2px 0 0; font-size: .92rem; color: #102a43; }
+.pl-instalar-x { border: 0; background: rgba(16, 42, 67, .1); color: #102a43; width: 36px; height: 36px; border-radius: 10px; font-size: 1rem; cursor: pointer; }
+.pl-instalar .boton { background: #102a43; color: #fff; justify-self: start; }
+.pl-instalar-pasos { margin: 0; padding-left: 22px; display: grid; gap: 6px; font-size: .95rem; }
+.pl-instalar-pasos b { font-weight: 700; }
+.pl-instalar-nota { font-size: .82rem !important; opacity: .8; }
