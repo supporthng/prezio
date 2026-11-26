@@ -98,6 +98,53 @@ export async function agregarDueno(d: FormData) {
   volver(r.error ?? null, r.bien ?? "", d);
 }
 
+/**
+ * Cambiar dueño o su correo.
+ * modo «cuenta»: el negocio pasa a otra persona con correo (invitada si no tiene cuenta) y los dueños anteriores salen.
+ * modo «contacto»: el dueño con usuario y clave sigue igual; solo cambia el correo para contactarlo.
+ */
+export async function cambiarDueno(d: FormData) {
+  const supabase = await soloPlataforma();
+  const negocio = { id: campo(d, "negocio"), slug: campo(d, "slug") };
+  const correo = campo(d, "correo").toLowerCase();
+  const nombre = campo(d, "dueno_nombre").slice(0, 80);
+  if (!CORREO.test(correo) || correo.endsWith(".prezio.invalid")) volver("Escribe un correo válido.", "", d);
+  if (problemaClaveSecreta()) volver(problemaClaveSecreta(), "", d);
+  const admin = supabaseAdmin();
+
+  if (campo(d, "modo") === "contacto") {
+    const { data: id, error } = await supabase.rpc("plataforma_dueno_usuario", { p_negocio: negocio.id, p_usuario: campo(d, "usuario") });
+    if (error || !id) volver(error ?? "No encontré a ese dueño en el negocio.", "", d);
+    const { data: u, error: e1 } = await admin.auth.admin.getUserById(String(id));
+    if (e1 || !u.user) volver(mensajeError(e1), "", d);
+    const meta = { ...(u.user!.user_metadata ?? {}), correo, ...(nombre ? { nombre } : {}) };
+    const { error: e2 } = await admin.auth.admin.updateUserById(String(id), { user_metadata: meta });
+    if (e2) volver(mensajeError(e2), "", d);
+    await supabase.rpc("anotar_evento", { p_negocio: negocio.id, p_tipo: "correo_dueno", p_detalle: { usuario: campo(d, "usuario"), correo } }).then(() => {}, () => {});
+    volver(null, `Correo de contacto del dueño «${campo(d, "usuario")}» cambiado a ${correo}. Sigue entrando con su usuario y clave.`, d);
+  }
+
+  const { data: existe } = await supabase.rpc("plataforma_cuenta_de_correo", { p_correo: correo });
+  let cuenta = existe ? String(existe) : "";
+  let aviso: string;
+  if (cuenta) {
+    aviso = `${correo} ya tenía cuenta: entra con su correo y su clave de siempre.`;
+  } else {
+    const { data, error } = await admin.auth.admin.inviteUserByEmail(correo, {
+      redirectTo: `${sitio()}/auth/sesion?siguiente=${encodeURIComponent(`/n/${negocio.slug}`)}`,
+      data: { nombre },
+    });
+    if (error || !data.user) volver(errorDeCuentas(error) ?? "No se pudo enviar la invitación: " + mensajeError(error) + ".", "", d);
+    cuenta = data.user!.id;
+    aviso = `Le enviamos una invitación a ${correo} para crear su clave.`;
+  }
+  const { data, error } = await supabase.rpc("plataforma_cambiar_dueno", { p_negocio: negocio.id, p_cuenta: cuenta, p_nombre: nombre || null });
+  if (error) volver(error, "", d);
+  const r = data as { antes: string[]; cuentas: string[] };
+  for (const id of r.cuentas ?? []) await admin.auth.admin.deleteUser(id).catch(() => {});
+  volver(null, `Dueño cambiado a ${correo}.${r.antes?.length ? ` ${r.antes.join(", ")} ya no tiene acceso a este negocio.` : ""} ${aviso}`, d);
+}
+
 export async function cambiarPlan(d: FormData) {
   const supabase = await supabaseServidor();
   const plan = campo(d, "plan");

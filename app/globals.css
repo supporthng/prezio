@@ -913,3 +913,5 @@ main .tarjeta + .tarjeta { margin-top: 16px; }
 .pl-ing-cifra.fuerte span, .pl-ing-cifra.fuerte small { color: #bcccdc; }
 .pl-materiales { grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); }
 .pl-materiales .fila { flex-wrap: wrap; }
+.pl-cambio-modo { border: 0; padding: 0; margin: 0; display: grid; gap: 8px; font-size: .92rem; }
+.pl-cambio-modo label { display: flex; gap: 8px; align-items: flex-start; }

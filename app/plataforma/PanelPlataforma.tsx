@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Aviso } from "@/components/Aviso";
 import { enlaceNegocio } from "@/lib/subdominio";
 import { fechaCorta, precioPlan, textoAnual, textoLicencia, totalPago, type EstadoLic, type Limites, type Plan } from "@/lib/licencia";
-import { activarEnlace, agregarDueno, altaNegocio, cambiarMovil, eliminarNegocio, extenderPrueba, registrarPago, suspender } from "./actions";
+import { activarEnlace, agregarDueno, altaNegocio, cambiarDueno, cambiarMovil, eliminarNegocio, extenderPrueba, registrarPago, suspender } from "./actions";
 import { InstalarApp } from "@/components/InstalarApp";
 import { HistorialNegocio, VistaDescargas, VistaIngresos, VistaPropuestas, type Ingresos, VistaEquipo, VistaPlanes, VistaReglas, VistaSolicitudes, type Apps, type DatosPl } from "./Vistas";
 
@@ -82,8 +82,11 @@ function CamposDueno({ id }: { id: string }) {
       {acceso === "usuario" && (
         <div className="fila">
           <div className="campo">
-            <label htmlFor={`${id}-usuario`}>Usuario</label>
-            <input id={`${id}-usuario`} name="usuario" required maxLength={30} pattern="[a-z0-9][a-z0-9._\-]{2,29}" placeholder="rosa" autoComplete="off" />
+            <label htmlFor={`${id}-usuario`}>Usuario <small className="quieto">en minúsculas, sin espacios</small></label>
+            <input id={`${id}-usuario`} name="usuario" required maxLength={30} pattern="[a-z0-9][a-z0-9._\-]{2,29}" placeholder="rosa" autoComplete="off"
+              autoCapitalize="none" autoCorrect="off" spellCheck={false}
+              title="De 3 a 30 caracteres: letras minúsculas, números, punto, guion o guion bajo. Ej.: onessis o rosa.perez"
+              onChange={(e) => { const v = e.target.value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "."); if (v !== e.target.value) e.target.value = v; }} />
           </div>
           <div className="campo">
             <label htmlFor={`${id}-clave`}>Clave (mínimo 8)</label>
@@ -179,7 +182,7 @@ function AltaNegocio({ abierto, cerrar, diasPrueba, sitio, cortos }: { abierto: 
 function Tarjeta({ n, ahora, indice, planes, escribe, admin = false, sitio, cortos, descuento = 0, moneda = "US$" }: { n: NegocioPl; ahora: number; indice: number; planes: Plan[]; escribe: boolean; admin?: boolean; sitio: string; cortos: boolean; descuento?: number; moneda?: string }) {
   const lic = n.lic;
   const med = medidor(n, lic);
-  const [panel, setPanel] = useState<null | "pago" | "prueba" | "dueno" | "historial">(null);
+  const [panel, setPanel] = useState<null | "pago" | "prueba" | "dueno" | "cambiar" | "historial">(null);
   const [copiado, setCopiado] = useState(false);
   const [enlaceCopiado, setEnlaceCopiado] = useState(false);
   const enlace = cortos ? enlaceNegocio(sitio || "https://prezcio.app", n.slug) : `${sitio || "https://prezcio.app"}/n/${n.slug}`;
@@ -225,8 +228,8 @@ function Tarjeta({ n, ahora, indice, planes, escribe, admin = false, sitio, cort
     return `Hola, ${n.nombre}. Tu plan ${pagado.nombre} de Prezcio ${cuando}.${gracia}\n\n${montos}\n\nPara renovar, respóndeme por aquí con el comprobante o entra a ${enlace}/licencia. ¡Gracias por confiar en Prezcio!`;
   })();
   const whatsapp = `https://wa.me/?text=${encodeURIComponent(`${n.nombre} ya está en Prezcio.\nEntra a tu panel: ${enlace}\nTu licencia: ${n.licencia}`)}`;
-  const abrir = (p: "pago" | "prueba" | "dueno" | "historial") => { setPanel((a) => (a === p ? null : p)); setMenu(false); };
-  const NOMBRE_PANEL = { pago: "Registrar pago", prueba: "Días de prueba", dueno: "Agregar dueño", historial: "Historial y PCs" } as const;
+  const abrir = (p: "pago" | "prueba" | "dueno" | "cambiar" | "historial") => { setPanel((a) => (a === p ? null : p)); setMenu(false); };
+  const NOMBRE_PANEL = { pago: "Registrar pago", prueba: "Días de prueba", dueno: "Agregar dueño", cambiar: "Cambiar dueño o correo", historial: "Historial y PCs" } as const;
 
   return (
     <li className={`pl-negocio estado-${lic.estado}`} style={{ animationDelay: `${Math.min(indice, 10) * 45}ms` }}>
@@ -284,7 +287,7 @@ function Tarjeta({ n, ahora, indice, planes, escribe, admin = false, sitio, cort
           <button type="button" className={`pl-tab${menu ? " on" : ""}`} aria-expanded={menu} onClick={() => setMenu((m) => !m)}>Acciones ▾</button>
           {menu && (
             <div className="pl-menu-lista" role="group" aria-label="Acciones">
-              {escribe && (["pago", "prueba", "dueno"] as const).map((p) => (
+              {escribe && (["pago", "prueba", "dueno", "cambiar"] as const).map((p) => (
                 <button key={p} type="button" onClick={() => abrir(p)}>{NOMBRE_PANEL[p]}</button>
               ))}
               <button type="button" onClick={() => abrir("historial")}>{NOMBRE_PANEL.historial}</button>
@@ -344,6 +347,37 @@ function Tarjeta({ n, ahora, indice, planes, escribe, admin = false, sitio, cort
           <input type="hidden" name="slug" value={n.slug} />
           <CamposDueno id={`d-${n.id}`} />
           <button className="boton" type="submit">Agregar dueño</button>
+        </form>
+      )}
+
+      {panel === "cambiar" && (
+        <form action={cambiarDueno} className="pl-panel">
+          <input type="hidden" name="negocio" value={n.id} />
+          <input type="hidden" name="slug" value={n.slug} />
+          <p className="pequeno" style={{ margin: 0 }}>
+            Dueño actual: <b>{n.duenos.length ? n.duenos.map((x) => x.usuario ? `${x.usuario}${x.correo ? ` (${x.correo})` : ""}` : x.correo).join(", ") : "ninguno"}</b>
+          </p>
+          {n.duenos.some((x) => x.usuario) && (
+            <fieldset className="pl-cambio-modo">
+              <label><input type="radio" name="modo" value="contacto" defaultChecked /> Solo cambiar su correo de contacto (sigue entrando con su usuario y clave)</label>
+              <label><input type="radio" name="modo" value="cuenta" /> Pasar el negocio a otra persona con su correo</label>
+              <input type="hidden" name="usuario" value={n.duenos.find((x) => x.usuario)?.usuario ?? ""} />
+            </fieldset>
+          )}
+          {!n.duenos.some((x) => x.usuario) && <input type="hidden" name="modo" value="cuenta" />}
+          <div className="campo">
+            <label htmlFor={`cd-${n.id}`}>Correo nuevo</label>
+            <input id={`cd-${n.id}`} name="correo" type="email" required autoComplete="off" autoCapitalize="off" spellCheck={false} placeholder="dueno@negocio.com" />
+          </div>
+          <div className="campo">
+            <label htmlFor={`cdn-${n.id}`}>Nombre (opcional)</label>
+            <input id={`cdn-${n.id}`} name="dueno_nombre" autoComplete="off" />
+          </div>
+          <p className="quieto pequeno" style={{ margin: 0 }}>
+            Al pasar el negocio a otro correo, el dueño anterior pierde el acceso a este negocio (su cuenta con correo se conserva).
+            Si el correo nuevo no tiene cuenta, le llega una invitación para crear su clave.
+          </p>
+          <button className="boton" type="submit">Cambiar</button>
         </form>
       )}
 
