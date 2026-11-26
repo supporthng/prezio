@@ -915,3 +915,23 @@ main .tarjeta + .tarjeta { margin-top: 16px; }
 .pl-materiales .fila { flex-wrap: wrap; }
 .pl-cambio-modo { border: 0; padding: 0; margin: 0; display: grid; gap: 8px; font-size: .92rem; }
 .pl-cambio-modo label { display: flex; gap: 8px; align-items: flex-start; }
+/* ---------- Panel del negocio · Inicio (igual que la app Prezcio Administrador) */
+.ini-hero { background: linear-gradient(135deg, #0c2237 0%, #163a5c 60%, #1d4d78 100%); color: #eaf1f8; border-radius: 18px; padding: 18px 20px; margin: 8px 0 16px; position: relative; overflow: hidden; }
+.ini-hero::after { content: ""; position: absolute; right: -40px; top: -60px; width: 170px; height: 170px; border-radius: 50%; background: radial-gradient(circle, rgba(255,210,63,.32), transparent 70%); pointer-events: none; }
+.ini-cabeza { display: flex; justify-content: space-between; align-items: center; gap: 16px; position: relative; z-index: 1; }
+.ini-cabeza h1 { font-size: 1.5rem; margin: 0; color: #fff; letter-spacing: -.01em; }
+.ini-cabeza p { margin: 2px 0 0; color: #c9d8e6; font-size: .9rem; }
+.ini-hero .boton.claro { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.28); color: #fff; flex: none; }
+.ini-hero .tablero { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 16px 0 0; position: relative; z-index: 1; }
+.ini-hero .dato { text-decoration: none; color: inherit; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.16); border-radius: 14px; padding: 11px 14px; display: flex; flex-direction: column; gap: 2px; position: relative; min-width: 0; }
+.ini-hero .dato:hover, .ini-hero .dato:focus-visible { background: rgba(255,255,255,.14); outline: none; }
+.ini-hero .dato::after { content: "›"; position: absolute; right: 12px; top: 8px; color: #9fb3c8; font-size: 1.1rem; }
+.ini-hero .dato-et { font-size: .78rem; font-weight: 650; color: #c9d8e6; padding-right: 14px; }
+.ini-hero .dato-num { font-size: 1.5rem; line-height: 1.15; color: #fff; font-variant-numeric: tabular-nums; }
+.ini-hero .dato-pie { font-size: .78rem; color: #9fb3c8; }
+.ini-hero .dato.alerta { border-color: rgba(255,198,92,.6); } .ini-hero .dato.alerta .dato-num { color: #ffc65c; } .ini-hero .dato.alerta .dato-pie { color: #ffe1a3; }
+.ini-hero .dato.mal { border-color: rgba(255,138,128,.7); background: rgba(192,57,43,.18); } .ini-hero .dato.mal .dato-num { color: #ff9b91; } .ini-hero .dato.mal .dato-pie { color: #ffd0cb; }
+.ini-alerta { position: relative; z-index: 1; margin: 12px 0 0; padding: 10px 12px; border-radius: 10px; font-size: .9rem; }
+.ini-alerta.alerta { background: rgba(255,198,92,.15); color: #ffe1a3; }
+.ini-alerta.mal { background: rgba(192,57,43,.25); color: #ffd0cb; }
+@media (max-width: 520px) { .ini-hero .tablero { grid-template-columns: 1fr 1fr; } .ini-hero .dato:first-child { grid-column: 1 / -1; } }
