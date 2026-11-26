@@ -408,8 +408,9 @@ export function VistaPropuestas({ sitio, ajustes }: { sitio: string; ajustes: Aj
   if (ajustes.contacto_correo) q.set("e", ajustes.contacto_correo);
   const enlace = `${base}/propuesta.html?${q.toString()}`;
   const pdf = `${base}/propuesta-prezcio.pdf`;
+  const video = `${base}/prezcio-promo.mp4`;
   const saludo = para.trim() ? `Hola, ${para.trim()}` : "Hola";
-  const mensaje = `${saludo}. Te comparto la propuesta de Prezcio, los verificadores de precios de ONETECH: tus clientes escanean y ven el precio correcto al instante, con tus ofertas en pantalla.\n\nPuedes probarlo 30 días sin costo.\n\nPropuesta: ${enlace}\nEn PDF: ${pdf}`;
+  const mensaje = `${saludo}. Te comparto la propuesta de Prezcio, los verificadores de precios de ONETECH: tus clientes escanean y ven el precio correcto al instante, con tus ofertas en pantalla.\n\nPuedes probarlo 30 días sin costo.\n\nPropuesta: ${enlace}\nEn PDF: ${pdf}\nVideo (1 min): ${video}`;
   const numero = numeroWhatsApp(tel);
   const wa = `https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}`;
   const sinContacto = !ajustes.contacto_whatsapp && !ajustes.contacto_correo;
@@ -442,6 +443,7 @@ export function VistaPropuestas({ sitio, ajustes }: { sitio: string; ajustes: Aj
             <a className="boton pl-wa" href={wa} target="_blank" rel="noopener noreferrer">Enviar por WhatsApp</a>
             <a className="boton secundario" href={enlace} target="_blank" rel="noopener noreferrer">Ver propuesta</a>
             <a className="boton secundario" href={pdf} target="_blank" rel="noopener noreferrer">PDF</a>
+            <a className="boton secundario" href={video} target="_blank" rel="noopener noreferrer">Video</a>
             <Copiar texto={enlace} />
           </div>
           <p className="quieto pequeno" style={{ margin: 0 }}>
@@ -450,6 +452,53 @@ export function VistaPropuestas({ sitio, ajustes }: { sitio: string; ajustes: Aj
           </p>
         </li>
       </ul>
+    </section>
+  );
+}
+
+export type Ingresos = {
+  cobrado: number; pagos: number; cobrado_antes: number;
+  por_cobrar: { negocios: number; monto: number }; atrasados: { negocios: number; monto: number };
+  pruebas_terminan: number; recurrente: number; clientes_pagando: number;
+  ultimos: { creado: string; monto: number | null; meses: number; nombre: string; plan: string }[];
+};
+
+/** Ingresos: lo cobrado este mes, lo que toca cobrar y el ingreso mensual recurrente. */
+export function VistaIngresos({ i, moneda }: { i: Ingresos; moneda: string }) {
+  const m = (v: number | null | undefined) => `${moneda} ${Number(v ?? 0).toLocaleString("es-DO", { maximumFractionDigits: 0 })}`;
+  const cambio = i.cobrado_antes > 0 ? Math.round(((i.cobrado - i.cobrado_antes) / i.cobrado_antes) * 100) : null;
+  const mes = new Date().toLocaleDateString("es-DO", { month: "long", year: "numeric" });
+  return (
+    <section aria-label="Ingresos" className="pl-ingresos">
+      <p className="quieto" style={{ margin: "14px 0 0" }}>Pagos registrados en {mes}. Los montos son los que pusiste al registrar cada pago.</p>
+      <div className="pl-ing-grid">
+        <div className="pl-ing-cifra fuerte">
+          <span>Cobrado este mes</span><b>{m(i.cobrado)}</b>
+          <small>{i.pagos} pago{i.pagos === 1 ? "" : "s"}{cambio !== null ? ` · ${cambio >= 0 ? "+" : ""}${cambio}% vs. el mes pasado` : i.cobrado_antes === 0 ? " · el mes pasado: sin pagos" : ""}</small>
+        </div>
+        <div className="pl-ing-cifra">
+          <span>Por cobrar este mes</span><b>{m(i.por_cobrar.monto)}</b>
+          <small>{i.por_cobrar.negocios} renovaci{i.por_cobrar.negocios === 1 ? "ón" : "ones"} que vencen antes de fin de mes</small>
+        </div>
+        <div className="pl-ing-cifra">
+          <span>Atrasados</span><b className={i.atrasados.negocios ? "error-texto" : ""}>{m(i.atrasados.monto)}</b>
+          <small>{i.atrasados.negocios} cliente{i.atrasados.negocios === 1 ? "" : "s"} con el plan vencido</small>
+        </div>
+        <div className="pl-ing-cifra">
+          <span>Ingreso mensual recurrente</span><b>{m(i.recurrente)}</b>
+          <small>{i.clientes_pagando} cliente{i.clientes_pagando === 1 ? "" : "s"} al día · {i.pruebas_terminan} prueba{i.pruebas_terminan === 1 ? "" : "s"} terminan este mes</small>
+        </div>
+      </div>
+      <h3 style={{ margin: "22px 0 8px" }}>Últimos pagos</h3>
+      {i.ultimos.length === 0 ? <p className="quieto pequeno">Todavía no hay pagos registrados. Regístralos en Negocios → Acciones → Registrar pago.</p> : (
+        <div className="pl-tabla-caja"><table className="pl-tabla">
+          <thead><tr><th>Fecha</th><th>Negocio</th><th>Plan</th><th className="num">Monto</th></tr></thead>
+          <tbody>{i.ultimos.map((u, k) => (
+            <tr key={k}><td style={{ whiteSpace: "nowrap" }}>{fechaCorta(u.creado)}</td><td>{u.nombre}</td><td>{u.plan}{u.meses ? <small> · {textoMeses(u.meses)}</small> : null}</td><td className="num">{u.monto === null ? "—" : m(u.monto)}</td></tr>
+          ))}</tbody>
+        </table></div>
+      )}
+      <p className="quieto pequeno" style={{ marginTop: 10 }}>Para cobrar a los atrasados o a los que vencen pronto, usa «Recordar pago por WhatsApp» en su tarjeta.</p>
     </section>
   );
 }

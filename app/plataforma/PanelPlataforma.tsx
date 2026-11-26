@@ -6,7 +6,7 @@ import { enlaceNegocio } from "@/lib/subdominio";
 import { fechaCorta, precioPlan, textoAnual, textoLicencia, totalPago, type EstadoLic, type Limites, type Plan } from "@/lib/licencia";
 import { activarEnlace, agregarDueno, altaNegocio, cambiarMovil, eliminarNegocio, extenderPrueba, registrarPago, suspender } from "./actions";
 import { InstalarApp } from "@/components/InstalarApp";
-import { HistorialNegocio, VistaDescargas, VistaPropuestas, VistaEquipo, VistaPlanes, VistaReglas, VistaSolicitudes, type Apps, type DatosPl } from "./Vistas";
+import { HistorialNegocio, VistaDescargas, VistaIngresos, VistaPropuestas, type Ingresos, VistaEquipo, VistaPlanes, VistaReglas, VistaSolicitudes, type Apps, type DatosPl } from "./Vistas";
 
 type Dueno = { usuario: string | null; correo: string | null; confirmado: boolean };
 export type NegocioPl = {
@@ -16,7 +16,7 @@ export type NegocioPl = {
   lic: EstadoLic; limites: Limites; pcs: number; solicitud: "nueva" | "contactada" | null;
   movil?: { contratada: boolean; activa: boolean };
 };
-type Vista = "negocios" | "solicitudes" | "propuestas" | "planes" | "reglas" | "descargas" | "equipo";
+type Vista = "negocios" | "ingresos" | "solicitudes" | "propuestas" | "planes" | "reglas" | "descargas" | "equipo";
 type Filtro = "todos" | "activos" | "prueba" | "vencen" | "bloqueados" | "piden";
 type Orden = "recientes" | "vencen" | "nombre";
 
@@ -204,6 +204,26 @@ function Tarjeta({ n, ahora, indice, planes, escribe, admin = false, sitio, cort
   const copiarEnlace = async () => {
     try { await navigator.clipboard.writeText(enlace); setEnlaceCopiado(true); setTimeout(() => setEnlaceCopiado(false), 1800); } catch { /* sin portapapeles */ }
   };
+  // Recordatorio de pago por WhatsApp: prueba por terminar, por vencer, en gracia o vencida.
+  const cobrar = lic.estado === "por_vencer" || lic.estado === "gracia" || lic.estado === "vencida" || (lic.estado === "prueba" && lic.dias !== null && lic.dias <= 5);
+  const mensajeCobro = (() => {
+    if (!cobrar) return "";
+    const cuando = lic.vence ? (lic.dias !== null && lic.dias < 0 ? `venció el ${fechaCorta(lic.vence)}` : `vence el ${fechaCorta(lic.vence)}`) : "está por vencer";
+    const fmt = (v: number) => `${moneda} ${v.toLocaleString("es-DO", { maximumFractionDigits: 2 })}`;
+    const gracia = lic.estado === "gracia" ? " Estás en los días de gracia: después los verificadores dejan de mostrar precios hasta renovar." : "";
+    const pagado = planes.find((p) => p.codigo === (n.plan === "suspendido" ? lic.plan_antes : n.plan) && Number(p.precio) > 0);
+    if (n.plan === "prueba" || !pagado) {
+      const baratos = planes.filter((p) => p.activo !== false && Number(p.precio) > 0 && !p.permanente).sort((x, y) => Number(x.precio) - Number(y.precio));
+      const desde = baratos[0] ? ` Los planes empiezan en ${fmt(Number(baratos[0].precio))} al mes${descuento > 0 ? ` (${descuento}% menos pagando el año)` : ""}.` : "";
+      return `Hola, ${n.nombre}. Tu prueba de Prezcio ${cuando}.${gracia} Para seguir usándolo, elige tu plan.${desde}\n\nElige tu plan aquí: ${enlace}/licencia\nO respóndeme por aquí y te ayudo. ¡Gracias!`;
+    }
+    const mensual = totalPago(pagado, 1, descuento);
+    const anual = totalPago(pagado, 12, descuento);
+    const montos = pagado.permanente || pagado.periodo === "anual"
+      ? `Monto: ${fmt(Number(pagado.precio))}${pagado.periodo === "anual" ? " al año" : ""}.`
+      : `Monto: ${fmt(mensual ?? 0)} al mes${anual ? `, o ${fmt(anual)} pagando el año${descuento > 0 ? ` (${descuento}% de descuento)` : ""}` : ""}.`;
+    return `Hola, ${n.nombre}. Tu plan ${pagado.nombre} de Prezcio ${cuando}.${gracia}\n\n${montos}\n\nPara renovar, respóndeme por aquí con el comprobante o entra a ${enlace}/licencia. ¡Gracias por confiar en Prezcio!`;
+  })();
   const whatsapp = `https://wa.me/?text=${encodeURIComponent(`${n.nombre} ya está en Prezcio.\nEntra a tu panel: ${enlace}\nTu licencia: ${n.licencia}`)}`;
   const abrir = (p: "pago" | "prueba" | "dueno" | "historial") => { setPanel((a) => (a === p ? null : p)); setMenu(false); };
   const NOMBRE_PANEL = { pago: "Registrar pago", prueba: "Días de prueba", dueno: "Agregar dueño", historial: "Historial y PCs" } as const;
@@ -239,6 +259,11 @@ function Tarjeta({ n, ahora, indice, planes, escribe, admin = false, sitio, cort
         <div className="pl-barra" role="img" aria-label={med.texto}><i style={{ width: `${med.pct}%` }} /></div>
         <p><b>{med.texto}</b><span>{textoLicencia(lic)}</span></p>
       </div>
+
+      {cobrar && escribe && (
+        <a className="pl-cobrar" href={`https://wa.me/?text=${encodeURIComponent(mensajeCobro)}`} target="_blank" rel="noopener noreferrer"
+          title={mensajeCobro}>Recordar pago por WhatsApp</a>
+      )}
 
       <dl className="pl-datos">
         <div><dt>Usuarios</dt><dd>{usoTexto(n.usuarios, n.limites.usuarios)}</dd></div>
@@ -397,12 +422,12 @@ function Fila({ n, abierta, onAbrir, ...resto }: { n: NegocioPl; abierta: boolea
 
 /* ---------------------------------------------------------------- pantalla */
 
-export function PanelPlataforma({ negocios, datos, apps, sitio, cortos, vista: vistaInicial, ahora, error, bien, claveProblema, q }: {
-  negocios: NegocioPl[]; datos: DatosPl; apps: Apps; sitio: string; cortos: boolean; vista?: string; ahora: number; error?: string; bien?: string; claveProblema?: string | null; q?: string;
+export function PanelPlataforma({ negocios, datos, apps, sitio, cortos, vista: vistaInicial, ahora, error, bien, claveProblema, q, ingresos = null }: {
+  negocios: NegocioPl[]; datos: DatosPl; apps: Apps; sitio: string; cortos: boolean; vista?: string; ahora: number; error?: string; bien?: string; claveProblema?: string | null; q?: string; ingresos?: Ingresos | null;
 }) {
   const escribe = datos.rol !== "soporte";
   const admin = datos.rol === "administrador";
-  const [vista, setVista] = useState<Vista>((["negocios", "solicitudes", "propuestas", "planes", "reglas", "descargas", "equipo"] as const).find((v) => v === vistaInicial) ?? "negocios");
+  const [vista, setVista] = useState<Vista>((["negocios", "ingresos", "solicitudes", "propuestas", "planes", "reglas", "descargas", "equipo"] as const).find((v) => v === vistaInicial) ?? "negocios");
   const nuevas = datos.solicitudes.filter((s) => s.estado === "nueva").length;
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [orden, setOrden] = useState<Orden>("recientes");
@@ -456,7 +481,7 @@ export function PanelPlataforma({ negocios, datos, apps, sitio, cortos, vista: v
     { k: "equipos", v: equipos, t: "Verificadores hoy", tono: "azul" },
   ];
   const chips: [Filtro, string][] = [["todos", "Todos"], ["activos", "Activos"], ["prueba", "En prueba"], ["vencen", "Por vencer"], ["bloqueados", "Bloqueados"], ["piden", "Piden plan"]];
-  const pestanas: [Vista, string, number?][] = [["negocios", "Negocios"], ["solicitudes", "Solicitudes", nuevas], ["propuestas", "Propuestas"], ["planes", "Planes"], ["reglas", "Reglas"], ["descargas", "Descargas"],
+  const pestanas: [Vista, string, number?][] = [["negocios", "Negocios"], ...(ingresos ? [["ingresos", "Ingresos"] as [Vista, string]] : []), ["solicitudes", "Solicitudes", nuevas], ["propuestas", "Propuestas"], ["planes", "Planes"], ["reglas", "Reglas"], ["descargas", "Descargas"],
     ...(admin ? [["equipo", "Equipo"] as [Vista, string]] : [])];
 
   return (
@@ -499,6 +524,7 @@ export function PanelPlataforma({ negocios, datos, apps, sitio, cortos, vista: v
         {claveProblema && <p className="aviso error">{claveProblema} Sin ella no se pueden crear las cuentas de los dueños.</p>}
 
       {vista === "solicitudes" && <VistaSolicitudes datos={datos} escribe={escribe} />}
+      {vista === "ingresos" && ingresos && <VistaIngresos i={ingresos} moneda={datos.ajustes.moneda} />}
       {vista === "propuestas" && <VistaPropuestas sitio={sitio} ajustes={datos.ajustes} />}
       {vista === "planes" && <VistaPlanes datos={datos} admin={admin} />}
       {vista === "reglas" && <VistaReglas a={datos.ajustes} admin={admin} />}

@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { Barra } from "@/components/Barra";
 import { supabaseServidor } from "@/lib/supabase/server";
 import { problemaClaveSecreta } from "@/lib/supabase/admin";
+import { type Ingresos } from "./Vistas";
 import { PanelPlataforma, type NegocioPl } from "./PanelPlataforma";
 import type { Apps, DatosPl } from "./Vistas";
 import apps from "@/public/apps.json";
@@ -25,13 +26,13 @@ export default async function Plataforma({ searchParams }: Props) {
     if (m) redirect("/plataforma/verificar");
     notFound();
   }
-  const [{ data }, { data: datos }] = await Promise.all([supabase.rpc("plataforma_negocios"), supabase.rpc("plataforma_datos")]);
+  const [{ data }, { data: datos }, { data: ingresos }] = await Promise.all([supabase.rpc("plataforma_negocios"), supabase.rpc("plataforma_datos"), supabase.rpc("plataforma_ingresos")]);
   const negocios = (data ?? []) as NegocioPl[];
 
   return (
     <>
       <Barra />
-      <PanelPlataforma negocios={negocios} datos={datos as DatosPl} apps={apps as Apps} sitio={sitio()} cortos={vercelListo()} vista={vista} ahora={Date.now()} error={error} bien={bien} claveProblema={problemaClaveSecreta()} q={q} />
+      <PanelPlataforma negocios={negocios} datos={datos as DatosPl} apps={apps as Apps} sitio={sitio()} cortos={vercelListo()} vista={vista} ahora={Date.now()} error={error} bien={bien} claveProblema={problemaClaveSecreta()} q={q} ingresos={(ingresos ?? null) as Ingresos | null} />
     </>
   );
 }

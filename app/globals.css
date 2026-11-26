@@ -900,3 +900,14 @@ main .tarjeta + .tarjeta { margin-top: 16px; }
 /* ---------- Plataforma · eliminar cliente */
 .pl-eliminar { border: 2px solid var(--error); background: color-mix(in srgb, var(--error) 8%, transparent); }
 .pl-eliminar-t { margin: 0; color: var(--error); }
+.pl-cobrar { display: flex; align-items: center; justify-content: center; min-height: 44px; border-radius: 12px; background: #1f9d55; color: #fff; font-weight: 700; text-decoration: none; margin: 2px 0 10px; }
+.pl-cobrar:hover, .pl-cobrar:focus-visible { background: #17803f; outline: none; }
+/* ---------- Plataforma · Ingresos */
+.pl-ing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 14px; margin-top: 14px; }
+.pl-ing-cifra { border: 1px solid var(--linea); border-radius: 16px; padding: 16px 18px; background: var(--papel); display: grid; gap: 4px; }
+.pl-ing-cifra span { font-size: .85rem; color: var(--gris); font-weight: 600; }
+.pl-ing-cifra b { font-size: 1.7rem; font-weight: 800; white-space: nowrap; }
+.pl-ing-cifra small { color: var(--gris); font-size: .8rem; }
+.pl-ing-cifra.fuerte { background: #102a43; color: #fff; border-color: #102a43; }
+.pl-ing-cifra.fuerte b { color: #ffd23f; }
+.pl-ing-cifra.fuerte span, .pl-ing-cifra.fuerte small { color: #bcccdc; }
