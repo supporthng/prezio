@@ -388,7 +388,11 @@ export function PanelPlataforma({ negocios, datos, apps, sitio, cortos, vista: v
   const [modo, setModo] = useState<"lista" | "tarjetas">(negocios.length > 6 ? "lista" : "tarjetas");
   const [abierta, setAbierta] = useState<string | null>(null);
   useEffect(() => {
-    try { const m = localStorage.getItem("pl-modo"); if (m === "lista" || m === "tarjetas") setModo(m); } catch { /* sin almacenamiento */ }
+    try {
+      const m = localStorage.getItem("pl-modo");
+      if (m === "lista" || m === "tarjetas") setModo(m);
+      else if (window.matchMedia("(max-width: 700px)").matches) setModo("tarjetas");
+    } catch { /* sin almacenamiento */ }
   }, []);
   const cambiarModo = (m: "lista" | "tarjetas") => { setModo(m); try { localStorage.setItem("pl-modo", m); } catch { /* sin almacenamiento */ } };
 

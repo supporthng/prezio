@@ -1,0 +1,17 @@
+{
+  "id": "/plataforma",
+  "name": "Prezcio Plataforma",
+  "short_name": "Plataforma",
+  "description": "Administración de clientes de Prezcio",
+  "start_url": "/plataforma",
+  "scope": "/plataforma",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#102a43",
+  "theme_color": "#102a43",
+  "icons": [
+    { "src": "/iconos/prezio-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/iconos/prezio-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/iconos/prezio-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
