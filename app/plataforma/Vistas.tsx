@@ -452,6 +452,7 @@ export function VistaPropuestas({ sitio, ajustes }: { sitio: string; ajustes: Aj
           </p>
         </li>
       </ul>
+      <MaterialesVenta base={base} />
     </section>
   );
 }
@@ -500,5 +501,44 @@ export function VistaIngresos({ i, moneda }: { i: Ingresos; moneda: string }) {
       )}
       <p className="quieto pequeno" style={{ marginTop: 10 }}>Para cobrar a los atrasados o a los que vencen pronto, usa «Recordar pago por WhatsApp» en su tarjeta.</p>
     </section>
+  );
+}
+
+const TEXTO_INSTAGRAM = "¿Tus clientes siguen preguntando «¿cuánto cuesta?» 🤔 Con Prezcio escanean y ven el precio al instante, con tus ofertas en pantalla. 30 días de prueba gratis 👉 prezcio.app\n\n#verificadordeprecios #supermercado #colmado #farmacia #ferreteria #RepublicaDominicana";
+
+/** Materiales de venta: propuesta, videos e imagen, listos para ver, descargar, copiar o mandar por WhatsApp. */
+function MaterialesVenta({ base }: { base: string }) {
+  const lista = [
+    { nombre: "Propuesta comercial (página)", para: "Animada, con planes mensual y anual", url: `${base}/propuesta.html`, descarga: false },
+    { nombre: "Propuesta comercial (PDF)", para: "4 páginas A4 · para imprimir o adjuntar", url: `${base}/propuesta-prezcio.pdf`, descarga: true },
+    { nombre: "Video promocional (horizontal)", para: "1920×1080 · 69 s · WhatsApp, YouTube, pantallas", url: `${base}/prezcio-promo.mp4`, descarga: true },
+    { nombre: "Video para Instagram (vertical)", para: "1080×1920 · Reels, Historias y TikTok", url: `${base}/prezcio-reel.mp4`, descarga: true },
+    { nombre: "Portada del Reel", para: "Imagen 1080×1920", url: `${base}/prezcio-reel-portada.jpg`, descarga: true },
+  ];
+  return (
+    <>
+      <h3 style={{ margin: "26px 0 4px" }}>Materiales de venta</h3>
+      <p className="quieto pequeno" style={{ margin: 0 }}>Enlaces fijos: siempre tienen la última versión.</p>
+      <ul className="pl-lista una pl-materiales">
+        {lista.map((m) => (
+          <li key={m.url} className="pl-negocio">
+            <div className="pl-cabeza">
+              <div className="pl-quien"><h3>{m.nombre}</h3><p className="quieto pequeno">{m.para}</p></div>
+            </div>
+            <div className="fila">
+              <a className="boton secundario" href={m.url} target="_blank" rel="noopener noreferrer">Ver</a>
+              {m.descarga && <a className="boton secundario" href={m.url} download>Descargar</a>}
+              <a className="boton pl-wa" href={`https://wa.me/?text=${encodeURIComponent(`${m.nombre.replace(/ \(.*\)$/, "")} de Prezcio: ${m.url}`)}`} target="_blank" rel="noopener noreferrer">WhatsApp</a>
+              <Copiar texto={m.url} />
+            </div>
+          </li>
+        ))}
+        <li className="pl-negocio">
+          <div className="pl-cabeza"><div className="pl-quien"><h3>Texto para Instagram</h3><p className="quieto pequeno">Para acompañar el Reel</p></div></div>
+          <p className="pequeno" style={{ whiteSpace: "pre-wrap", margin: 0 }}>{TEXTO_INSTAGRAM}</p>
+          <div className="fila"><Copiar texto={TEXTO_INSTAGRAM} etiqueta="Copiar texto" /></div>
+        </li>
+      </ul>
+    </>
   );
 }

@@ -911,3 +911,5 @@ main .tarjeta + .tarjeta { margin-top: 16px; }
 .pl-ing-cifra.fuerte { background: #102a43; color: #fff; border-color: #102a43; }
 .pl-ing-cifra.fuerte b { color: #ffd23f; }
 .pl-ing-cifra.fuerte span, .pl-ing-cifra.fuerte small { color: #bcccdc; }
+.pl-materiales { grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); }
+.pl-materiales .fila { flex-wrap: wrap; }
