@@ -59,6 +59,23 @@ function cargarScript(src: string): Promise<void> {
   });
 }
 
+/** Carga los scripts de Google antes del toque, para que el botón abra la ventana de Google en el mismo toque:
+ *  Safari (iPhone) bloquea las ventanas que se abren después de esperar algo. Llamarla al mostrar el botón. */
+export function prepararDrive(): void {
+  if (typeof window === "undefined" || !driveConfigurado() || (window as any).pywebview?.api) return;
+  Promise.all([cargarScript("https://accounts.google.com/gsi/client"), cargarScript("https://apis.google.com/js/api.js")]).catch(() => {});
+}
+
+const googleListo = () => Boolean((window as any).google?.accounts?.oauth2 && (window as any).gapi);
+
+/** iPhone o iPad con Prezcio abierto desde el ícono de la pantalla de inicio. */
+const appInstaladaEnIos = () =>
+  /iPhone|iPad|iPod/i.test(navigator.userAgent) && ((navigator as any).standalone === true || window.matchMedia("(display-mode: standalone)").matches);
+
+const AVISO_VENTANA = () => appInstaladaEnIos()
+  ? "En la app instalada del iPhone, Google no puede abrir su ventana. Abre esta página en Safari (prezcio.app) para elegir el archivo de Drive, o sube el Excel desde «Elige un archivo»."
+  : "No se pudo abrir la ventana de Google. Permite las ventanas emergentes de prezcio.app e intenta de nuevo.";
+
 /** Pide el permiso a Google (ventana emergente). Devuelve null si la persona cierra la ventana. */
 async function pedirPermiso(): Promise<string | null> {
   // Dentro de la app Prezcio Administrador (Windows) Google no deja iniciar sesión en la ventana incrustada:
@@ -82,7 +99,7 @@ async function pedirPermiso(): Promise<string | null> {
       },
       error_callback: (e: any) => {
         if (e?.type === "popup_closed") ok(null);
-        else mal(new Error("No se pudo abrir la ventana de Google. Permite las ventanas emergentes e intenta de nuevo."));
+        else mal(new Error(AVISO_VENTANA()));
       },
     });
     cliente.requestAccessToken({ prompt: "" });
@@ -103,8 +120,13 @@ export async function elegirArchivoDrive(): Promise<ArchivoDrive | null> {
   }
   const aviso = revisarConfiguracionDrive();
   if (aviso) throw new Error(aviso);
-  await Promise.all([cargarScript("https://accounts.google.com/gsi/client"), cargarScript("https://apis.google.com/js/api.js")]);
-  const token = await pedirPermiso();
+  // Si Google ya está cargado, la ventana se abre en este mismo toque (sin esperar nada antes).
+  const token = googleListo()
+    ? await pedirPermiso()
+    : await (async () => {
+        await Promise.all([cargarScript("https://accounts.google.com/gsi/client"), cargarScript("https://apis.google.com/js/api.js")]);
+        return pedirPermiso();
+      })();
   if (!token) return null;
   await new Promise<void>((ok) => (window as any).gapi.load("picker", { callback: ok }));
   const g = (window as any).google;

@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseNavegador } from "@/lib/supabase/browser";
 import { detectarColumnas, leerArchivo, productos, type Columnas, type Filas } from "@/lib/hoja";
-import { descargarDeDrive, driveConfigurado, elegirArchivoDrive } from "@/lib/googleDrive";
+import { descargarDeDrive, driveConfigurado, elegirArchivoDrive, prepararDrive } from "@/lib/googleDrive";
 
 type Inventario = { id: string; nombre: string; usos: string[] };
 type Props = { negocioId: string; inventarios: Inventario[]; moneda: string };
@@ -48,6 +48,8 @@ export function CargaInventario({ negocioId, inventarios, moneda }: Props) {
       setEstado({ tipo: "error", texto: e instanceof Error ? e.message : "No se pudo leer el archivo." });
     }
   }
+
+  useEffect(() => { prepararDrive(); }, []);
 
   /** Elegir el Excel desde Google Drive (selector de Google) y leerlo igual que uno subido. */
   async function elegirDeDrive() {

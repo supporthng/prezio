@@ -1,10 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FRECUENCIAS, NO_COMPARTIDA, type ColumnasGuardadas } from "@/lib/fuentes";
 import {
-  compartirPorEnlace, driveConfigurado, elegirArchivoDrive, enlaceDeArchivo, nombreSinExtension, type ArchivoDrive,
+  compartirPorEnlace, driveConfigurado, elegirArchivoDrive, prepararDrive, enlaceDeArchivo, nombreSinExtension, type ArchivoDrive,
 } from "@/lib/googleDrive";
 import { crearGoogle, revisarGoogle, type Revision } from "./fuentes";
 
@@ -41,6 +41,8 @@ export function FuenteGoogle({ negocioId, slug, nombresUsados }: Props) {
     setNombre((n) => n || nombreSugerido || "Hoja de Google");
     setEstado(null);
   }
+
+  useEffect(() => { prepararDrive(); }, []);
 
   /** Elegir el archivo en Google Drive: se llena el enlace y se revisa de una vez. */
   async function elegirDeDrive() {
