@@ -162,7 +162,8 @@ function brillo(ctx: CanvasRenderingContext2D, w: number, h: number): number {
 export type Lector = { detener(): void };
 
 /** Abre la cámara dentro de `caja` y llama `alLeer(código)` con una lectura segura. `avisar` recibe guías. */
-export async function abrirLector(caja: HTMLElement, alLeer: (codigo: string) => void, avisar: (texto: string) => void): Promise<Lector> {
+export async function abrirLector(caja: HTMLElement, alLeer: (codigo: string) => void, avisar: (texto: string) => void,
+  puedeLeer: () => boolean = () => true): Promise<Lector> {
   let stream: MediaStream | null = null;
   let video: HTMLVideoElement | null = null;
   let abierto = 0, activo = true, candidato: { valor: string; veces: number; t: number } | null = null;
@@ -240,7 +241,7 @@ export async function abrirLector(caja: HTMLElement, alLeer: (codigo: string) =>
     const ciclo = async () => {
       if (!activo || !video) return;
       try {
-        if (video.readyState >= 2 && video.videoWidth) {
+        if (video.readyState >= 2 && video.videoWidth && puedeLeer()) {
           const escala = Math.min(1, 1920 / Math.max(video.videoWidth, video.videoHeight));
           const w = (lienzo.width = Math.round(video.videoWidth * escala)), h = (lienzo.height = Math.round(video.videoHeight * escala));
           const ctx = lienzo.getContext("2d", { willReadFrequently: true })!;
