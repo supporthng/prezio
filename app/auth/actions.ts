@@ -1,7 +1,9 @@
 "use server";
 
+import { dominioBase, subdominioDe } from "@/lib/subdominio";
+
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { USUARIO_VALIDO, correoDeUsuario } from "@/lib/supabase/admin";
 import { supabaseServidor } from "@/lib/supabase/server";
 import { mensajeError, rutaSegura, sitio } from "@/lib/util";
@@ -82,7 +84,11 @@ export async function entrarConUsuario(datos: FormData) {
     email: correoDeUsuario(String(id), usuario), password: String(datos.get("clave") ?? ""),
   });
   if (error) volver(/rate limit/i.test(error.message) ? mensajeError(error) : "Negocio, usuario o clave incorrectos.");
-  // El navegador recuerda el negocio para la próxima vez.
-  (await cookies()).set("prezio_negocio", negocio, { maxAge: 60 * 60 * 24 * 365, sameSite: "lax", path: "/" });
-  redirect(siguiente || `/n/${negocio}`);
+  // Directo al panel de su negocio. El navegador recuerda el negocio (su nombre corto, no la licencia).
+  const { data: fila } = await supabase.from("negocios").select("slug").eq("id", String(id)).maybeSingle();
+  const slug = (fila as { slug: string } | null)?.slug ?? "";
+  if (slug) (await cookies()).set("prezio_negocio", slug, { maxAge: 60 * 60 * 24 * 365, sameSite: "lax", path: "/" });
+  const host = (await headers()).get("host") ?? "";
+  const enSuDireccion = Boolean(slug) && subdominioDe(host, dominioBase(sitio() || "https://prezcio.app")) === slug;
+  redirect(siguiente || (enSuDireccion ? "/" : slug ? `/n/${slug}` : "/negocios"));
 }

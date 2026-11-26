@@ -947,3 +947,4 @@ main .tarjeta + .tarjeta { margin-top: 16px; }
 .drive-tipo { font-size: .72rem; font-weight: 700; padding: 3px 8px; border-radius: 6px; color: #fff; }
 .drive-tipo.hoja { background: #0f9d58; } .drive-tipo.xlsx { background: #1d6f42; } .drive-tipo.csv { background: #607d8b; }
 button.enlace { background: none; border: 0; padding: 0; color: inherit; text-decoration: underline; cursor: pointer; font: inherit; }
+.negocio-fijo { margin: 0 0 14px; padding: 10px 12px; border-radius: 10px; background: var(--fondo-suave, #f3f6f9); font-size: .95rem; }
