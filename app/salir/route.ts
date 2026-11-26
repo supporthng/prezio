@@ -4,5 +4,7 @@ import { supabaseServidor } from "@/lib/supabase/server";
 export async function POST(request: NextRequest) {
   const supabase = await supabaseServidor();
   await supabase.auth.signOut();
-  return NextResponse.redirect(new URL("/", request.url), { status: 303 });
+  // Solo destinos propios y conocidos.
+  const destino = request.nextUrl.searchParams.get("siguiente") === "/entrar" ? "/entrar" : "/";
+  return NextResponse.redirect(new URL(destino, request.url), { status: 303 });
 }
