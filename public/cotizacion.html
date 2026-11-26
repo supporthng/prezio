@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Propuesta económica Prezcio</title>
+<meta name="description" content="Propuesta económica de Prezcio: plan, servicios adicionales, equipos y totales.">
+<meta property="og:title" content="Propuesta económica · Prezcio">
+<meta property="og:description" content="Plan, servicios adicionales, equipos y totales con ITBIS.">
+<meta property="og:image" content="https://prezcio.app/propuesta-og.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE  cotización formal y clara, con la energía de la marca
+   IDEA   una factura proforma de tienda: encabezado azul, sello amarillo con el total
+   PICTURE el total del primer pago y la cuota recurrente, grandes, junto al detalle
+   COLOUR blanco de fondo, azul marino #102A43, amarillo #FFD23F para lo importante
+   TYPE   Space Grotesk para cifras y títulos, Inter para el texto
+   LAYOUT encabezado con cliente y número; tabla de conceptos; resumen de pagos a la derecha; en teléfono se apila */
+:root{color-scheme:light;--navy:#102A43;--sun:#FFD23F;--ink:#102A43;--soft:#46566A;--line:#D9E2EC;--alt:#F3F6F9}
+*{box-sizing:border-box;min-width:0}
+[hidden]{display:none!important}
+body{margin:0;background:var(--alt);color:var(--ink);font:16px/1.55 Inter,system-ui,sans-serif;overflow-x:clip}
+h1,h2,h3,.num{font-family:"Space Grotesk",Inter,sans-serif;letter-spacing:-.02em;line-height:1.1}
+.hoja{max-width:1000px;margin:24px auto;background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 1px 0 var(--line)}
+.cab{background:var(--navy);color:#fff;padding:28px clamp(18px,4vw,44px);display:grid;grid-template-columns:minmax(0,1fr) auto;gap:20px;align-items:start}
+.marca{display:flex;align-items:center;gap:10px;font:700 28px "Space Grotesk",sans-serif}
+.marca svg{width:30px;height:30px}
+.cab h1{font-size:clamp(28px,4vw,40px);margin:18px 0 6px;color:#fff}
+.cab p{margin:0;color:#BCCCDC}
+.ref{text-align:right;font-size:14px;color:#BCCCDC}
+.ref b{display:block;color:var(--sun);font:700 20px "Space Grotesk",sans-serif;white-space:nowrap}
+.cuerpo{padding:clamp(18px,4vw,44px);display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:32px}
+.para{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:12px 24px;margin-bottom:22px}
+.para span{display:block;font-size:13px;color:var(--soft)}
+.para b{font-size:17px}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th{text-align:left;font-size:13px;color:var(--soft);font-weight:600;border-bottom:2px solid var(--navy);padding:8px 6px}
+td{padding:12px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+td small{display:block;color:var(--soft);font-size:13px}
+.r{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+tr.sub td{border:0;padding:6px}
+tr.tot td{border-top:2px solid var(--navy);font-weight:700;font-size:17px}
+.resumen{display:grid;gap:14px;align-content:start}
+.sello{background:var(--sun);border-radius:18px;padding:20px 22px}
+.sello span{font-size:14px;font-weight:600}
+.sello .num{font-size:clamp(30px,4vw,40px);font-weight:700;white-space:nowrap;margin-top:2px}
+.sello small{display:block;font-size:13px;margin-top:4px}
+.cuota{background:var(--navy);color:#fff;border-radius:18px;padding:20px 22px}
+.cuota span{font-size:14px;color:#BCCCDC}
+.cuota .num{font-size:30px;color:var(--sun);font-weight:700;white-space:nowrap}
+.cuota small{display:block;font-size:13px;color:#BCCCDC;margin-top:4px}
+.incl{border:1px solid var(--line);border-radius:18px;padding:18px 20px;font-size:14px}
+.incl h3{font-size:17px;margin:0 0 8px}
+.incl ul{margin:0;padding-left:18px;color:var(--soft)}
+.cond{padding:0 clamp(18px,4vw,44px) clamp(18px,4vw,36px);display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;font-size:14px;color:var(--soft)}
+.cond b{display:block;color:var(--ink);font-size:15px}
+.pie{border-top:1px solid var(--line);padding:18px clamp(18px,4vw,44px);display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;font-size:14px;color:var(--soft)}
+.btn{min-height:44px;padding:0 20px;border-radius:12px;border:2px solid var(--navy);background:var(--navy);color:#fff;font:700 15px Inter,sans-serif;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}
+.btn.o{background:#fff;color:var(--navy)}
+.btn:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.acciones{display:flex;flex-wrap:wrap;gap:10px}
+.nota{font-size:13px;color:var(--soft)}
+@media(max-width:760px){.cuerpo{grid-template-columns:minmax(0,1fr)}.cond{grid-template-columns:minmax(0,1fr)}.cab{grid-template-columns:minmax(0,1fr)}.ref{text-align:left}}
+@media(max-width:600px){table{font-size:13px}.hoja{margin:0;border-radius:0}}
+@media print{html{zoom:.8}body{background:#fff}.hoja{margin:0;box-shadow:none;border-radius:0}.acciones{display:none}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{size:A4;margin:10mm}}
+</style>
+</head>
+<body>
+<main class="hoja">
+  <header class="cab">
+    <div>
+      <div class="marca"><svg viewBox="0 0 24 24"><path d="M3 12V4h8l10 10-8 8z" fill="#FFD23F"/><circle cx="7.5" cy="7.5" r="1.8" fill="#102A43"/></svg>prezcio</div>
+      <h1>Propuesta económica</h1>
+      <p>Verificadores de precios conectados a tu facturación, con ofertas en pantalla.</p>
+    </div>
+    <div class="ref">Cotización<b id="numero">COT-0000</b><span id="fecha"></span><br><span id="vence"></span></div>
+  </header>
+
+  <section class="cuerpo">
+    <div>
+      <div class="para">
+        <div><span>Para</span><b id="cliente">Tu negocio</b></div>
+        <div><span>Preparada por</span><b id="vendedor">ONETECH</b></div>
+      </div>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Concepto</th><th class="r">Cant.</th><th class="r">Precio</th><th class="r">Importe</th></tr></thead>
+          <tbody id="lineas"></tbody>
+        </table>
+      </div>
+      <p class="nota" id="nota-itbis"></p>
+    </div>
+    <aside class="resumen">
+      <div class="sello"><span>Primer pago</span><div class="num" id="t-inicial">RD$ 0</div><small id="t-inicial-d"></small></div>
+      <div class="cuota"><span id="t-cuota-t">Luego, cada mes</span><div class="num" id="t-cuota">RD$ 0</div><small id="t-cuota-d"></small></div>
+      <div class="incl">
+        <h3 id="incl-t">Incluye</h3>
+        <ul id="incl"></ul>
+      </div>
+    </aside>
+  </section>
+
+  <section class="cond">
+    <div><b>Prueba sin costo</b>30 días con hasta 2 lectores en una sucursal antes del primer pago. Lo configurado en la prueba se queda.</div>
+    <div><b>Pago y vencimiento</b>Por adelantado, mensual o anual (10% menos). El panel avisa 15 días antes y hay 7 días de gracia.</div>
+    <div><b>Sin permanencia</b>Puedes cambiar de plan o cancelar sin penalidad; el servicio sigue hasta el final del período pagado.</div>
+  </section>
+
+  <footer class="pie">
+    <span id="contacto">ONETECH · prezcio.app</span>
+    <span class="acciones">
+      <a class="btn" id="b-wa" href="#" hidden>Aceptar por WhatsApp</a>
+      <button class="btn o" type="button" id="b-imprimir">Guardar en PDF</button>
+    </span>
+  </footer>
+</main>
+
+<script>
+{
+// Planes por defecto (si el enlace no trae los del portal).
+const PLANES={basico:{n:'Básico',m:1500,l:1,s:1,u:3},negocio:{n:'Negocio',m:5000,l:4,s:2,u:5},profesional:{n:'Profesional',m:9000,l:8,s:5,u:10}};
+const q=new URLSearchParams(location.search);
+const num=(k,d=0,max=1e9)=>{const r=q.get(k);if(r===null||r.trim()==='')return d;const v=Number(r);return Number.isFinite(v)&&v>=0?Math.min(v,max):d};
+const txt=(k,d='',max=80)=>((q.get(k)||'').trim().slice(0,max))||d;
+const base=PLANES[txt('p','negocio')]||PLANES.negocio;
+const plan={n:txt('pn',base.n,30),m:num('pm',base.m),l:txt('pl',String(base.l),12),s:txt('ps',String(base.s),12),u:txt('pu',String(base.u),12)};
+const anual=q.get('per')==='anual';
+const desc=num('d',10,50);
+const movil=num('mv',0,999), movilPrecio=num('mp',2000);
+const equipos=num('eq',0,999), equipoPrecio=num('ep',25000);
+const inst=q.get('in')===null?null:num('in',0);
+const itbis=q.get('it')!=='0';
+const mon=txt('mon','RD$',5);
+const f=/^\d{4}-\d{2}-\d{2}$/.test(q.get('f')||'')?new Date(q.get('f')+'T12:00:00'):new Date();
+const fecha=d=>d.toLocaleDateString('es-DO',{day:'numeric',month:'long',year:'numeric'});
+const rd=v=>mon+' '+Number(v).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:2});
+const T=(id,v)=>{document.getElementById(id).textContent=v};
+
+T('cliente',txt('para','Tu negocio',60));
+T('vendedor','ONETECH'+(txt('c')?' · '+txt('c','',60):''));
+T('numero',txt('n','COT-'+f.toISOString().slice(2,10).replace(/-/g,''),20));
+T('fecha',fecha(f));
+const v=new Date(f);v.setDate(v.getDate()+30);T('vence','Válida hasta el '+fecha(v));
+
+// Líneas: [concepto, detalle, cantidad, precio, recurrente]
+const meses=anual?12:1;
+const precioPlan=anual?Math.round(plan.m*12*(100-desc))/100:plan.m;
+const precioMovil=anual?Math.round(movilPrecio*12*(100-desc))/100:movilPrecio;
+const L=[];
+L.push(['Plan '+plan.n+(anual?' · anual':' · mensual'),`${plan.l} lector${plan.l==='1'?'':'es'} · ${plan.s} sucursal${plan.s==='1'?'':'es'} · ${plan.u} usuarios`+(anual&&desc?` · incluye ${desc}% de descuento`:''),1,precioPlan,true]);
+if(movil>0)L.push(['Consulta desde el celular'+(anual?' · anual':' · mensual'),'Un QR por sucursal; cada cliente consulta con su teléfono',movil,precioMovil,true]);
+if(equipos>0)L.push(['Equipo verificador','Pantalla (PC o tableta) y lector de códigos, instalado',equipos,equipoPrecio,false]);
+if(inst!==null&&inst>0)L.push(['Instalación y configuración','Conector a la facturación, vinculación de equipos y capacitación',1,inst,false]);
+
+const filas=[],sum={rec:0,uni:0};
+for(const [c,d,n,p,rec] of L){const imp=n*p;sum[rec?'rec':'uni']+=imp;
+  filas.push(`<tr><td>${esc(c)}<small>${esc(d)}</small></td><td class="r">${n}</td><td class="r">${rd(p)}</td><td class="r">${rd(imp)}</td></tr>`);}
+if(inst===0)filas.push(`<tr><td>Instalación y configuración<small>Conector a la facturación, vinculación de equipos y capacitación</small></td><td class="r">1</td><td class="r">Incluida</td><td class="r">${rd(0)}</td></tr>`);
+const sub=sum.rec+sum.uni,imp=itbis?Math.round(sub*18)/100:0;
+filas.push(`<tr class="sub"><td colspan="3" class="r">Subtotal</td><td class="r">${rd(sub)}</td></tr>`);
+if(itbis)filas.push(`<tr class="sub"><td colspan="3" class="r">ITBIS (18%)</td><td class="r">${rd(imp)}</td></tr>`);
+filas.push(`<tr class="tot"><td colspan="3" class="r">Total primer pago</td><td class="r">${rd(sub+imp)}</td></tr>`);
+document.getElementById('lineas').innerHTML=filas.join('');
+T('nota-itbis',(itbis?'Montos con ITBIS incluido en el total. ':'Montos sin ITBIS. ')+(equipos>0?'Precio de equipos sujeto a disponibilidad. ':'')+'Los equipos que el negocio ya tenga se pueden usar si cumplen los requisitos.');
+
+const cuota=sum.rec*(itbis?1.18:1);
+T('t-inicial',rd(sub+imp));
+T('t-inicial-d',[anual?'Licencia del primer año':'Licencia del primer mes',equipos>0?`${equipos} equipo${equipos>1?'s':''}`:'',inst>0?'instalación':''].filter(Boolean).join(' + ')+(itbis?' · con ITBIS':''));
+T('t-cuota-t',anual?'Luego, cada año':'Luego, cada mes');
+T('t-cuota',rd(Math.round(cuota*100)/100));
+T('t-cuota-d',anual?`Equivale a ${rd(Math.round(cuota/12*100)/100)} al mes`:`Pagando el año: ${rd(Math.round(cuota*12*(100-desc))/100)} (${desc}% menos)`);
+const inc=['Verificador con tu logo y colores','Precios desde tu facturación, Google Sheets o Excel','Ofertas en pantalla por sucursal, día y hora','Funciona sin internet','Panel web, app de Windows y celular','Reporte de consultas','Actualizaciones y soporte por WhatsApp'];
+document.getElementById('incl').innerHTML=inc.map(x=>`<li>${esc(x)}</li>`).join('');
+
+const w=(q.get('w')||'').replace(/\D/g,'').slice(0,15);
+if(w){const a=document.getElementById('b-wa');a.hidden=false;a.href='https://wa.me/'+w+'?text='+encodeURIComponent(`Hola, acepto la propuesta económica ${document.getElementById('numero').textContent} de Prezcio para ${document.getElementById('cliente').textContent}. ¿Cómo seguimos?`);}
+const e=txt('e','',80);if(txt('c')||e)T('contacto','ONETECH'+(txt('c')?' · '+txt('c','',60):'')+(e?' · '+e:'')+' · prezcio.app');
+document.getElementById('b-imprimir').addEventListener('click',()=>window.print());
+if(txt('para'))document.title='Propuesta económica · '+txt('para','',60);
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+}
+</script>
+</body>
+</html>

@@ -525,7 +525,7 @@ export function PanelPlataforma({ negocios, datos, apps, sitio, cortos, vista: v
 
       {vista === "solicitudes" && <VistaSolicitudes datos={datos} escribe={escribe} />}
       {vista === "ingresos" && ingresos && <VistaIngresos i={ingresos} moneda={datos.ajustes.moneda} />}
-      {vista === "propuestas" && <VistaPropuestas sitio={sitio} ajustes={datos.ajustes} />}
+      {vista === "propuestas" && <VistaPropuestas sitio={sitio} ajustes={datos.ajustes} planes={datos.planes} />}
       {vista === "planes" && <VistaPlanes datos={datos} admin={admin} />}
       {vista === "reglas" && <VistaReglas a={datos.ajustes} admin={admin} />}
       {vista === "descargas" && <VistaDescargas apps={apps} sitio={sitio} />}

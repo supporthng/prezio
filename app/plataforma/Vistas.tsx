@@ -394,7 +394,7 @@ function numeroWhatsApp(t: string): string {
 }
 
 /** Propuestas: enlace personalizado para cada cliente y envío por WhatsApp. */
-export function VistaPropuestas({ sitio, ajustes }: { sitio: string; ajustes: Ajustes }) {
+export function VistaPropuestas({ sitio, ajustes, planes = [] }: { sitio: string; ajustes: Ajustes; planes?: Plan[] }) {
   const [para, setPara] = useState("");
   const [tel, setTel] = useState("");
   const base = sitio || "https://prezcio.app";
@@ -452,6 +452,7 @@ export function VistaPropuestas({ sitio, ajustes }: { sitio: string; ajustes: Aj
           </p>
         </li>
       </ul>
+      <Cotizacion base={base} ajustes={ajustes} planes={planes} para={para} tel={tel} />
       <MaterialesVenta base={base} />
     </section>
   );
@@ -540,5 +541,92 @@ function MaterialesVenta({ base }: { base: string }) {
         </li>
       </ul>
     </>
+  );
+}
+
+/** Propuesta económica (cotización) con montos, ITBIS y totales; se abre en prezcio.app/cotizacion.html. */
+function Cotizacion({ base, ajustes, planes, para, tel }: { base: string; ajustes: Ajustes; planes: Plan[]; para: string; tel: string }) {
+  const ofrecidos = planes.filter((p) => p.activo !== false && !p.permanente && Number(p.precio) > 0 && p.periodo === "mensual");
+  const [plan, setPlan] = useState(ofrecidos.find((p) => p.destacado)?.codigo ?? ofrecidos[0]?.codigo ?? "");
+  const [anual, setAnual] = useState(false);
+  const [movil, setMovil] = useState("0");
+  const [equipos, setEquipos] = useState("0");
+  const [precioEq, setPrecioEq] = useState("25000");
+  const [inst, setInst] = useState("");
+  const [itbis, setItbis] = useState(true);
+  const p = ofrecidos.find((x) => x.codigo === plan);
+  const hoy = new Date();
+  const f = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-${String(hoy.getDate()).padStart(2, "0")}`;
+  const q = new URLSearchParams();
+  if (para.trim()) q.set("para", para.trim());
+  if (p) {
+    q.set("p", p.codigo); q.set("pn", p.nombre); q.set("pm", String(Number(p.precio)));
+    q.set("pl", p.max_equipos === null ? "Sin límite" : String(p.max_equipos));
+    q.set("ps", p.max_sucursales === null ? "Sin límite" : String(p.max_sucursales));
+    q.set("pu", p.max_usuarios === null ? "Sin límite" : String(p.max_usuarios));
+  }
+  if (anual) q.set("per", "anual");
+  q.set("d", String(ajustes.descuento_anual ?? 10));
+  q.set("mon", ajustes.moneda || "RD$");
+  if (Number(movil) > 0) q.set("mv", String(Math.floor(Number(movil))));
+  if (Number(equipos) > 0) { q.set("eq", String(Math.floor(Number(equipos)))); q.set("ep", String(Number(precioEq) || 0)); }
+  if (inst.trim() !== "" && Number(inst) >= 0) q.set("in", String(Number(inst)));
+  if (!itbis) q.set("it", "0");
+  q.set("f", f);
+  q.set("n", `COT-${f.slice(2).replace(/-/g, "")}-${String(hoy.getHours()).padStart(2, "0")}${String(hoy.getMinutes()).padStart(2, "0")}`);
+  if (ajustes.contacto_nombre) q.set("c", ajustes.contacto_nombre);
+  if (ajustes.contacto_whatsapp) q.set("w", numeroWhatsApp(ajustes.contacto_whatsapp));
+  if (ajustes.contacto_correo) q.set("e", ajustes.contacto_correo);
+  const enlace = `${base}/cotizacion.html?${q.toString()}`;
+  const mensaje = `${para.trim() ? `Hola, ${para.trim()}` : "Hola"}. Aquí tienes la propuesta económica de Prezcio${p ? ` con el plan ${p.nombre}` : ""}, con el detalle de montos${itbis ? " e ITBIS" : ""}:\n${enlace}\n\nRecuerda que tienes 30 días de prueba sin costo antes del primer pago.`;
+  const numero = numeroWhatsApp(tel);
+  return (
+    <ul className="pl-lista una" style={{ marginTop: 16 }}>
+      <li className="pl-negocio">
+        <div className="pl-cabeza">
+          <div className="pl-quien"><h3>Propuesta económica</h3><p className="quieto pequeno">Cotización con plan, adicionales, equipos, ITBIS y totales · usa el nombre y WhatsApp de arriba</p></div>
+        </div>
+        {ofrecidos.length === 0 ? <p className="quieto pequeno">Crea los planes en la pestaña Planes.</p> : (
+          <div className="pl-prop-campos">
+            <div className="campo">
+              <label htmlFor="cot-plan">Plan</label>
+              <select id="cot-plan" value={plan} onChange={(e) => setPlan(e.target.value)}>
+                {ofrecidos.map((x) => <option key={x.codigo} value={x.codigo}>{x.nombre} · {ajustes.moneda} {Number(x.precio).toLocaleString("es-DO")} al mes</option>)}
+              </select>
+            </div>
+            <div className="campo">
+              <label htmlFor="cot-per">Pago</label>
+              <select id="cot-per" value={anual ? "anual" : "mensual"} onChange={(e) => setAnual(e.target.value === "anual")}>
+                <option value="mensual">Mensual</option><option value="anual">Anual ({ajustes.descuento_anual ?? 10}% menos)</option>
+              </select>
+            </div>
+            <div className="campo">
+              <label htmlFor="cot-movil">Sucursales con consulta por celular</label>
+              <input id="cot-movil" type="number" min={0} max={99} inputMode="numeric" value={movil} onChange={(e) => setMovil(e.target.value)} />
+            </div>
+            <div className="campo">
+              <label htmlFor="cot-eq">Equipos verificadores a suplir</label>
+              <input id="cot-eq" type="number" min={0} max={99} inputMode="numeric" value={equipos} onChange={(e) => setEquipos(e.target.value)} />
+            </div>
+            <div className="campo">
+              <label htmlFor="cot-peq">Precio por equipo ({ajustes.moneda})</label>
+              <input id="cot-peq" type="number" min={0} inputMode="decimal" value={precioEq} onChange={(e) => setPrecioEq(e.target.value)} />
+            </div>
+            <div className="campo">
+              <label htmlFor="cot-inst">Instalación ({ajustes.moneda}) <small className="quieto">vacío: no aparece · 0: incluida</small></label>
+              <input id="cot-inst" type="number" min={0} inputMode="decimal" value={inst} onChange={(e) => setInst(e.target.value)} placeholder="Ej.: 5000" />
+            </div>
+            <label className="pequeno" style={{ display: "flex", gap: 8, alignItems: "center", minHeight: 44 }}>
+              <input type="checkbox" checked={itbis} onChange={(e) => setItbis(e.target.checked)} /> Incluir ITBIS (18%)
+            </label>
+          </div>
+        )}
+        <div className="fila">
+          <a className="boton pl-wa" href={`https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}`} target="_blank" rel="noopener noreferrer">Enviar por WhatsApp</a>
+          <a className="boton secundario" href={enlace} target="_blank" rel="noopener noreferrer">Ver y guardar PDF</a>
+          <Copiar texto={enlace} />
+        </div>
+      </li>
+    </ul>
   );
 }
