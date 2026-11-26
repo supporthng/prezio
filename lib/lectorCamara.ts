@@ -98,6 +98,16 @@ function pitido() {
   sonido.bip.play().catch(() => {});
 }
 
+/** Brillo promedio (0–255) de la franja central, muestreando ~400 puntos. */
+function brillo(ctx: CanvasRenderingContext2D, w: number, h: number): number {
+  const y0 = Math.round(h * 0.3), alto = Math.max(1, Math.round(h * 0.4));
+  const d = ctx.getImageData(0, y0, w, alto).data;
+  const paso = Math.max(4, Math.floor(d.length / 4 / 400)) * 4;
+  let suma = 0, n = 0;
+  for (let i = 0; i < d.length; i += paso) { suma += 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]; n++; }
+  return n ? suma / n : 255;
+}
+
 // ---------------------------------------------------------------- lector en vivo
 export type Lector = { detener(): void };
 
@@ -106,7 +116,7 @@ export async function abrirLector(caja: HTMLElement, alLeer: (codigo: string) =>
   let stream: MediaStream | null = null;
   let video: HTMLVideoElement | null = null;
   let abierto = 0, activo = true, candidato: { valor: string; veces: number; t: number } | null = null;
-  let guia = "", guiaT = 0;
+  let guia = "", guiaT = 0, oscuro = false, conZoom = false, linterna: HTMLButtonElement | null = null;
   const lienzo = document.createElement("canvas");
   const detener = () => {
     activo = false;
@@ -119,10 +129,18 @@ export async function abrirLector(caja: HTMLElement, alLeer: (codigo: string) =>
   const guias = setInterval(() => {
     if (!abierto) return;
     const seg = (Date.now() - abierto) / 1000, reciente = Date.now() - guiaT < 700;
+    if (oscuro && !(reciente && guia === "enfocando")) {
+      avisar(linterna && !linterna.classList.contains("encendida")
+        ? "💡 Hay poca luz: toca 🔦 para encender la linterna"
+        : "💡 Hay poca luz: acércate a una lámpara o gira el producto hacia la luz");
+      linterna?.classList.toggle("llamar", !linterna.classList.contains("encendida"));
+      return;
+    }
+    linterna?.classList.remove("llamar");
     if (reciente && guia === "enfocando") avisar("🔎 Enfocando… mantén el teléfono quieto");
     else if (reciente && guia === "acercar") avisar("🔍 Acerca el código: se ve muy pequeño");
     else if (reciente && guia === "centrar") avisar("🎯 Pon el código sobre la línea roja");
-    else avisar(seg < 2.5 ? "📏 Distancia ideal: 15–20 cm del código" : GUIA[Math.floor((seg - 2.5) / 2.2) % GUIA.length]);
+    else avisar(seg < 2.5 ? (conZoom ? "📏 Distancia ideal: 20–30 cm del código" : "📏 Distancia ideal: 15–20 cm del código") : GUIA[Math.floor((seg - 2.5) / 2.2) % GUIA.length]);
   }, 500);
 
   try {
@@ -130,7 +148,7 @@ export async function abrirLector(caja: HTMLElement, alLeer: (codigo: string) =>
     const detectorPedido = (detectorListo ??= obtenerDetector().catch((e) => { detectorListo = null; throw e; }));
     detectorPedido.catch(() => {});   // si la cámara falla antes, que el error del lector no quede suelto
     stream = await navigator.mediaDevices.getUserMedia({
-      audio: false, video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: false, video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } },
     });
     video = document.createElement("video");
     video.setAttribute("playsinline", ""); video.muted = true; video.autoplay = true; video.srcObject = stream;
@@ -138,8 +156,17 @@ export async function abrirLector(caja: HTMLElement, alLeer: (codigo: string) =>
     await video.play().catch(() => {});
     const pista = stream.getVideoTracks()[0];
     try {
-      const cap = (pista.getCapabilities?.() ?? {}) as { focusMode?: string[]; torch?: boolean };
-      if (cap.focusMode?.includes("continuous")) await pista.applyConstraints({ advanced: [{ focusMode: "continuous" } as MediaTrackConstraintSet] });
+      const cap = (pista.getCapabilities?.() ?? {}) as {
+        focusMode?: string[]; exposureMode?: string[]; whiteBalanceMode?: string[]; torch?: boolean; zoom?: { min: number; max: number };
+      };
+      // Cada ajuste por separado: si el teléfono rechaza uno, los demás igual se aplican.
+      const ajustar = (c: Record<string, unknown>) => pista.applyConstraints({ advanced: [c as MediaTrackConstraintSet] }).then(() => true, () => false);
+      if (cap.focusMode?.includes("continuous")) await ajustar({ focusMode: "continuous" });
+      if (cap.exposureMode?.includes("continuous")) await ajustar({ exposureMode: "continuous" });
+      if (cap.whiteBalanceMode?.includes("continuous")) await ajustar({ whiteBalanceMode: "continuous" });
+      // Un poco de zoom deja el teléfono más lejos, fuera de la distancia mínima de enfoque
+      // (en iPhone es la causa principal de que el código se vea borroso de cerca).
+      if (cap.zoom && cap.zoom.max >= 1.5) conZoom = await ajustar({ zoom: Math.min(2, cap.zoom.max, Math.max(cap.zoom.min, 1.8)) });
       if (cap.torch) {
         let encendida = false;
         const b = document.createElement("button");
@@ -153,18 +180,22 @@ export async function abrirLector(caja: HTMLElement, alLeer: (codigo: string) =>
           } catch { b.remove(); }
         });
         caja.appendChild(b);
+        linterna = b;
       }
     } catch { /* sin enfoque ni linterna: igual lee */ }
     const detector = await detectorPedido;
     abierto = Date.now();
 
+    let luzT = 0;
     const ciclo = async () => {
       if (!activo || !video) return;
       try {
         if (video.readyState >= 2 && video.videoWidth) {
-          const escala = Math.min(1, 1280 / Math.max(video.videoWidth, video.videoHeight));
+          const escala = Math.min(1, 1920 / Math.max(video.videoWidth, video.videoHeight));
           const w = (lienzo.width = Math.round(video.videoWidth * escala)), h = (lienzo.height = Math.round(video.videoHeight * escala));
-          lienzo.getContext("2d", { willReadFrequently: true })!.drawImage(video, 0, 0, w, h);
+          const ctx = lienzo.getContext("2d", { willReadFrequently: true })!;
+          ctx.drawImage(video, 0, 0, w, h);
+          if (Date.now() - luzT > 1000) { luzT = Date.now(); oscuro = brillo(ctx, w, h) < 70; }
           const r = (await detector.detect(lienzo)) || [];
           if (!activo) return;
           const ahora = Date.now();
