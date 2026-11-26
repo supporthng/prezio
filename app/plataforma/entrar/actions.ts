@@ -44,7 +44,7 @@ export async function cambiarClavePlataforma(d: FormData) {
   const clave = String(d.get("clave") ?? "");
   const repite = String(d.get("repite") ?? "");
   const volverClave = (e: string): never => redirect(`/plataforma/clave?error=${encodeURIComponent(e)}`);
-  if (clave.length < 10) volverClave("La clave debe tener al menos 10 caracteres.");
+  if (clave.length < 8) volverClave("La clave debe tener al menos 8 caracteres.");
   if (clave !== repite) volverClave("Las dos claves no coinciden.");
   const supabase = await supabaseServidor();
   const { data: m } = await supabase.rpc("plataforma_miembro");

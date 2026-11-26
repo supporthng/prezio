@@ -28,12 +28,12 @@ export default async function ClavePlataforma({ searchParams }: Props) {
           <Aviso error={error} />
           <form action={cambiarClavePlataforma}>
             <div className="campo">
-              <label htmlFor="pc-clave">Clave nueva (mínimo 10 caracteres)</label>
-              <input id="pc-clave" name="clave" type="password" autoComplete="new-password" minLength={10} required autoFocus />
+              <label htmlFor="pc-clave">Clave nueva (mínimo 8 caracteres)</label>
+              <input id="pc-clave" name="clave" type="password" autoComplete="new-password" minLength={8} required autoFocus />
             </div>
             <div className="campo">
               <label htmlFor="pc-repite">Repite la clave</label>
-              <input id="pc-repite" name="repite" type="password" autoComplete="new-password" minLength={10} required />
+              <input id="pc-repite" name="repite" type="password" autoComplete="new-password" minLength={8} required />
             </div>
             <button className="boton ancho" type="submit">Guardar clave</button>
           </form>
