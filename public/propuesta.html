@@ -85,7 +85,7 @@ p{margin:0 0 12px;max-width:68ch}
 .pasos li:last-child::after{display:none}
 .pasos p{color:var(--soft);font-size:15px}
 .equipos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:28px}
-.kiosco{display:grid;grid-template-columns:200px minmax(0,1fr);gap:32px;align-items:center;margin-top:28px;padding:28px;border-radius:20px;background:var(--card);border:2px solid var(--sun)}
+.kiosco{display:grid;grid-template-columns:300px minmax(0,1fr);gap:32px;align-items:center;margin-top:28px;padding:28px;border-radius:20px;background:var(--card);border:2px solid var(--sun)}
 .kiosco-fig{width:100%;height:auto}
 .kiosco-eti{margin:0 0 4px;color:var(--soft);font-weight:600}
 .kiosco h3{font-size:26px;margin-bottom:8px}
@@ -97,7 +97,7 @@ p{margin:0 0 12px;max-width:68ch}
 .kiosco-precio b{font-family:"Space Grotesk",Inter,sans-serif;font-size:34px;line-height:1}
 .kiosco-precio span{color:var(--soft)}
 .kiosco-nota{margin:10px 0 0!important;font-size:13px}
-@media(max-width:720px){.kiosco{grid-template-columns:minmax(0,1fr)}.kiosco-fig{max-width:160px;margin:0 auto}.kiosco-specs{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:720px){.kiosco{grid-template-columns:minmax(0,1fr)}.kiosco-fig{max-width:260px;margin:0 auto}.kiosco-specs{grid-template-columns:minmax(0,1fr)}}
 .planes-top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end;gap:16px}
 .modo{display:inline-flex;background:var(--navy);border-radius:14px;padding:5px}
 .modo button{min-height:44px;padding:0 20px;border:0;border-radius:10px;background:transparent;color:#D9E2EC;font:600 16px Inter,sans-serif;cursor:pointer}
@@ -250,18 +250,7 @@ p{margin:0 0 12px;max-width:68ch}
 <div class="card"><h3>Internet en la tienda</h3><p>Para recibir los cambios de precios. Si se cae, el verificador sigue con los precios guardados.</p></div>
 </div>
 <div class="kiosco">
-<svg class="kiosco-fig" viewBox="0 0 200 260" role="img" aria-label="Verificador de pared con pantalla y lector integrados">
-<rect x="70" y="8" width="60" height="22" rx="4" fill="#829AB1"/>
-<rect x="88" y="26" width="24" height="26" fill="#627D98"/>
-<rect x="30" y="48" width="140" height="196" rx="18" fill="#102A43"/>
-<rect x="42" y="62" width="116" height="140" rx="8" fill="#0757D4"/>
-<text x="100" y="92" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" font-weight="700" fill="#fff">Arroz Selecto 5 lb</text>
-<text x="100" y="140" text-anchor="middle" font-family="Space Grotesk,Inter,sans-serif" font-size="34" font-weight="700" fill="#fff">325<tspan font-size="15" dy="-14">.00</tspan></text>
-<rect x="64" y="160" width="72" height="18" rx="9" fill="#FFD23F"/>
-<text x="100" y="173" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#102A43">OFERTA</text>
-<rect x="72" y="214" width="56" height="16" rx="5" fill="#243B53"/>
-<rect x="80" y="220" width="40" height="4" rx="2" fill="#FF4D4D"/>
-</svg>
+<img class="kiosco-fig" src="verificador-todo-en-uno.png" width="685" height="664" alt="Verificador todo en uno mostrando la pantalla de Prezcio con precio y oferta" loading="lazy">
 <div>
 <p class="kiosco-eti">¿No tienes equipos?</p>
 <h3>Verificador todo en uno, listo para la pared</h3>
