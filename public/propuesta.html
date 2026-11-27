@@ -85,6 +85,19 @@ p{margin:0 0 12px;max-width:68ch}
 .pasos li:last-child::after{display:none}
 .pasos p{color:var(--soft);font-size:15px}
 .equipos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:28px}
+.kiosco{display:grid;grid-template-columns:200px minmax(0,1fr);gap:32px;align-items:center;margin-top:28px;padding:28px;border-radius:20px;background:var(--card);border:2px solid var(--sun)}
+.kiosco-fig{width:100%;height:auto}
+.kiosco-eti{margin:0 0 4px;color:var(--soft);font-weight:600}
+.kiosco h3{font-size:26px;margin-bottom:8px}
+.kiosco>div>p{color:var(--soft);margin:0 0 14px}
+.kiosco-specs{list-style:none;padding:0;margin:0 0 18px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 20px}
+.kiosco-specs li{font-size:14px;color:var(--soft);padding-left:14px;border-left:3px solid var(--sun)}
+.kiosco-specs b{display:block;color:var(--ink);font-size:15px}
+.kiosco-precio{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px}
+.kiosco-precio b{font-family:"Space Grotesk",Inter,sans-serif;font-size:34px;line-height:1}
+.kiosco-precio span{color:var(--soft)}
+.kiosco-nota{margin:10px 0 0!important;font-size:13px}
+@media(max-width:720px){.kiosco{grid-template-columns:minmax(0,1fr)}.kiosco-fig{max-width:160px;margin:0 auto}.kiosco-specs{grid-template-columns:minmax(0,1fr)}}
 .planes-top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end;gap:16px}
 .modo{display:inline-flex;background:var(--navy);border-radius:14px;padding:5px}
 .modo button{min-height:44px;padding:0 20px;border:0;border-radius:10px;background:transparent;color:#D9E2EC;font:600 16px Inter,sans-serif;cursor:pointer}
@@ -125,7 +138,7 @@ p{margin:0 0 12px;max-width:68ch}
 @media(max-width:900px){.flujo{grid-template-columns:minmax(0,1fr)}.flecha{width:4px;height:36px;margin:6px auto;background:repeating-linear-gradient(180deg,var(--sun) 0 10px,transparent 10px 18px)}.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.pasos{grid-template-columns:repeat(2,minmax(0,1fr))}.pasos li::after{display:none}}
 @media(max-width:720px){.hero .in,.movil .in,.cierre .in{grid-template-columns:minmax(0,1fr)}.fig{max-height:420px}.g3,.cond,.equipos{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:520px){.g4,.pasos{grid-template-columns:minmax(0,1fr)}.cifras{grid-template-columns:minmax(0,1fr)}.nav a:not(.marca){font-size:13px;padding:8px}}
-@media print{.nav,.btns,.modo{display:none}.haz{display:none}.band{break-inside:avoid}}
+@media print{.nav,.btns,.modo{display:none}.haz{display:none}.band{break-inside:avoid}.kiosco{break-inside:avoid}}
 </style>
 </head>
 <body>
@@ -236,7 +249,34 @@ p{margin:0 0 12px;max-width:68ch}
 <div class="card"><h3>Lector de códigos</h3><p>Cualquier lector USB o Bluetooth que escriba como teclado.</p></div>
 <div class="card"><h3>Internet en la tienda</h3><p>Para recibir los cambios de precios. Si se cae, el verificador sigue con los precios guardados.</p></div>
 </div>
-<p style="margin-top:16px;color:var(--soft)">OneTech puede suplir e instalar los equipos; se cotizan aparte.</p>
+<div class="kiosco">
+<svg class="kiosco-fig" viewBox="0 0 200 260" role="img" aria-label="Verificador de pared con pantalla y lector integrados">
+<rect x="70" y="8" width="60" height="22" rx="4" fill="#829AB1"/>
+<rect x="88" y="26" width="24" height="26" fill="#627D98"/>
+<rect x="30" y="48" width="140" height="196" rx="18" fill="#102A43"/>
+<rect x="42" y="62" width="116" height="140" rx="8" fill="#0757D4"/>
+<text x="100" y="92" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" font-weight="700" fill="#fff">Arroz Selecto 5 lb</text>
+<text x="100" y="140" text-anchor="middle" font-family="Space Grotesk,Inter,sans-serif" font-size="34" font-weight="700" fill="#fff">325<tspan font-size="15" dy="-14">.00</tspan></text>
+<rect x="64" y="160" width="72" height="18" rx="9" fill="#FFD23F"/>
+<text x="100" y="173" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#102A43">OFERTA</text>
+<rect x="72" y="214" width="56" height="16" rx="5" fill="#243B53"/>
+<rect x="80" y="220" width="40" height="4" rx="2" fill="#FF4D4D"/>
+</svg>
+<div>
+<p class="kiosco-eti">¿No tienes equipos?</p>
+<h3>Verificador todo en uno, listo para la pared</h3>
+<p>Pantalla y lector en un solo equipo. OneTech lo entrega con Prezcio instalado y vinculado a tu sucursal: lo cuelgas, lo conectas y muestra precios.</p>
+<ul class="kiosco-specs">
+<li><b>Pantalla táctil de 5"</b>a color, para nombre, precio y oferta</li>
+<li><b>Lector 1D, 2D y QR integrado</b>lee etiquetas y también códigos en la pantalla del celular</li>
+<li><b>Android 11</b>4 GB de RAM y 64 GB de almacenamiento</li>
+<li><b>WiFi 2.4 / 5 GHz, cable de red y Bluetooth</b>funciona con o sin cable</li>
+<li><b>Base para pared incluida</b>sin PC ni cables de teclado</li>
+</ul>
+<div class="kiosco-precio"><b>RD$ 22,950</b><span>por equipo · pago único · se cotiza con tu plan</span></div>
+<p class="kiosco-nota">Modelo 2C-PCT02-2D o equivalente, sujeto a disponibilidad. Precio sin ITBIS. Si ya tienes PC, tableta o lector, puedes usarlos.</p>
+</div>
+</div>
 </div>
 </section>
 
@@ -263,7 +303,7 @@ p{margin:0 0 12px;max-width:68ch}
 </div>
 <div class="cuenta" aria-live="polite">
 <div><span>Precio por sucursal</span><b id="m-precio">RD$ 2,000 al mes</b></div>
-<div><span>Equipo de un lector físico</span><b>Unos RD$ 25,000</b></div>
+<div><span>Verificador todo en uno</span><b>RD$ 22,950 por equipo</b></div>
 <div><span>Clientes consultando a la vez</span><b>Sin límite</b></div>
 </div>
 </div>
@@ -283,7 +323,7 @@ p{margin:0 0 12px;max-width:68ch}
 <ul class="check">
 <li>Agendar la demo con tus productos</li>
 <li>Confirmar cuántos verificadores y sucursales necesitas</li>
-<li>Revisar los equipos disponibles (PC o tableta y lector)</li>
+<li>Revisar los equipos disponibles o elegir el verificador todo en uno</li>
 <li>Instalar el Conector y vincular los verificadores</li>
 <li>Iniciar la prueba de 30 días</li>
 </ul>

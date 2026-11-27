@@ -559,7 +559,7 @@ function Cotizacion({ base, ajustes, planes, para, tel }: { base: string; ajuste
   const [anual, setAnual] = useState(false);
   const [movil, setMovil] = useState("0");
   const [equipos, setEquipos] = useState("0");
-  const [precioEq, setPrecioEq] = useState("25000");
+  const [precioEq, setPrecioEq] = useState("22950");
   const [inst, setInst] = useState("");
   const [itbis, setItbis] = useState(true);
   const p = ofrecidos.find((x) => x.codigo === plan);
@@ -613,7 +613,7 @@ function Cotizacion({ base, ajustes, planes, para, tel }: { base: string; ajuste
               <input id="cot-movil" type="number" min={0} max={99} inputMode="numeric" value={movil} onChange={(e) => setMovil(e.target.value)} />
             </div>
             <div className="campo">
-              <label htmlFor="cot-eq">Equipos verificadores a suplir</label>
+              <label htmlFor="cot-eq">Verificadores todo en uno a suplir <small className="quieto">si el cliente no tiene equipos</small></label>
               <input id="cot-eq" type="number" min={0} max={99} inputMode="numeric" value={equipos} onChange={(e) => setEquipos(e.target.value)} />
             </div>
             <div className="campo">

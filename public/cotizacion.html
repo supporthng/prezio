@@ -130,7 +130,7 @@ const plan={n:txt('pn',base.n,30),m:num('pm',base.m),l:txt('pl',String(base.l),1
 const anual=q.get('per')==='anual';
 const desc=num('d',10,50);
 const movil=num('mv',0,999), movilPrecio=num('mp',2000);
-const equipos=num('eq',0,999), equipoPrecio=num('ep',25000);
+const equipos=num('eq',0,999), equipoPrecio=num('ep',22950);
 const inst=q.get('in')===null?null:num('in',0);
 const itbis=q.get('it')!=='0';
 const mon=txt('mon','RD$',5);
@@ -152,7 +152,7 @@ const precioMovil=anual?Math.round(movilPrecio*12*(100-desc))/100:movilPrecio;
 const L=[];
 L.push(['Plan '+plan.n+(anual?' · anual':' · mensual'),`${plan.l} lector${plan.l==='1'?'':'es'} · ${plan.s} sucursal${plan.s==='1'?'':'es'} · ${plan.u} usuarios`+(anual&&desc?` · incluye ${desc}% de descuento`:''),1,precioPlan,true]);
 if(movil>0)L.push(['Consulta desde el celular'+(anual?' · anual':' · mensual'),'Un QR por sucursal; cada cliente consulta con su teléfono',movil,precioMovil,true]);
-if(equipos>0)L.push(['Equipo verificador','Pantalla (PC o tableta) y lector de códigos, instalado',equipos,equipoPrecio,false]);
+if(equipos>0)L.push(['Verificador todo en uno','Pantalla táctil 5", lector 1D/2D/QR integrado, Android, base de pared · con Prezcio instalado',equipos,equipoPrecio,false]);
 if(inst!==null&&inst>0)L.push(['Instalación y configuración','Conector a la facturación, vinculación de equipos y capacitación',1,inst,false]);
 
 const filas=[],sum={rec:0,uni:0};
