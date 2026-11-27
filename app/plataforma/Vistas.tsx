@@ -413,11 +413,11 @@ export function VistaPropuestas({ sitio, ajustes, planes = [] }: { sitio: string
   const firma = ajustes.contacto_nombre ? `\n\n${ajustes.contacto_nombre} · ONETECH` : "";
   const mensaje = [
     `${saludo}:`,
-    "Con *Prezcio* de ONETECH tus clientes escanean y ven al instante el precio correcto y tus ofertas.",
-    "🏷️ Verificadores en tienda\n📱 Consulta desde el celular del cliente\n🔄 Precios al día desde tu sistema o Excel\n🔥 Ofertas en pantalla\n📊 Reportes y varias sucursales",
-    "🎁 *30 días gratis*, sin compromiso.",
-    `▶️ Video (1 min): ${video}\n📄 Propuesta: ${enlace}`,
-    `¿Te agendo una demo esta semana?${firma}`,
+    "¿Tus clientes preguntan precios en caja? 🤔\nCon *Prezcio* escanean y ven el precio y tus ofertas *al instante*. ⚡",
+    "🏷️ Verificadores en tienda\n📱 Desde el celular del cliente\n🔄 Precios al día desde tu sistema\n🔥 Ofertas que venden solas\n📊 Reportes de lo que buscan",
+    "🎁 *Pruébalo 30 días GRATIS*",
+    `▶️ Míralo en 1 min: ${video}\n📄 Propuesta: ${enlace}`,
+    `¿Te agendo una demo esta semana? 🙌${firma}`,
   ].join("\n\n");
   const numero = numeroWhatsApp(tel);
   const wa = `https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}`;
