@@ -121,7 +121,7 @@ tr.tot td{border-top:2px solid var(--navy);font-weight:700;font-size:17px}
 <script>
 {
 // Planes por defecto (si el enlace no trae los del portal).
-const PLANES={basico:{n:'Básico',m:1500,l:1,s:1,u:3},negocio:{n:'Negocio',m:5000,l:4,s:2,u:5},profesional:{n:'Profesional',m:9000,l:8,s:5,u:10}};
+const PLANES={basico:{n:'Básico',m:1990,l:2,s:1,u:3},negocio:{n:'Negocio',m:5000,l:4,s:2,u:5},profesional:{n:'Profesional',m:9000,l:8,s:5,u:10}};
 const q=new URLSearchParams(location.search);
 const num=(k,d=0,max=1e9)=>{const r=q.get(k);if(r===null||r.trim()==='')return d;const v=Number(r);return Number.isFinite(v)&&v>=0?Math.min(v,max):d};
 const txt=(k,d='',max=80)=>((q.get(k)||'').trim().slice(0,max))||d;
