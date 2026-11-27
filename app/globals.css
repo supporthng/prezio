@@ -1005,3 +1005,7 @@ button.enlace { background: none; border: 0; padding: 0; color: inherit; text-de
   background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .ubicacion-lugares button:hover, .ubicacion-lugares button:focus-visible { background: color-mix(in srgb, currentColor 9%, transparent); }
 .ubicacion-lugares button span { font-size: .85rem; opacity: .7; }
+
+/* Inicio: enlace a la página de Prezcio en Onetech */
+.conoce { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 22px; padding: 14px 18px; border-radius: 14px; border: 1px solid currentColor; border-color: color-mix(in srgb, currentColor 20%, transparent); text-decoration: none; color: inherit; }
+.conoce:hover { background: color-mix(in srgb, currentColor 6%, transparent); }
