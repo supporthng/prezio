@@ -410,7 +410,7 @@ export function VistaPropuestas({ sitio, ajustes, planes = [] }: { sitio: string
   const pdf = `${base}/propuesta-prezcio.pdf`;
   const video = `${base}/prezcio-promo.mp4`;
   const saludo = para.trim() ? `Hola, ${para.trim()}` : "Hola";
-  const mensaje = `${saludo}. Te comparto la propuesta de Prezcio, los verificadores de precios de ONETECH: tus clientes escanean y ven el precio correcto al instante, con tus ofertas en pantalla.\n\nPuedes probarlo 30 días sin costo.\n\nPropuesta: ${enlace}\nEn PDF: ${pdf}\nVideo (1 min): ${video}`;
+  const mensaje = `${saludo}. Te comparto la propuesta de Prezcio, los verificadores de precios de ONETECH: tus clientes escanean y ven el precio correcto al instante, con tus ofertas en pantalla.\n\nPuedes probarlo 30 días sin costo.\n\nVideo (1 min): ${video}\nPropuesta: ${enlace}\nEn PDF: ${pdf}`;
   const numero = numeroWhatsApp(tel);
   const wa = `https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}`;
   const sinContacto = !ajustes.contacto_whatsapp && !ajustes.contacto_correo;
@@ -442,8 +442,8 @@ export function VistaPropuestas({ sitio, ajustes, planes = [] }: { sitio: string
           <div className="fila">
             <a className="boton pl-wa" href={wa} target="_blank" rel="noopener noreferrer">Enviar por WhatsApp</a>
             <a className="boton secundario" href={enlace} target="_blank" rel="noopener noreferrer">Ver propuesta</a>
-            <a className="boton secundario" href={pdf} target="_blank" rel="noopener noreferrer">PDF</a>
             <a className="boton secundario" href={video} target="_blank" rel="noopener noreferrer">Video</a>
+            <a className="boton secundario" href={pdf} target="_blank" rel="noopener noreferrer">PDF</a>
             <Copiar texto={enlace} />
           </div>
           <p className="quieto pequeno" style={{ margin: 0 }}>
