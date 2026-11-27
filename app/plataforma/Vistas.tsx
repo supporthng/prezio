@@ -412,8 +412,7 @@ export function VistaPropuestas({ sitio, ajustes, planes = [] }: { sitio: string
   const saludo = para.trim() ? `👋 Hola, ${para.trim()}` : "👋 Hola";
   const firma = ajustes.contacto_nombre ? `\n\n${ajustes.contacto_nombre} · ONETECH` : "";
   const mensaje = [
-    `${saludo}:`,
-    "¿Tus clientes preguntan precios en caja? 🤔\nCon *Prezcio* escanean y ven el precio y tus ofertas *al instante*. ⚡",
+    `${saludo}. Te comparto la propuesta de *Prezcio*, los verificadores de precios de ONETECH: tus clientes escanean y ven el precio correcto *al instante*, con tus ofertas en pantalla. ⚡`,
     "🏷️ Verificadores en tienda\n📱 Desde el celular del cliente\n🔄 Precios al día desde tu sistema\n🔥 Ofertas que venden solas\n📊 Reportes de lo que buscan",
     "🎁 *Pruébalo 30 días GRATIS*",
     `▶️ Míralo en 1 min: ${video}\n📄 Propuesta: ${enlace}`,
