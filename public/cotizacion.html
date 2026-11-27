@@ -83,7 +83,7 @@ tr.tot td{border-top:2px solid var(--navy);font-weight:700;font-size:17px}
     <div>
       <div class="para">
         <div><span>Para</span><b id="cliente">Tu negocio</b></div>
-        <div><span>Preparada por</span><b id="vendedor">ONETECH</b></div>
+        <div><span>Preparada por</span><b id="vendedor">OneTech</b></div>
       </div>
       <div class="scroll">
         <table>
@@ -110,7 +110,7 @@ tr.tot td{border-top:2px solid var(--navy);font-weight:700;font-size:17px}
   </section>
 
   <footer class="pie">
-    <span id="contacto">ONETECH · prezcio.app</span>
+    <span id="contacto">OneTech · prezcio.app</span>
     <span class="acciones">
       <a class="btn" id="b-wa" href="#" hidden>Aceptar por WhatsApp</a>
       <button class="btn o" type="button" id="b-imprimir">Guardar en PDF</button>
@@ -140,7 +140,7 @@ const rd=v=>mon+' '+Number(v).toLocaleString('en-US',{minimumFractionDigits:0,ma
 const T=(id,v)=>{document.getElementById(id).textContent=v};
 
 T('cliente',txt('para','Tu negocio',60));
-T('vendedor','ONETECH'+(txt('c')?' · '+txt('c','',60):''));
+T('vendedor','OneTech'+(txt('c')?' · '+txt('c','',60):''));
 T('numero',txt('n','COT-'+f.toISOString().slice(2,10).replace(/-/g,''),20));
 T('fecha',fecha(f));
 const v=new Date(f);v.setDate(v.getDate()+30);T('vence','Válida hasta el '+fecha(v));
@@ -177,7 +177,7 @@ document.getElementById('incl').innerHTML=inc.map(x=>`<li>${esc(x)}</li>`).join(
 
 const w=(q.get('w')||'').replace(/\D/g,'').slice(0,15);
 if(w){const a=document.getElementById('b-wa');a.hidden=false;a.href='https://wa.me/'+w+'?text='+encodeURIComponent(`Hola, acepto la propuesta económica ${document.getElementById('numero').textContent} de Prezcio para ${document.getElementById('cliente').textContent}. ¿Cómo seguimos?`);}
-const e=txt('e','',80);if(txt('c')||e)T('contacto','ONETECH'+(txt('c')?' · '+txt('c','',60):'')+(e?' · '+e:'')+' · prezcio.app');
+const e=txt('e','',80);if(txt('c')||e)T('contacto','OneTech'+(txt('c')?' · '+txt('c','',60):'')+(e?' · '+e:'')+' · prezcio.app');
 document.getElementById('b-imprimir').addEventListener('click',()=>window.print());
 if(txt('para'))document.title='Propuesta económica · '+txt('para','',60);
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}

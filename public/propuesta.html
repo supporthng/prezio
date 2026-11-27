@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Propuesta Prezcio</title>
 <meta name="description" content="Verificadores de precios conectados a tu facturación, con ofertas en pantalla. Prueba 30 días sin costo.">
-<meta property="og:title" content="Propuesta Prezcio · ONETECH">
+<meta property="og:title" content="Propuesta Prezcio · OneTech">
 <meta property="og:description" content="Verificadores de precios conectados a tu facturación, con ofertas en pantalla. Prueba 30 días sin costo.">
 <meta property="og:image" content="https://prezcio.app/propuesta-og.png">
 <meta property="og:image:width" content="1200">
@@ -142,7 +142,7 @@ p{margin:0 0 12px;max-width:68ch}
 <header class="band hero" id="inicio">
 <div class="in">
 <div>
-<p class="de" id="de">Propuesta de ONETECH · 25 de noviembre de 2026</p>
+<p class="de" id="de">Propuesta de OneTech · 25 de noviembre de 2026</p>
 <h1>El precio correcto, en el momento en que tu cliente lo busca.</h1>
 <p class="lead">Prezcio pone verificadores de precios en tu tienda, conectados a tu sistema de facturación, con tus ofertas en pantalla y un panel para todas tus sucursales. Lo pruebas 30 días sin costo y después eliges un plan mensual o anual.</p>
 <div class="btns">
@@ -227,7 +227,7 @@ p{margin:0 0 12px;max-width:68ch}
 <h2>En pocos días está funcionando, sin cambiar cómo trabajas.</h2>
 <ol class="pasos">
 <li><h3>Demo</h3><p>Te lo mostramos con los productos de tu propio negocio.</p></li>
-<li><h3>Instalación</h3><p>ONETECH instala el Conector en la PC de tu facturación y vincula cada verificador a su sucursal.</p></li>
+<li><h3>Instalación</h3><p>OneTech instala el Conector en la PC de tu facturación y vincula cada verificador a su sucursal.</p></li>
 <li><h3>Prueba de 30 días</h3><p>Sin costo, con hasta 2 lectores en una sucursal.</p></li>
 <li><h3>Eliges tu plan</h3><p>Mensual o anual. Todo lo que configuraste en la prueba se queda.</p></li>
 </ol>
@@ -236,7 +236,7 @@ p{margin:0 0 12px;max-width:68ch}
 <div class="card"><h3>Lector de códigos</h3><p>Cualquier lector USB o Bluetooth que escriba como teclado.</p></div>
 <div class="card"><h3>Internet en la tienda</h3><p>Para recibir los cambios de precios. Si se cae, el verificador sigue con los precios guardados.</p></div>
 </div>
-<p style="margin-top:16px;color:var(--soft)">ONETECH puede suplir e instalar los equipos; se cotizan aparte.</p>
+<p style="margin-top:16px;color:var(--soft)">OneTech puede suplir e instalar los equipos; se cotizan aparte.</p>
 </div>
 </section>
 
@@ -288,14 +288,14 @@ p{margin:0 0 12px;max-width:68ch}
 <li>Iniciar la prueba de 30 días</li>
 </ul>
 <div class="btns" id="contacto" hidden></div>
-<p class="pie"><span id="quien">ONETECH</span> · prezcio.app<br><span id="vigencia">Esta propuesta es válida por 30 días a partir del 25 de noviembre de 2026.</span></p>
+<p class="pie"><span id="quien">OneTech</span> · prezcio.app<br><span id="vigencia">Esta propuesta es válida por 30 días a partir del 25 de noviembre de 2026.</span></p>
 </div>
 <div>
 <h3 style="color:#fff">Aceptación</h3>
 <p>Al firmar, el cliente acepta iniciar la prueba de 30 días en las condiciones de esta propuesta.</p>
 <div class="firma">
 <div>Cliente<br>Nombre, firma y fecha</div>
-<div>ONETECH<br>Nombre, firma y fecha</div>
+<div>OneTech<br>Nombre, firma y fecha</div>
 </div>
 </div>
 </div>
@@ -349,7 +349,7 @@ const cond=[
 ['Vencimiento','El panel avisa 15 días antes. Al vencer hay 7 días de gracia; después los lectores dejan de mostrar precios hasta renovar. Tus datos se conservan.'],
 ['Cancelación','Sin penalidad: el servicio sigue hasta el final del período pagado.'],
 ['Soporte','Por WhatsApp y correo. Las actualizaciones están incluidas.'],
-['Tus datos','Precios, inventarios y ofertas son del negocio. Ni ONETECH ni otros clientes pueden verlos, y puedes descargar un respaldo cuando quieras.'],
+['Tus datos','Precios, inventarios y ofertas son del negocio. Ni OneTech ni otros clientes pueden verlos, y puedes descargar un respaldo cuando quieras.'],
 ['Seguridad','Cada empleado entra con su usuario y clave, con permisos por sucursal; las apps piden credenciales al abrirse.']];
 const q=new URLSearchParams(location.search);
 const para=(q.get('para')||'').trim().slice(0,60);
@@ -357,12 +357,12 @@ const f=/^\d{4}-\d{2}-\d{2}$/.test(q.get('f')||'')?new Date(q.get('f')+'T12:00:0
 const fecha=d=>d.toLocaleDateString('es-DO',{day:'numeric',month:'long',year:'numeric'});
 if(para||f){
 const d=f&&!isNaN(f)?f:new Date(2026,10,25,12);
-document.getElementById('de').textContent='Propuesta de ONETECH'+(para?' para '+para:'')+' · '+fecha(d);
+document.getElementById('de').textContent='Propuesta de OneTech'+(para?' para '+para:'')+' · '+fecha(d);
 document.getElementById('vigencia').textContent='Esta propuesta es válida por 30 días a partir del '+fecha(d)+'.';
 if(para)document.title='Propuesta Prezcio · '+para;
 }
 const cn=(q.get('c')||'').trim().slice(0,60),cw=(q.get('w')||'').replace(/\D/g,'').slice(0,15),ce=(q.get('e')||'').trim().slice(0,80);
-if(cn)document.getElementById('quien').textContent='ONETECH · '+cn;
+if(cn)document.getElementById('quien').textContent='OneTech · '+cn;
 const caja=document.getElementById('contacto');
 if(cw){const a=document.createElement('a');a.className='btn si';a.href='https://wa.me/'+cw+'?text='+encodeURIComponent('Hola, vi la propuesta de Prezcio y quiero agendar la demo.');a.textContent='Agendar la demo por WhatsApp';caja.append(a);caja.hidden=false}
 if(ce&&/^[^\s@]+@[^\s@]+$/.test(ce)){const p=document.createElement('span');p.style.cssText='align-self:center;color:#D9E2EC';p.textContent=ce;caja.append(p);caja.hidden=false}
