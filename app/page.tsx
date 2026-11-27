@@ -40,11 +40,13 @@ export default async function Inicio({ searchParams }: Props) {
         Carga tus precios desde Excel, Google o tu sistema, y pon verificadores en cada sucursal. Funcionan aunque se
         caiga el internet.
       </p>
-      <p className="quieto pequeno">¿Quieres Prezcio en tu negocio? Mira los planes y cómpralo en línea en Onetech.</p>
       <div className="fila" style={{ marginTop: 24, gap: 12, flexWrap: "wrap" }}>
         <Link className="boton" href="/entrar">Entrar</Link>
-        <a className="boton secundario" href="https://onetech-web.vercel.app/prezcio#precios" rel="noopener">Planes y precios</a>
       </div>
+      <a href="https://www.onetechrd.com/prezcio" rel="noopener" className="conoce">
+        <span><b>¿Todavía no eres cliente?</b><br /><span className="quieto pequeno">Conoce Prezcio: funciones, planes, descargas y prueba de 30 días.</span></span>
+        <span aria-hidden="true">→</span>
+      </a>
     </EntradaMarco>
   );
 }
