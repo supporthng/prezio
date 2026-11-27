@@ -291,7 +291,7 @@ p{margin:0 0 12px;max-width:68ch}
 <p>Es un servicio adicional en cualquier plan, por cada sucursal que lo active. Complementa el verificador: hay clientes que prefieren no usar el teléfono.</p>
 </div>
 <div class="cuenta" aria-live="polite">
-<div><span>Precio por sucursal</span><b id="m-precio">RD$ 2,000 al mes</b></div>
+<div><span>Precio por sucursal</span><b id="m-precio">RD$ 990 al mes</b></div>
 <div><span>Verificador todo en uno</span><b>RD$ 22,950 por equipo</b></div>
 <div><span>Clientes consultando a la vez</span><b>Sin límite</b></div>
 </div>
@@ -365,7 +365,7 @@ const monto=p.m==null?'A medida':rd(anual?p.m*12*.9:p.m);
 const per=p.m==null?'Cotizamos según tu operación':anual?`al año · ahorras ${rd(p.m*12*.1)}`:`al mes · ${rd(p.m/p.l)} por lector`;
 return `<article class="card plan${p.rec?' rec':''}">${p.rec?'<span class="etq">Recomendado</span>':''}<h3>${p.n}</h3><p>${p.d}</p><div class="monto">${monto}</div><div class="per">${per}</div><ul><li>Lectores<b>${p.l}</b></li><li>Sucursales<b>${p.s}</b></li><li>Usuarios<b>${p.u}</b></li><li>PCs con la app<b>${p.pc}</b></li></ul></article>`}).join('');
 document.getElementById('nota-modo').textContent=anual?'Precios en pesos dominicanos, por año: 12 meses con 10% de descuento.':'Precios en pesos dominicanos, mensuales.';
-document.getElementById('m-precio').textContent=anual?rd(2000*12*.9)+' al año':rd(2000)+' al mes';
+document.getElementById('m-precio').textContent=anual?rd(990*12*.9)+' al año':rd(990)+' al mes';
 document.getElementById('b-mes').setAttribute('aria-pressed',String(!anual));
 document.getElementById('b-ano').setAttribute('aria-pressed',String(anual));
 };
