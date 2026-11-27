@@ -409,8 +409,17 @@ export function VistaPropuestas({ sitio, ajustes, planes = [] }: { sitio: string
   const enlace = `${base}/propuesta.html?${q.toString()}`;
   const pdf = `${base}/propuesta-prezcio.pdf`;
   const video = `${base}/prezcio-promo.mp4`;
-  const saludo = para.trim() ? `Hola, ${para.trim()}` : "Hola";
-  const mensaje = `${saludo}. Te comparto la propuesta de Prezcio, los verificadores de precios de ONETECH: tus clientes escanean y ven el precio correcto al instante, con tus ofertas en pantalla.\n\nPuedes probarlo 30 días sin costo.\n\nVideo (1 min): ${video}\nPropuesta: ${enlace}\nEn PDF: ${pdf}`;
+  const saludo = para.trim() ? `👋 Hola, ${para.trim()}` : "👋 Hola";
+  const firma = ajustes.contacto_nombre ? `\n\n${ajustes.contacto_nombre} · ONETECH` : "";
+  const mensaje = [
+    `${saludo}:`,
+    "¿Cuántas ventas se pierden cuando un cliente no encuentra el precio, o lo ve distinto en caja?",
+    "Con *Prezcio* de ONETECH tus clientes escanean el producto y ven al instante el precio correcto y tus ofertas, en un verificador dentro de la tienda o desde su propio celular.",
+    "✅ Precios siempre al día desde tu inventario o tu sistema\n✅ Ofertas en pantalla justo cuando el cliente decide\n✅ Menos preguntas en caja y menos reclamos por precios\n✅ Reportes de lo que más consultan tus clientes",
+    "🎁 *Pruébalo 30 días sin costo*, sin compromiso.",
+    `▶️ Míralo en 1 minuto: ${video}\n📄 Propuesta: ${enlace}\n📎 En PDF: ${pdf}`,
+    `¿Te agendo una demostración esta semana? Respóndeme por aquí y coordinamos.${firma}`,
+  ].join("\n\n");
   const numero = numeroWhatsApp(tel);
   const wa = `https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}`;
   const sinContacto = !ajustes.contacto_whatsapp && !ajustes.contacto_correo;
