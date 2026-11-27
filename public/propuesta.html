@@ -272,14 +272,14 @@ p{margin:0 0 12px;max-width:68ch}
 <section class="band alt" id="planes">
 <div class="in">
 <div class="planes-top">
-<div><h2>Un plan para cada tamaño de negocio.</h2><p class="lead" id="nota-modo">Precios en pesos dominicanos, mensuales.</p></div>
+<div><h2>Mientras más creces, menos pagas por lector.</h2><p class="lead" id="nota-modo">Precios en pesos dominicanos, mensuales.</p></div>
 <div class="modo" role="group" aria-label="Forma de pago">
 <button type="button" id="b-mes" aria-pressed="true">Mensual</button>
 <button type="button" id="b-ano" aria-pressed="false">Anual <small>−10%</small></button>
 </div>
 </div>
 <div class="grid g4" id="lista-planes" style="margin-top:26px"></div>
-<p style="margin-top:18px;color:var(--soft)">Todos los planes incluyen ofertas en pantalla, actualizaciones y soporte. Los precios no incluyen ITBIS, equipos ni instalación en sitio. Puedes cambiar de plan cuando lo necesites.</p>
+<p style="margin-top:18px;color:var(--soft)">¿Te falta un lector? Agrégalo a cualquier plan por RD$ 750 al mes, sin cambiar de plan. Todos los planes incluyen ofertas en pantalla, actualizaciones y soporte. Los precios no incluyen ITBIS, equipos ni instalación en sitio. Puedes cambiar de plan cuando lo necesites.</p>
 </div>
 </section>
 
@@ -354,8 +354,8 @@ document.getElementById('funciones').innerHTML=fun.map(f=>`<div class="card"><di
 
 const planes=[
 {n:'Básico',m:1990,l:2,s:1,u:3,pc:1,d:'Para el colmado o la tienda pequeña: un lector en la entrada y otro en el pasillo.'},
-{n:'Negocio',m:5000,l:4,s:2,u:5,pc:2,d:'Para el supermercado o la farmacia con varios pasillos.',rec:1},
-{n:'Profesional',m:9000,l:8,s:5,u:10,pc:3,d:'Para cadenas con varias sucursales.'},
+{n:'Negocio',m:3490,l:4,s:2,u:5,pc:2,d:'Para el supermercado o la farmacia con varios pasillos.',rec:1},
+{n:'Profesional',m:5990,l:8,s:5,u:10,pc:3,d:'Para cadenas con varias sucursales.'},
 {n:'Empresarial',m:null,l:'Sin límite',s:'Sin límite',u:'Sin límite',pc:5,d:'Desde 9 lectores o 6 sucursales.'}];
 const rd=v=>'RD$ '+Math.round(v).toLocaleString('en-US');
 let anual=false;
