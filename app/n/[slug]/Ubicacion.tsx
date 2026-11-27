@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { coordenadasDeTexto, enlaceGoogleMaps, esEnlaceCorto, mapaEmbebido } from "@/lib/ubicacion";
 import { guardarUbicacion } from "./actions";
 
@@ -19,6 +19,36 @@ export function Ubicacion({ slug, sucursal, nombre, geo }: Props) {
   const [enlace, setEnlace] = useState("");
   const [aviso, setAviso] = useState("");
   const punto = coordenadasDeTexto(`${lat}, ${lon}`);
+
+  // Buscar el negocio o la dirección por nombre.
+  type Lugar = { nombre: string; direccion: string; latitud: number; longitud: number };
+  const [busca, setBusca] = useState("");
+  const [lugares, setLugares] = useState<Lugar[] | null>(null);
+  const [buscando, setBuscando] = useState(false);
+  const pedido = useRef(0);
+  useEffect(() => {
+    const q = busca.trim();
+    if (q.length < 3) { setLugares(null); setBuscando(false); return; }
+    const n = ++pedido.current;
+    setBuscando(true);
+    const t = setTimeout(async () => {
+      try {
+        const cerca = punto ? `&lat=${punto.latitud}&lon=${punto.longitud}` : "";
+        const r = await fetch(`/api/lugares?q=${encodeURIComponent(q)}${cerca}`);
+        const j = (await r.json()) as { lugares?: Lugar[]; error?: string };
+        if (n !== pedido.current) return;
+        if (j.error) { setAviso(j.error); setLugares([]); } else setLugares(j.lugares ?? []);
+      } catch { if (n === pedido.current) { setAviso("No se pudo buscar ahora. Intenta de nuevo."); setLugares([]); } }
+      finally { if (n === pedido.current) setBuscando(false); }
+    }, 450);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [busca]);
+  function elegir(l: Lugar) {
+    setLat(l.latitud.toFixed(6)); setLon(l.longitud.toFixed(6));
+    setAviso(`Ubicación de «${l.nombre}». Revisa en el mapa que el punto quede sobre la tienda.`);
+    setLugares(null); setBusca("");
+  }
 
   function desdeEnlace(texto: string) {
     setEnlace(texto);
@@ -55,6 +85,21 @@ export function Ubicacion({ slug, sucursal, nombre, geo }: Props) {
         <p className="quieto pequeno" style={{ marginTop: 0 }}>
           Para la consulta desde el celular de los clientes: solo funciona a menos de esta distancia de «{nombre}».
         </p>
+        <div className="campo ubicacion-busca">
+          <label htmlFor={`busca-${sucursal}`}>Busca el negocio o la dirección</label>
+          <input id={`busca-${sucursal}`} type="search" value={busca} onChange={(e) => setBusca(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); if (lugares?.[0]) elegir(lugares[0]); } }}
+            placeholder="Ej.: Supermercado Bravo Churchill" autoComplete="off" enterKeyHint="search" />
+          {busca.trim().length >= 3 && (
+            <ul className="ubicacion-lugares" role="listbox" aria-busy={buscando}>
+              {buscando && !lugares?.length && <li className="quieto pequeno">Buscando…</li>}
+              {!buscando && lugares?.length === 0 && <li className="quieto pequeno">No apareció. Prueba con la calle y el sector, o usa la ubicación del dispositivo estando en la tienda.</li>}
+              {lugares?.map((l, i) => (
+                <li key={i}><button type="button" onClick={() => elegir(l)}><strong>{l.nombre}</strong><span>{l.direccion}</span></button></li>
+              ))}
+            </ul>
+          )}
+        </div>
         <div className="fila">
           <button className="boton secundario" type="button" onClick={desdeDispositivo}>Usar la ubicación de este dispositivo</button>
           <div className="campo" style={{ marginBottom: 0, flex: "2 1 260px" }}>

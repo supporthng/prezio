@@ -998,3 +998,10 @@ button.enlace { background: none; border: 0; padding: 0; color: inherit; text-de
 .mv-fuera-pasos { margin: 4px 0 0; padding-left: 1.3em; text-align: left; line-height: 1.6; }
 .mv-boton.fuera { margin-top: 14px; background: #fff; color: #9b1424; box-shadow: 0 5px 0 rgba(0, 0, 0, .2); }
 @media (prefers-reduced-motion: reduce) { .mv-fuera-icono { animation: none; } }
+.ubicacion-busca { position: relative; }
+.ubicacion-lugares { list-style: none; margin: 6px 0 0; padding: 4px; border: 1px solid var(--linea); border-radius: 12px; max-height: 320px; overflow: auto; }
+.ubicacion-lugares li.quieto { padding: 10px 12px; }
+.ubicacion-lugares button { display: flex; flex-direction: column; gap: 2px; width: 100%; padding: 10px 12px; border: 0; border-radius: 9px;
+  background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.ubicacion-lugares button:hover, .ubicacion-lugares button:focus-visible { background: color-mix(in srgb, currentColor 9%, transparent); }
+.ubicacion-lugares button span { font-size: .85rem; opacity: .7; }
