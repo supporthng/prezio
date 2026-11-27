@@ -43,7 +43,7 @@ export default async function Inicio({ searchParams }: Props) {
       <p className="quieto pequeno">¿Quieres Prezcio en tu negocio? Mira los planes y cómpralo en línea en Onetech.</p>
       <div className="fila" style={{ marginTop: 24, gap: 12, flexWrap: "wrap" }}>
         <Link className="boton" href="/entrar">Entrar</Link>
-        <a className="boton secundario" href="https://onetech-web.vercel.app/prezcio#precios" rel="noopener">Planes y precios</a>
+        <a className="boton secundario" href="https://www.onetechrd.com/prezcio#precios" rel="noopener">Planes y precios</a>
       </div>
     </EntradaMarco>
   );
