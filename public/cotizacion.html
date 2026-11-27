@@ -121,7 +121,7 @@ tr.tot td{border-top:2px solid var(--navy);font-weight:700;font-size:17px}
 <script>
 {
 // Planes por defecto (si el enlace no trae los del portal).
-const PLANES={basico:{n:'Básico',m:1990,l:2,s:1,u:3},negocio:{n:'Negocio',m:5000,l:4,s:2,u:5},profesional:{n:'Profesional',m:9000,l:8,s:5,u:10}};
+const PLANES={basico:{n:'Básico',m:1990,l:2,s:1,u:3},negocio:{n:'Negocio',m:3490,l:4,s:2,u:5},profesional:{n:'Profesional',m:5990,l:8,s:5,u:10}};
 const q=new URLSearchParams(location.search);
 const num=(k,d=0,max=1e9)=>{const r=q.get(k);if(r===null||r.trim()==='')return d;const v=Number(r);return Number.isFinite(v)&&v>=0?Math.min(v,max):d};
 const txt=(k,d='',max=80)=>((q.get(k)||'').trim().slice(0,max))||d;
@@ -130,6 +130,7 @@ const plan={n:txt('pn',base.n,30),m:num('pm',base.m),l:txt('pl',String(base.l),1
 const anual=q.get('per')==='anual';
 const desc=num('d',10,50);
 const movil=num('mv',0,999), movilPrecio=num('mp',2000);
+const lectores=num('la',0,999), lectorPrecio=num('lp',750);
 const equipos=num('eq',0,999), equipoPrecio=num('ep',22950);
 const inst=q.get('in')===null?null:num('in',0);
 const itbis=q.get('it')!=='0';
@@ -149,8 +150,10 @@ const v=new Date(f);v.setDate(v.getDate()+30);T('vence','Válida hasta el '+fech
 const meses=anual?12:1;
 const precioPlan=anual?Math.round(plan.m*12*(100-desc))/100:plan.m;
 const precioMovil=anual?Math.round(movilPrecio*12*(100-desc))/100:movilPrecio;
+const precioLector=anual?Math.round(lectorPrecio*12*(100-desc))/100:lectorPrecio;
 const L=[];
 L.push(['Plan '+plan.n+(anual?' · anual':' · mensual'),`${plan.l} lector${plan.l==='1'?'':'es'} · ${plan.s} sucursal${plan.s==='1'?'':'es'} · ${plan.u} usuarios`+(anual&&desc?` · incluye ${desc}% de descuento`:''),1,precioPlan,true]);
+if(lectores>0)L.push(['Lector adicional'+(anual?' · anual':' · mensual'),'Lectores además de los que incluye el plan',lectores,precioLector,true]);
 if(movil>0)L.push(['Consulta desde el celular'+(anual?' · anual':' · mensual'),'Un QR por sucursal; cada cliente consulta con su teléfono',movil,precioMovil,true]);
 if(equipos>0)L.push(['Verificador todo en uno','Pantalla táctil 5", lector 1D/2D/QR integrado, Android, base de pared · con Prezcio instalado',equipos,equipoPrecio,false]);
 if(inst!==null&&inst>0)L.push(['Instalación y configuración','Conector a la facturación, vinculación de equipos y capacitación',1,inst,false]);
